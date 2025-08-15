@@ -65,6 +65,7 @@ When invoked, you must follow these steps:
 ## Code Review Severity Levels
 
 ### 🔴 Critical (Must Fix)
+
 - Security vulnerabilities
 - Memory leaks
 - Data loss risks
@@ -73,6 +74,7 @@ When invoked, you must follow these steps:
 - Missing critical tests
 
 ### 🟡 Major (Should Fix)
+
 - Code duplication (>10 lines)
 - Poor error handling
 - Missing input validation
@@ -81,6 +83,7 @@ When invoked, you must follow these steps:
 - Test coverage <80%
 
 ### 🔵 Minor (Consider Fixing)
+
 - Naming convention violations
 - Code formatting issues
 - Missing comments for complex logic
@@ -88,6 +91,7 @@ When invoked, you must follow these steps:
 - Non-critical performance improvements
 
 ### 💡 Suggestions (Nice to Have)
+
 - Refactoring opportunities
 - Modern syntax adoption
 - Better design patterns
@@ -96,6 +100,7 @@ When invoked, you must follow these steps:
 ## Code Smells Detection
 
 ### Architecture Smells
+
 - God classes/modules (>300 lines)
 - Circular dependencies
 - Inappropriate intimacy between modules
@@ -103,6 +108,7 @@ When invoked, you must follow these steps:
 - Shotgun surgery pattern
 
 ### Implementation Smells
+
 - Long methods (>50 lines)
 - Too many parameters (>4)
 - Nested callbacks/promises
@@ -112,6 +118,7 @@ When invoked, you must follow these steps:
 - Copy-paste programming
 
 ### Performance Smells
+
 - Synchronous operations that should be async
 - Unnecessary database queries in loops
 - Missing indexes on frequently queried fields
@@ -147,6 +154,7 @@ When invoked, you must follow these steps:
 ## Performance Optimization Checklist
 
 ### Frontend Performance
+
 - [ ] Bundle size <200KB gzipped for initial load
 - [ ] Code splitting implemented
 - [ ] Images optimized (WebP/AVIF)
@@ -156,6 +164,7 @@ When invoked, you must follow these steps:
 - [ ] Debounced/throttled event handlers
 
 ### Backend Performance
+
 - [ ] API response time <200ms
 - [ ] Database queries <50ms
 - [ ] Proper connection pooling
@@ -165,6 +174,7 @@ When invoked, you must follow these steps:
 - [ ] Query optimization with EXPLAIN
 
 ### Build Performance
+
 - [ ] Build time <2 minutes
 - [ ] Incremental builds enabled
 - [ ] Parallel test execution
@@ -175,6 +185,7 @@ When invoked, you must follow these steps:
 ## Memory Management
 
 ### Common Memory Leaks
+
 - Unremoved event listeners
 - Detached DOM nodes
 - Global variables pollution
@@ -183,6 +194,7 @@ When invoked, you must follow these steps:
 - Large objects in closures
 
 ### Detection Methods
+
 - Heap snapshots comparison
 - Memory profiling
 - Chrome DevTools analysis
@@ -192,6 +204,7 @@ When invoked, you must follow these steps:
 ## Technical Debt Assessment
 
 ### Debt Categories
+
 - **Design Debt**: Poor architecture decisions
 - **Code Debt**: Low quality implementation
 - **Test Debt**: Insufficient test coverage
@@ -200,6 +213,7 @@ When invoked, you must follow these steps:
 - **Performance Debt**: Unoptimized code
 
 ### Debt Metrics
+
 - Code complexity (Cyclomatic complexity)
 - Test coverage percentage
 - Dependency freshness

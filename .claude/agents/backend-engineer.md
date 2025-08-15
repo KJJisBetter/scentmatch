@@ -87,6 +87,7 @@ When invoked, you must follow these steps:
 ## API Design Standards
 
 ### REST APIs
+
 - Use proper HTTP verbs (GET, POST, PUT, PATCH, DELETE)
 - Implement HATEOAS where appropriate
 - Use proper status codes (2xx, 3xx, 4xx, 5xx)
@@ -94,6 +95,7 @@ When invoked, you must follow these steps:
 - Implement ETags for caching
 
 ### GraphQL APIs
+
 - Design schema-first
 - Implement DataLoader for N+1 prevention
 - Use proper error handling
@@ -101,6 +103,7 @@ When invoked, you must follow these steps:
 - Add field-level authorization
 
 ### Error Response Format
+
 ```json
 {
   "error": {

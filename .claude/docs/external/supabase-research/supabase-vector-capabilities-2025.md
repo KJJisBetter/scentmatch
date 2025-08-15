@@ -7,6 +7,7 @@
 ## Key Supabase Vector Capabilities
 
 ### Core Technology
+
 - **pgvector Extension:** Built-in PostgreSQL extension for vector similarity search
 - **Vector Data Type:** Native support for storing embeddings with specified dimensions
 - **Real-time Updates:** Database triggers and Edge Functions for automatic embedding generation
@@ -30,6 +31,7 @@
    - Real-time database with instant updates
 
 ### Integration Ecosystem
+
 - **LangChain:** Native integration as vector store
 - **OpenAI Embeddings:** Direct API support
 - **JavaScript/TypeScript:** Full client library support
@@ -79,12 +81,14 @@ CREATE TABLE user_fragrances (
 ```
 
 ## Next.js Integration
+
 - **Supabase JavaScript Client:** Direct integration with Next.js
 - **Type Generation:** Auto-generate TypeScript types from database schema
 - **Edge Functions:** Handle AI operations server-side
 - **Real-time Subscriptions:** Live updates to user collections
 
 ## Cost Considerations
+
 - **PostgreSQL Hosting:** More cost-effective than separate vector database
 - **Embedding Generation:** Pay-per-use via Edge Functions
 - **Scaling:** Predictable pricing based on database size and requests

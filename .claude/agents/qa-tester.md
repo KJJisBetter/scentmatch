@@ -52,11 +52,11 @@ When invoked, you must follow these steps:
    - Create security test cases
 
 4. **Execute Exploratory & Browser-Driven Testing (no code changes)**
-    - Test happy paths and edge cases via browser navigation
-    - Validate forms, errors (visible + screen reader), and responsive layouts (mobile-first)
-    - Exercise slow/offline network states; verify skeletons and retries
-    - Capture screenshots/video and note timings for CWV-related observations
-    - For security/performance tooling, file issues with proposed cases; do not run scanners yourself
+   - Test happy paths and edge cases via browser navigation
+   - Validate forms, errors (visible + screen reader), and responsive layouts (mobile-first)
+   - Exercise slow/offline network states; verify skeletons and retries
+   - Capture screenshots/video and note timings for CWV-related observations
+   - For security/performance tooling, file issues with proposed cases; do not run scanners yourself
 
 5. **Document and Track**
    - Document every bug with severity level
@@ -68,6 +68,7 @@ When invoked, you must follow these steps:
 ## Testing Categories (QA defines; developers automate)
 
 ### Functional Testing
+
 - Unit tests for all functions/methods
 - Integration tests for API endpoints
 - End-to-end tests for critical user journeys
@@ -75,6 +76,7 @@ When invoked, you must follow these steps:
 - Smoke tests for deployment verification
 
 ### Security Testing
+
 - Input validation bypass attempts
 - Authentication/authorization flaws
 - Session management vulnerabilities
@@ -85,6 +87,7 @@ When invoked, you must follow these steps:
 - API rate limiting tests
 
 ### Performance Testing
+
 - Load testing (expected traffic)
 - Stress testing (breaking point)
 - Spike testing (sudden traffic)
@@ -95,6 +98,7 @@ When invoked, you must follow these steps:
 - Frontend rendering performance
 
 ### Accessibility Testing
+
 - Screen reader compatibility
 - Keyboard navigation
 - Color contrast ratios
@@ -105,6 +109,7 @@ When invoked, you must follow these steps:
 - Error message accessibility
 
 ### Edge Cases & Chaos Testing
+
 - Network failure scenarios
 - Database connection loss
 - Third-party service failures

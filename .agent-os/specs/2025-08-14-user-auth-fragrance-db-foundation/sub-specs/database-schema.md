@@ -7,6 +7,7 @@ This is the database schema implementation for the spec detailed in @.agent-os/s
 ### New Tables
 
 #### 1. User Profiles Table (extends Supabase auth.users)
+
 ```sql
 CREATE TABLE public.user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -37,6 +38,7 @@ CREATE INDEX idx_user_profiles_updated_at ON public.user_profiles(updated_at);
 ```
 
 #### 2. Fragrance Brands Table
+
 ```sql
 CREATE TABLE public.fragrance_brands (
   id SERIAL PRIMARY KEY,
@@ -56,11 +58,12 @@ CREATE INDEX idx_fragrance_brands_name ON public.fragrance_brands(name);
 CREATE INDEX idx_fragrance_brands_active ON public.fragrance_brands(is_active);
 
 -- Full-text search
-CREATE INDEX idx_fragrance_brands_search ON public.fragrance_brands 
+CREATE INDEX idx_fragrance_brands_search ON public.fragrance_brands
   USING GIN(to_tsvector('english', name || ' ' || COALESCE(description, '')));
 ```
 
 #### 3. Fragrances Table
+
 ```sql
 CREATE TABLE public.fragrances (
   id SERIAL PRIMARY KEY,
@@ -82,7 +85,7 @@ CREATE TABLE public.fragrances (
   embedding VECTOR(1024), -- For future AI recommendations
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT unique_fragrance_brand UNIQUE(name, brand_id)
 );
@@ -107,9 +110,9 @@ CREATE INDEX idx_fragrances_brand_active ON public.fragrances(brand_id, is_disco
 CREATE INDEX idx_fragrances_family_gender ON public.fragrances(fragrance_family, gender);
 
 -- Full-text search index
-CREATE INDEX idx_fragrances_search ON public.fragrances 
-  USING GIN(to_tsvector('english', 
-    name || ' ' || 
+CREATE INDEX idx_fragrances_search ON public.fragrances
+  USING GIN(to_tsvector('english',
+    name || ' ' ||
     COALESCE(description, '') || ' ' ||
     array_to_string(top_notes, ' ') || ' ' ||
     array_to_string(middle_notes, ' ') || ' ' ||
@@ -117,12 +120,13 @@ CREATE INDEX idx_fragrances_search ON public.fragrances
   ));
 
 -- Vector similarity index for future AI recommendations
-CREATE INDEX idx_fragrances_embedding ON public.fragrances 
+CREATE INDEX idx_fragrances_embedding ON public.fragrances
   USING ivfflat (embedding vector_cosine_ops)
   WITH (lists = 100);
 ```
 
 #### 4. User Collections Table
+
 ```sql
 CREATE TABLE public.user_collections (
   id SERIAL PRIMARY KEY,
@@ -139,7 +143,7 @@ CREATE TABLE public.user_collections (
   seasons TEXT[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT unique_user_fragrance UNIQUE(user_id, fragrance_id)
 );
@@ -175,6 +179,7 @@ CREATE INDEX idx_user_collections_user_wishlist ON public.user_collections(user_
 ### Migration Scripts
 
 #### Migration 001: Create Extensions
+
 ```sql
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "vector";
@@ -192,6 +197,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 #### Migration 002: Create User Profiles
+
 ```sql
 -- Create user_profiles table with full implementation from above
 -- (Complete SQL from User Profiles section)
@@ -203,6 +209,7 @@ CREATE TRIGGER set_updated_at_user_profiles
 ```
 
 #### Migration 003: Create Fragrance Brands
+
 ```sql
 -- Create fragrance_brands table with full implementation from above
 -- (Complete SQL from Fragrance Brands section)
@@ -214,6 +221,7 @@ CREATE TRIGGER set_updated_at_fragrance_brands
 ```
 
 #### Migration 004: Create Fragrances
+
 ```sql
 -- Create fragrances table with full implementation from above
 -- (Complete SQL from Fragrances section)
@@ -228,14 +236,14 @@ CREATE OR REPLACE FUNCTION update_fragrance_popularity()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Update popularity based on collection additions
-  UPDATE public.fragrances 
+  UPDATE public.fragrances
   SET popularity_score = (
-    SELECT COUNT(*) 
-    FROM public.user_collections 
+    SELECT COUNT(*)
+    FROM public.user_collections
     WHERE fragrance_id = NEW.fragrance_id AND is_owned = TRUE
   )
   WHERE id = NEW.fragrance_id;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -246,6 +254,7 @@ CREATE TRIGGER update_popularity_on_collection_change
 ```
 
 #### Migration 005: Create User Collections
+
 ```sql
 -- Create user_collections table with full implementation from above
 -- (Complete SQL from User Collections section)
@@ -259,10 +268,11 @@ CREATE TRIGGER set_updated_at_user_collections
 ### Performance Optimizations
 
 #### Materialized Views for Common Queries
+
 ```sql
 -- Popular fragrances view
 CREATE MATERIALIZED VIEW popular_fragrances AS
-SELECT 
+SELECT
   f.*,
   b.name as brand_name,
   COUNT(uc.id) as collection_count,
@@ -280,6 +290,7 @@ CREATE INDEX idx_popular_fragrances_rating ON popular_fragrances(average_rating 
 ```
 
 #### Search Functions
+
 ```sql
 -- Enhanced fragrance search function
 CREATE OR REPLACE FUNCTION search_fragrances(
@@ -305,7 +316,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     f.id,
     f.name,
     b.name as brand_name,
@@ -315,8 +326,8 @@ BEGIN
     f.price_range,
     f.image_url,
     f.popularity_score,
-    ts_rank(to_tsvector('english', 
-      f.name || ' ' || 
+    ts_rank(to_tsvector('english',
+      f.name || ' ' ||
       COALESCE(f.description, '') || ' ' ||
       b.name || ' ' ||
       array_to_string(f.top_notes, ' ') || ' ' ||
@@ -325,12 +336,12 @@ BEGIN
     ), plainto_tsquery('english', search_term)) as search_rank
   FROM public.fragrances f
   JOIN public.fragrance_brands b ON f.brand_id = b.id
-  WHERE 
+  WHERE
     f.is_discontinued = FALSE
     AND (
       search_term = '' OR
-      to_tsvector('english', 
-        f.name || ' ' || 
+      to_tsvector('english',
+        f.name || ' ' ||
         COALESCE(f.description, '') || ' ' ||
         b.name || ' ' ||
         array_to_string(f.top_notes, ' ') || ' ' ||
@@ -342,7 +353,7 @@ BEGIN
     AND (gender_filter IS NULL OR f.gender = gender_filter)
     AND (family_filter IS NULL OR f.fragrance_family = family_filter)
     AND (price_filter IS NULL OR f.price_range = price_filter)
-  ORDER BY 
+  ORDER BY
     CASE WHEN search_term = '' THEN 0 ELSE search_rank END DESC,
     f.popularity_score DESC,
     f.name ASC
@@ -355,23 +366,27 @@ $$ LANGUAGE plpgsql;
 ### Data Integrity and Rationale
 
 #### Foreign Key Relationships
+
 - **user_profiles.id → auth.users.id**: Extends Supabase auth with custom profile data
 - **fragrances.brand_id → fragrance_brands.id**: Maintains brand-fragrance relationship integrity
 - **user_collections.user_id → auth.users.id**: Links collections to authenticated users
 - **user_collections.fragrance_id → fragrances.id**: Links collections to valid fragrances
 
 #### Row-Level Security Strategy
+
 - **User-specific data**: user_profiles and user_collections enforce auth.uid() matching
 - **Public data**: fragrances and brands are readable by all authenticated users
 - **Admin operations**: Brand and fragrance management requires elevated permissions
 
 #### Performance Considerations
+
 - **Vector indexing**: IVFFlat index with 100 lists optimized for 1,000-10,000 fragrances
 - **Full-text search**: GIN indexes on tsvector for fast text search across multiple fields
 - **Composite indexes**: Optimized for common query patterns (brand + active, user + owned)
 - **Materialized views**: Pre-computed popular fragrances for dashboard display
 
 #### Scaling Projections
+
 - **1,000 users, 500 fragrances**: All queries < 50ms
 - **10,000 users, 2,000 fragrances**: Search queries < 100ms, collection queries < 50ms
 - **100,000 users, 10,000 fragrances**: May need read replicas and connection pooling

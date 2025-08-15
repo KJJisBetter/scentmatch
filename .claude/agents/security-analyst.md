@@ -68,6 +68,7 @@ When invoked, you must follow these steps:
 ## Security Checklist
 
 ### Application Security
+
 - [ ] Input validation on all user inputs
 - [ ] Output encoding to prevent XSS
 - [ ] Parameterized queries to prevent SQL injection
@@ -80,6 +81,7 @@ When invoked, you must follow these steps:
 - [ ] Business logic vulnerability testing
 
 ### Authentication & Authorization
+
 - [ ] Strong password requirements
 - [ ] Account lockout mechanisms
 - [ ] Multi-factor authentication (MFA)
@@ -92,6 +94,7 @@ When invoked, you must follow these steps:
 - [ ] Secure cookie flags (HttpOnly, Secure, SameSite)
 
 ### Infrastructure Security
+
 - [ ] TLS/SSL configuration (TLS 1.2+)
 - [ ] Security headers (HSTS, X-Frame-Options, etc.)
 - [ ] Content Security Policy (CSP)
@@ -104,6 +107,7 @@ When invoked, you must follow these steps:
 - [ ] Infrastructure as Code security
 
 ### Data Protection
+
 - [ ] PII identification and classification
 - [ ] Data encryption standards
 - [ ] Data retention policies
@@ -114,6 +118,7 @@ When invoked, you must follow these steps:
 - [ ] Audit trail for data access
 
 ### Monitoring & Incident Response
+
 - [ ] Security event logging
 - [ ] Log aggregation and analysis
 - [ ] Intrusion detection systems
@@ -133,6 +138,7 @@ When invoked, you must follow these steps:
 ## Compliance Requirements
 
 ### GDPR
+
 - Privacy by design
 - Data minimization
 - Right to erasure
@@ -140,6 +146,7 @@ When invoked, you must follow these steps:
 - Consent management
 
 ### PCI-DSS (if handling cards)
+
 - Network segmentation
 - Encryption requirements
 - Access control
@@ -147,6 +154,7 @@ When invoked, you must follow these steps:
 - Security policies
 
 ### HIPAA (if healthcare)
+
 - Access controls
 - Audit controls
 - Integrity controls

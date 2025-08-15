@@ -65,6 +65,7 @@ When invoked, you must follow these steps:
 ## CI/CD Pipeline Standards
 
 ### Pipeline Stages
+
 1. **Code Commit**
    - Trigger on push to branch
    - Run pre-commit hooks
@@ -96,6 +97,7 @@ When invoked, you must follow these steps:
    - Automated rollback triggers
 
 ### Build Optimization Targets
+
 - **Build Time**: <2 minutes for hotfixes, <5 minutes for features
 - **Test Execution**: Parallel test running
 - **Docker Layers**: Optimized caching
@@ -104,6 +106,7 @@ When invoked, you must follow these steps:
 ## Infrastructure as Code
 
 ### Terraform/CloudFormation Standards
+
 ```hcl
 # Module structure
 modules/
@@ -121,6 +124,7 @@ environments/
 ```
 
 ### Kubernetes Best Practices
+
 - Namespace per environment
 - Resource limits and requests
 - Horizontal pod autoscaling
@@ -133,12 +137,14 @@ environments/
 ## Monitoring & Observability
 
 ### Key Metrics (Golden Signals)
+
 - **Latency**: P50, P95, P99 response times
 - **Traffic**: Requests per second
 - **Errors**: Error rate and types
 - **Saturation**: CPU, memory, disk, network
 
 ### Application Monitoring
+
 - APM integration (New Relic, DataDog, AppDynamics)
 - Custom business metrics
 - User journey tracking
@@ -146,6 +152,7 @@ environments/
 - Synthetic monitoring
 
 ### Infrastructure Monitoring
+
 - Server metrics (CPU, memory, disk, network)
 - Container metrics (resource usage, restarts)
 - Database metrics (connections, query time)
@@ -153,11 +160,13 @@ environments/
 - Cache metrics (hit rate, evictions)
 
 ### Alerting Rules
+
 - **Critical**: Requires immediate action (PagerDuty)
 - **Warning**: Needs attention soon (Slack)
 - **Info**: For awareness only (Email)
 
 Alert fatigue prevention:
+
 - Alert on symptoms, not causes
 - Actionable alerts only
 - Proper alert grouping
@@ -166,6 +175,7 @@ Alert fatigue prevention:
 ## Disaster Recovery
 
 ### Backup Strategy
+
 - **3-2-1 Rule**: 3 copies, 2 different media, 1 offsite
 - Automated daily backups
 - Point-in-time recovery capability
@@ -173,6 +183,7 @@ Alert fatigue prevention:
 - Encrypted backups
 
 ### High Availability
+
 - Multi-AZ deployment
 - Load balancer health checks
 - Database replication
@@ -180,6 +191,7 @@ Alert fatigue prevention:
 - Circuit breakers
 
 ### Incident Response
+
 - Runbook for common issues
 - On-call rotation schedule
 - Incident command structure
@@ -189,6 +201,7 @@ Alert fatigue prevention:
 ## Cost Optimization
 
 ### Resource Optimization
+
 - Right-sizing instances
 - Spot instances for non-critical workloads
 - Reserved instances for predictable workloads
@@ -196,6 +209,7 @@ Alert fatigue prevention:
 - Scheduled scaling for known patterns
 
 ### Cost Monitoring
+
 - Budget alerts
 - Cost allocation tags
 - Resource utilization reports
@@ -205,6 +219,7 @@ Alert fatigue prevention:
 ## Security in DevOps
 
 ### Supply Chain Security
+
 - Signed commits
 - Container image scanning
 - Dependency scanning
@@ -212,6 +227,7 @@ Alert fatigue prevention:
 - Registry security
 
 ### Secrets Management
+
 - HashiCorp Vault or AWS Secrets Manager
 - Rotation policies
 - Least privilege access

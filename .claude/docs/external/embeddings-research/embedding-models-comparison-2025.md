@@ -15,6 +15,7 @@
 5. **Gemini text-embedding-004** - Google's offering (768 dimensions)
 
 ### Voyage AI Specifically
+
 - **Voyage-3-large:** Just released, leading embedding relevance benchmarks
 - **Voyage-3-light:** Smaller model (512 dimensions) for faster processing
 - Used by Anthropic (Claude) for safety-first text understanding
@@ -30,11 +31,13 @@ Based on research, **Voyage AI appears to be the best choice** for fragrance rec
 4. **Anthropic Partnership:** Used by Claude, indicating high quality and safety standards
 
 ### Academic Research on Fragrance NLP
+
 Found specific research: "An NLP-Based Perfume Note Estimation Based on Descriptive..." (MDPI 2024) - indicates active research in fragrance + NLP space.
 
 ## Recommendations for ScentMatch
 
 **Primary Choice:** Voyage AI for embeddings
+
 - Use voyage-3-large for main recommendation engine
 - Consider voyage-3-light for real-time similarity searches
 

@@ -36,6 +36,7 @@ The fragrance market lacks accessible, personalized discovery tools. Current opt
 ### Rationale
 
 Key factors in decision:
+
 - Market gap: No existing platform combines AI personalization with sample-first approach
 - User pain points: Expensive fragrance discovery process creates barrier to entry
 - Technology opportunity: AI can provide explanatory recommendations humans cannot scale
@@ -45,12 +46,14 @@ Key factors in decision:
 ### Consequences
 
 **Positive:**
+
 - Unique market positioning with AI-powered personalization
 - Solves real user problems around expensive fragrance discovery
 - Scalable business model through affiliate partnerships
 - Educational approach builds user trust and loyalty
 
 **Negative:**
+
 - Complex AI development requirements
 - Dependency on fragrance data quality and availability
 - Need to establish affiliate partnerships for monetization
@@ -84,7 +87,7 @@ User specifically requested "Modern, Fast, Clean, and Smooth" technology stack w
 ### Rationale
 
 - User explicitly requested modern stack and Shadcn/ui
-- AI integration requires robust frontend for complex recommendation interfaces  
+- AI integration requires robust frontend for complex recommendation interfaces
 - Next.js App Router provides optimal performance for content-heavy application
 - Vercel ecosystem offers integrated deployment, analytics, and AI tools
 - TypeScript ensures code quality for complex AI logic
@@ -92,12 +95,14 @@ User specifically requested "Modern, Fast, Clean, and Smooth" technology stack w
 ### Consequences
 
 **Positive:**
+
 - Meets user's specific technology requirements
 - Optimal performance for AI-heavy application
 - Modern developer experience and tooling
 - Strong ecosystem for rapid feature development
 
 **Negative:**
+
 - Deviation from global Ruby on Rails standards
 - Team may need Next.js learning curve
 - More complex initial setup than traditional frameworks

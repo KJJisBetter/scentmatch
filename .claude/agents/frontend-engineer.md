@@ -84,6 +84,7 @@ When invoked, you must follow these steps:
 ## Deprecation Warnings
 
 When you identify deprecated patterns, you must:
+
 1. Flag the deprecation immediately with severity level
 2. Provide migration path to modern alternative
 3. Estimate effort required for migration

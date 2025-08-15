@@ -11,6 +11,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 5 requests per minute per IP
 
 **Request Body:**
+
 ```typescript
 {
   email: string;          // Valid email format, max 255 chars
@@ -21,20 +22,22 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (201 Created):**
+
 ```typescript
 {
   success: true;
-  message: "Account created successfully. Please check your email for verification.";
+  message: 'Account created successfully. Please check your email for verification.';
   user: {
     id: string;
     email: string;
     fullName: string;
     emailConfirmed: false;
-  };
+  }
 }
 ```
 
 **Errors:**
+
 - `400`: Invalid input data, email already exists
 - `422`: Password doesn't meet requirements
 - `429`: Rate limit exceeded
@@ -47,6 +50,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 10 requests per minute per IP
 
 **Request Body:**
+
 ```typescript
 {
   email: string;
@@ -56,6 +60,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   success: true;
@@ -65,13 +70,14 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
     fullName: string;
     experienceLevel: string;
     emailConfirmed: boolean;
-  };
+  }
   accessToken: string;
   refreshToken: string;
 }
 ```
 
 **Errors:**
+
 - `400`: Missing email or password
 - `401`: Invalid credentials
 - `423`: Account locked due to failed attempts
@@ -84,10 +90,11 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 20 requests per minute
 
 **Response (200 OK):**
+
 ```typescript
 {
   success: true;
-  message: "Logged out successfully";
+  message: 'Logged out successfully';
 }
 ```
 
@@ -98,6 +105,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 3 requests per minute per IP
 
 **Request Body:**
+
 ```typescript
 {
   email: string;
@@ -105,10 +113,11 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   success: true;
-  message: "Password reset email sent if account exists";
+  message: 'Password reset email sent if account exists';
 }
 ```
 
@@ -121,6 +130,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 100 requests per minute
 
 **Response (200 OK):**
+
 ```typescript
 {
   id: string;
@@ -145,6 +155,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 20 requests per minute
 
 **Request Body:**
+
 ```typescript
 {
   fullName?: string;
@@ -158,10 +169,11 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   success: true;
-  message: "Profile updated successfully";
+  message: 'Profile updated successfully';
   profile: UserProfile; // Same as GET response
 }
 ```
@@ -175,6 +187,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 200 requests per minute
 
 **Query Parameters:**
+
 ```typescript
 {
   search?: string;        // Text search across name, brand, notes
@@ -190,6 +203,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   fragrances: Array<{
@@ -217,7 +231,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
     limit: number;
     offset: number;
     hasMore: boolean;
-  };
+  }
   searchTime: number; // Query execution time in ms
 }
 ```
@@ -229,6 +243,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 200 requests per minute
 
 **Response (200 OK):**
+
 ```typescript
 {
   id: number;
@@ -271,6 +286,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 100 requests per minute
 
 **Query Parameters:**
+
 ```typescript
 {
   search?: string;        // Search brand names
@@ -280,6 +296,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   brands: Array<{
@@ -302,6 +319,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 100 requests per minute
 
 **Query Parameters:**
+
 ```typescript
 {
   owned?: boolean;        // Filter owned vs wishlist
@@ -314,6 +332,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   collection: Array<{
@@ -346,7 +365,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
     totalWishlist: number;
     averageRating: number;
     mostWornFragrance: string;
-  };
+  }
 }
 ```
 
@@ -357,6 +376,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 50 requests per minute
 
 **Request Body:**
+
 ```typescript
 {
   fragranceId: number;
@@ -372,15 +392,17 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (201 Created):**
+
 ```typescript
 {
   success: true;
-  message: "Fragrance added to collection";
+  message: 'Fragrance added to collection';
   collectionItem: CollectionItem; // Same as GET response item
 }
 ```
 
 **Errors:**
+
 - `400`: Invalid fragrance ID or duplicate entry
 - `404`: Fragrance not found
 - `422`: Invalid rating or data format
@@ -392,6 +414,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 50 requests per minute
 
 **Request Body:**
+
 ```typescript
 {
   rating?: number;
@@ -406,10 +429,11 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 **Response (200 OK):**
+
 ```typescript
 {
   success: true;
-  message: "Collection updated successfully";
+  message: 'Collection updated successfully';
   collectionItem: CollectionItem;
 }
 ```
@@ -421,16 +445,18 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 **Rate Limit:** 50 requests per minute
 
 **Response (200 OK):**
+
 ```typescript
 {
   success: true;
-  message: "Fragrance removed from collection";
+  message: 'Fragrance removed from collection';
 }
 ```
 
 ## Error Handling Standards
 
 ### Standard Error Response Format
+
 ```typescript
 {
   success: false;
@@ -446,6 +472,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ```
 
 ### Common Error Codes
+
 - `VALIDATION_ERROR`: Input validation failed
 - `AUTHENTICATION_REQUIRED`: Missing or invalid auth token
 - `AUTHORIZATION_DENIED`: Insufficient permissions
@@ -455,6 +482,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 - `SERVER_ERROR`: Internal server error
 
 ### HTTP Status Code Usage
+
 - `200`: Successful operation
 - `201`: Resource created successfully
 - `400`: Client error (bad request, validation)
@@ -469,6 +497,7 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-08-
 ## API Client TypeScript Definitions
 
 ### Base Client Configuration
+
 ```typescript
 interface ApiClientConfig {
   baseURL: string;
@@ -492,31 +521,45 @@ interface ApiError {
 ```
 
 ### Authentication Client
+
 ```typescript
 interface AuthClient {
   register(data: RegisterRequest): Promise<ApiResponse<RegisterResponse>>;
   login(data: LoginRequest): Promise<ApiResponse<LoginResponse>>;
-  logout(): Promise<ApiResponse<{success: boolean}>>;
-  resetPassword(email: string): Promise<ApiResponse<{success: boolean}>>;
-  refreshToken(): Promise<ApiResponse<{accessToken: string}>>;
+  logout(): Promise<ApiResponse<{ success: boolean }>>;
+  resetPassword(email: string): Promise<ApiResponse<{ success: boolean }>>;
+  refreshToken(): Promise<ApiResponse<{ accessToken: string }>>;
 }
 ```
 
 ### Fragrance Client
+
 ```typescript
 interface FragranceClient {
-  search(params: FragranceSearchParams): Promise<ApiResponse<FragranceSearchResponse>>;
+  search(
+    params: FragranceSearchParams
+  ): Promise<ApiResponse<FragranceSearchResponse>>;
   getById(id: number): Promise<ApiResponse<FragranceDetail>>;
-  getBrands(params?: BrandSearchParams): Promise<ApiResponse<BrandListResponse>>;
+  getBrands(
+    params?: BrandSearchParams
+  ): Promise<ApiResponse<BrandListResponse>>;
 }
 ```
 
 ### Collection Client
+
 ```typescript
 interface CollectionClient {
-  getCollection(params?: CollectionParams): Promise<ApiResponse<CollectionResponse>>;
-  addToCollection(data: AddToCollectionRequest): Promise<ApiResponse<CollectionItemResponse>>;
-  updateCollectionItem(id: number, data: UpdateCollectionRequest): Promise<ApiResponse<CollectionItemResponse>>;
-  removeFromCollection(id: number): Promise<ApiResponse<{success: boolean}>>;
+  getCollection(
+    params?: CollectionParams
+  ): Promise<ApiResponse<CollectionResponse>>;
+  addToCollection(
+    data: AddToCollectionRequest
+  ): Promise<ApiResponse<CollectionItemResponse>>;
+  updateCollectionItem(
+    id: number,
+    data: UpdateCollectionRequest
+  ): Promise<ApiResponse<CollectionItemResponse>>;
+  removeFromCollection(id: number): Promise<ApiResponse<{ success: boolean }>>;
 }
 ```

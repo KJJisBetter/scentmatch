@@ -7,7 +7,7 @@ ScentMatch helps users discover their perfect fragrance through AI-powered perso
 ## Features
 
 - **AI Recommendations**: Personalized fragrance suggestions using Voyage AI embeddings
-- **Collection Management**: Track your fragrance collection with ratings and notes  
+- **Collection Management**: Track your fragrance collection with ratings and notes
 - **Smart Search**: Find fragrances by notes, brand, or style preferences
 - **Sample Discovery**: Prioritize affordable samples and travel sizes
 - **User Profiles**: Beginner-friendly to collector-advanced experiences

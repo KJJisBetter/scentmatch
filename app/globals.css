@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ScentMatch Premium Design System */
+    /* Light theme using warm cream base with deep plum accents */
+    --background: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --foreground: 262 47% 17%; /* plum-900: #2d1b3d */
+    --card: 0 0% 100%; /* Pure white for contrast */
+    --card-foreground: 262 47% 17%; /* plum-900: #2d1b3d */
+    --popover: 0 0% 100%;
+    --popover-foreground: 262 47% 17%; /* plum-900: #2d1b3d */
+    --primary: 262 47% 17%; /* plum-900: #2d1b3d */
+    --primary-foreground: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --secondary: 40 25% 87%; /* cream-200: #ede5d4 */
+    --secondary-foreground: 262 47% 17%; /* plum-900: #2d1b3d */
+    --muted: 40 25% 87%; /* cream-200: #ede5d4 */
+    --muted-foreground: 262 28% 51%; /* plum-600: #864db5 */
+    --accent: 33 25% 71%; /* gold-400: #d4a574 */
+    --accent-foreground: 262 47% 17%; /* plum-900: #2d1b3d */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 25% 87%; /* cream-200: #ede5d4 */
+    --input: 40 25% 87%; /* cream-200: #ede5d4 */
+    --ring: 33 25% 71%; /* gold-400: #d4a574 */
+    --radius: 0.75rem; /* More premium rounded corners */
+
+    /* Custom fragrance-specific variables */
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(262 47% 17%) 0%,
+      hsl(262 28% 51%) 100%
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(33 25% 71%) 0%,
+      hsl(33 30% 65%) 100%
+    );
+    --shadow-soft: 0 2px 8px -2px hsl(262 47% 17% / 0.1);
+    --shadow-medium: 0 4px 16px -4px hsl(262 47% 17% / 0.15);
+    --shadow-strong: 0 8px 32px -8px hsl(262 47% 17% / 0.2);
+  }
+
+  .dark {
+    /* Dark theme using deep plum base with warm accents */
+    --background: 262 47% 8%; /* Darker than plum-950 */
+    --foreground: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --card: 262 47% 12%; /* Slightly lighter than background */
+    --card-foreground: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --popover: 262 47% 12%;
+    --popover-foreground: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --primary: 33 25% 71%; /* gold-400: #d4a574 */
+    --primary-foreground: 262 47% 17%; /* plum-900: #2d1b3d */
+    --secondary: 262 47% 17%; /* plum-900: #2d1b3d */
+    --secondary-foreground: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --muted: 262 47% 17%; /* plum-900: #2d1b3d */
+    --muted-foreground: 40 25% 75%; /* cream-400: #d1bfa0 */
+    --accent: 262 28% 51%; /* plum-600: #864db5 */
+    --accent-foreground: 40 25% 96%; /* cream-100: #f5f1e8 */
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 262 47% 17%; /* plum-900: #2d1b3d */
+    --input: 262 47% 17%; /* plum-900: #2d1b3d */
+    --ring: 33 25% 71%; /* gold-400: #d4a574 */
+
+    /* Dark theme shadows with warmer tones */
+    --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
+    --shadow-medium: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+    --shadow-strong: 0 8px 32px -8px hsl(0 0% 0% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    /* Smooth scrolling and better font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  /* Premium typography scale */
+  h1 {
+    @apply text-4xl font-bold tracking-tight lg:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl font-semibold tracking-tight lg:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold tracking-tight lg:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl font-semibold tracking-tight lg:text-2xl;
+  }
+
+  h5 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+
+  h6 {
+    @apply text-base font-semibold tracking-tight;
+  }
+
+  /* Enhanced focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Smooth transitions for interactive elements */
+  button,
+  a,
+  [role='button'] {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
+
+/* Premium fragrance-focused utility classes */
+@layer utilities {
+  /* Gradient utilities using design system colors */
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-plum-900 to-plum-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-accent {
+    @apply bg-gradient-to-r from-gold-400 to-gold-500 bg-clip-text text-transparent;
+  }
+
+  /* Premium shadow utilities */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-strong {
+    box-shadow: var(--shadow-strong);
+  }
+
+  /* Container utilities with 8px base spacing system */
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-narrow {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-wide {
+    @apply max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Glass morphism effect for premium cards */
+  .glass {
+    @apply backdrop-blur-md bg-white/10 border border-white/20;
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-md bg-black/10 border border-black/20;
+  }
+
+  /* Touch-optimized interactive elements */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Premium card variants */
+  .card-elevated {
+    @apply bg-card rounded-xl shadow-medium border border-border/50 p-6;
+  }
+
+  .card-interactive {
+    @apply card-elevated hover:shadow-strong hover:scale-[1.02] transition-all duration-300 cursor-pointer;
+  }
+
+  /* Accessibility utilities */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .not-sr-only {
+    @apply static w-auto h-auto p-0 m-0 overflow-visible whitespace-normal;
+    clip: auto;
+  }
+
+  /* Animation utilities for micro-interactions */
+  .animate-scale-in {
+    @apply transform scale-95 opacity-0 transition-all duration-200 ease-out;
+  }
+
+  .animate-scale-in.active {
+    @apply scale-100 opacity-100;
+  }
+
+  .animate-slide-up {
+    @apply transform translate-y-4 opacity-0 transition-all duration-300 ease-out;
+  }
+
+  .animate-slide-up.active {
+    @apply translate-y-0 opacity-100;
+  }
+}
