@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local for testing
+config({ path: resolve(__dirname, '.env.local') });
 
 export default defineConfig({
   plugins: [react()],

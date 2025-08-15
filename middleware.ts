@@ -1,4 +1,4 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { Database } from '@/types/database';
@@ -59,7 +59,20 @@ export async function middleware(req: NextRequest) {
   }
 
   // Create a Supabase client configured to use cookies
-  const supabase = createMiddlewareClient<Database>({ req, res });
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options))
+        },
+      },
+    }
+  );
 
   // Refresh session if expired - required for Server Components
   const {
@@ -83,10 +96,14 @@ export async function middleware(req: NextRequest) {
   }
 
   // If user is logged in and tries to access auth pages, redirect to dashboard
+  // Exception: allow password reset page even when logged in (for security)
   const authPaths = ['/auth/login', '/auth/signup'];
   const isAuthPath = authPaths.some(path => currentPath.startsWith(path));
+  
+  // Allow password reset page regardless of session status
+  const isPasswordResetPath = currentPath.startsWith('/auth/reset');
 
-  if (isAuthPath && session) {
+  if (isAuthPath && session && !isPasswordResetPath) {
     const redirectTo =
       req.nextUrl.searchParams.get('redirectTo') || '/dashboard';
     return NextResponse.redirect(new URL(redirectTo, req.url));

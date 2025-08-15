@@ -78,6 +78,99 @@ NEVER skip research when encountering:
 - Accessibility violations
 - Build/compilation errors
 
+## Technology Research Protocol - CRITICAL
+
+WHEN USING ANY TECHNOLOGY:
+
+```
+MANDATORY RESEARCH BEFORE IMPLEMENTATION:
+1. RESEARCH STABLE VERSIONS:
+   - Always check current stable/LTS versions
+   - Avoid beta, alpha, or experimental versions
+   - Example: PostCSS v4 is NOT stable yet - use v3.4.0
+
+2. VERIFY COMPATIBILITY:
+   - Check framework compatibility matrices
+   - Research known issues with current setup
+   - Validate dependencies work together
+
+3. RESEARCH PROPER IMPLEMENTATION:
+   - Find official documentation
+   - Look for best practices guides
+   - Check community recommendations
+   - Review recent issues/problems
+
+4. CACHE FINDINGS:
+   - Save version compatibility research
+   - Document recommended configurations
+   - Note breaking changes and migrations
+
+EXAMPLES OF PROPER RESEARCH:
+✅ "Research TailwindCSS stable version for Next.js 15"
+✅ "Find PostCSS v3 configuration for production builds"
+✅ "Verify Supabase client compatibility with React 19"
+
+❌ Using latest/experimental versions without research
+❌ Assuming new versions are production-ready
+❌ Skipping compatibility verification
+```
+
+## Agent Role Boundaries - ABSOLUTE
+
+ROLE VIOLATIONS = IMMEDIATE STOP and redirect to correct agent:
+
+### UX/UI Designer - DESIGN SPECIFICATIONS ONLY:
+- ✅ DO: Design specs, wireframes, UX research, design documentation
+- ❌ DON'T: Write code, edit files, implement designs, run commands
+
+### Senior Reviewer - CODE REVIEW ONLY:  
+- ✅ DO: Review code, analyze quality, recommend improvements, create review reports
+- ❌ DON'T: Implement fixes, modify files, run commands, "coordinate implementation"
+
+### QA Testing Specialist - TEST SPECIFICATIONS ONLY:
+- ✅ DO: Create test specifications, design test approaches, manual testing with browser tools
+- ❌ DON'T: Implement test code, modify application code, create functional tests
+
+### Engineers (Backend/Frontend/Data/DevOps) - IMPLEMENTATION ONLY:
+- ✅ DO: Implement code, implement QA test specifications, build features, run commands
+- ❌ DON'T: Create test specifications, design tests, create requirements, design UI
+
+### Product Manager/System Architect - RESEARCH & SPECIFICATIONS ONLY:
+- ✅ DO: Research, create specifications, define requirements, architecture documentation
+- ❌ DON'T: Implement code, modify files, run implementation commands
+
+## Task Delegation Protocol - MANDATORY
+
+BEFORE delegating ANY task:
+
+1. **IDENTIFY WORK TYPE:**
+   - Design work → UX/UI Designer
+   - Code implementation → Appropriate Engineer  
+   - Test spec creation → QA Testing Specialist
+   - Test implementation → Engineers (per QA specs)
+   - Code review → Senior Reviewer
+   - Requirements/Architecture → Product Manager/System Architect
+
+2. **SINGLE-ROLE PROMPTS ONLY:**
+   ```
+   ❌ WRONG: "UX designer: Create and implement login page"
+   ✅ RIGHT: "UX designer: Create design specifications for login page"
+   ✅ RIGHT: "Frontend engineer: Implement login page per UX specifications"
+   
+   ❌ WRONG: "Senior reviewer: Review and fix the authentication system"
+   ✅ RIGHT: "Senior reviewer: Review authentication system and recommend improvements"
+   ✅ RIGHT: "Backend engineer: Implement fixes per reviewer recommendations"
+   
+   ❌ WRONG: "Backend engineer: Create tests for the API endpoints"
+   ✅ RIGHT: "QA tester: Create test specifications for API endpoints"
+   ✅ RIGHT: "Backend engineer: Implement tests per QA specifications"
+   ```
+
+3. **VERIFY TOOL ALIGNMENT:**
+   - Agent must have appropriate tools for requested work
+   - No agent should be asked to work without proper tools
+   - No agent should have tools that enable role violations
+
 ## Issue Documentation Protocol - MANDATORY
 
 For EVERY issue encountered during development:
@@ -130,6 +223,86 @@ Examples:
 
 - ❌ "I'll fix the useState error..." [without researching]
 - ✅ "I found a useState error. Let me research Next.js client component patterns first."
+
+## Integration Testing Protocol - CRITICAL
+
+AFTER each major system implementation:
+
+```
+MANDATORY INTEGRATION CHECKPOINTS:
+1. BUILD VALIDATION: npm run build (must succeed without errors)
+2. ENVIRONMENT VERIFICATION: Test real environment variables load correctly
+3. FUNCTIONAL INTEGRATION: Test actual user flows work end-to-end
+4. PERFORMANCE VALIDATION: Verify integration doesn't break performance targets
+5. DOCUMENTATION: Record integration issues and solutions found
+
+INTEGRATION CHECKPOINTS BY TASK:
+- After Task 2 (Database setup) → Test database queries execute
+- After Task 3 (Schema) → Test schema + data operations work
+- After Task 5 (Auth) → Test auth + database + RLS integration  
+- After Task 7 (Pages) → Test complete user journey flows
+- After every major system → Test with all previous systems
+
+INTEGRATION FAILURE = STOP and fix before proceeding to next major system.
+
+NEVER proceed to next major system without integration validation.
+```
+
+## Task Completion Criteria - VERIFICATION-BASED
+
+TASK IS ONLY COMPLETE WHEN:
+
+```
+✅ Core functionality implemented AND verified working in real environment
+✅ Integration tested with existing systems (build, dev server, user flow)
+✅ Build succeeds without errors (npm run build)
+✅ Real user flow validated (not just unit tests or implementation)
+✅ Environment configuration verified (real env vars, no test mocks)
+✅ No role boundary violations occurred during implementation
+✅ All agent deliverables properly handed off to next agent
+
+VERIFICATION REQUIRED:
+- Test the actual feature works end-to-end
+- Verify it integrates with existing systems without breaking them
+- Confirm build and dev server start successfully
+- Check environment variables load correctly in all contexts
+- Validate complete user workflow (not just individual components)
+
+IMPLEMENTATION ≠ COMPLETION
+A task is NOT complete just because code was written.
+```
+
+## Prompt Discipline Protocol - MANDATORY
+
+BEFORE sending ANY agent prompt, I MUST:
+
+```
+1. VERIFY ROLE ALIGNMENT:
+   - Is this work within agent's core role?
+   - Do they have appropriate tools for this work?
+   - Am I asking for single-role work only?
+
+2. LANGUAGE DISCIPLINE:
+   - UX Designer: "Create design specifications for..."
+   - Engineers: "Implement per [agent] specifications..."
+   - Senior Reviewer: "Review and recommend improvements for..."
+   - QA Tester: "Create test specifications for..."
+   - Product Manager: "Research and define requirements for..."
+
+3. MULTI-ROLE TASK BREAKDOWN:
+   - Break complex tasks into single-role subtasks
+   - Route each subtask to appropriate agent type
+   - Maintain proper sequencing (specs before implementation)
+   - Never ask single agent to do multi-role work
+
+4. ROLE VIOLATION PREVENTION:
+   - Never use "implement" with design roles
+   - Never use "fix" with review roles  
+   - Never use "create tests" with engineer roles
+   - Never use "coordinate implementation" with any role
+
+ROLE VIOLATION = IMMEDIATE PROMPT CORRECTION and task redelegation
+```
 
 ## Testing Protocol - PLAYWRIGHT MCP ONLY
 
@@ -486,18 +659,16 @@ NEXT.JS HAS BUILT-IN:
 - ✅ Custom hooks and utilities (internal)
 - ❌ Installing utility library without asking
 
-## Critical Reminders
+## Critical Reminders - TOP PRIORITIES
 
-1. **Check Date First**: Always verify date before starting work
-2. **Uncertainty = STOP**: Never proceed when unsure
-3. **Main is Sacred**: Never push directly, always PR
-4. **Phases are Strict**: Planning → Approval → Coding → Quality → PR
-5. **Cache First**: Always check for existing solutions
-6. **Preserve History**: Never delete branches
-7. **File Size Limit**: 100 lines maximum per file
-8. **Library Approval**: Ask before adding external dependencies
-9. **Investigate First**: Console logs + screenshots before fixing
-10. **Next.js First**: Use built-ins before external libraries
+1. **AGENT ROLE BOUNDARIES**: Never ask agents to work outside their role (UX designs, Engineers implement, QA creates test specs, Reviewers review only)
+2. **VERIFICATION-BASED COMPLETION**: Tasks are complete only when verified working in real environment, not just implemented
+3. **INTEGRATION TESTING**: After each major system, test integration with existing systems before proceeding
+4. **PROMPT DISCIPLINE**: Use single-role prompts only, break multi-role tasks into proper subtasks
+5. **RESEARCH FIRST**: Technology research mandatory before implementation (stable versions only)
+6. **UNCERTAINTY = STOP**: Never proceed when unsure, always ask
+7. **BUILD VALIDATION**: npm run build must succeed after any configuration change
+8. **REAL DATA ONLY**: Use provided JSON data sources, never generate synthetic data
 
 ## Project-Specific Configuration
 
@@ -505,6 +676,12 @@ NEXT.JS HAS BUILT-IN:
 **Standards**: [Your standards from .agent-os/product/]
 **Current Sprint**: [Check .agent-os/product/roadmap.md]
 
+
 ---
 
-Remember: Check date first, then when uncertain, STOP and ASK. No fake confidence. Always PR to main.
+**REMEMBER**: 
+1. **Agent roles are absolute** - never ask agents to work outside their boundaries
+2. **Verification-based completion** - tasks complete only when verified working
+3. **Integration testing is mandatory** - after each major system  
+4. **When uncertain, STOP and ASK** - no fake confidence
+5. **Always PR to main** - never push directly
