@@ -4,24 +4,101 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MobileNav } from '@/components/ui/mobile-nav';
 import { Sparkles, Heart, TestTube, ArrowRight, Users, ShieldCheck, Star } from 'lucide-react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'ScentMatch - AI-Powered Fragrance Discovery & Samples',
+  description: 'Find your perfect fragrance with AI recommendations. Affordable samples, personalized discovery, and expert reviews for beginners to collectors.',
+  keywords: 'fragrance discovery, perfume samples, AI recommendations, scent matching, fragrance quiz',
+  openGraph: {
+    title: 'ScentMatch - Find Your Perfect Fragrance with AI',
+    description: 'Stop guessing, start discovering. Our AI learns your preferences to recommend fragrances you\'ll love—all through affordable samples first.',
+    images: [{ url: '/og-homepage.png', width: 1200, height: 630 }],
+    type: 'website',
+    url: 'https://scentmatch.app',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ScentMatch - Find Your Perfect Fragrance with AI',
+    description: 'AI-powered fragrance discovery with affordable samples. Try before you buy!',
+    images: ['/twitter-homepage.png'],
+  },
+};
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background">
-      {/* Navigation Header */}
+    <>
+      {/* Structured data for affiliate conversion and SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: 'ScentMatch - AI-Powered Fragrance Discovery',
+            description: 'Find your perfect fragrance with AI recommendations. Affordable samples, personalized discovery, and expert reviews.',
+            url: 'https://scentmatch.app',
+            mainEntity: {
+              '@type': 'Service',
+              name: 'AI Fragrance Recommendations',
+              description: 'Personalized fragrance discovery through AI-powered recommendations and affordable sample testing',
+              provider: {
+                '@type': 'Organization',
+                name: 'ScentMatch',
+                url: 'https://scentmatch.app',
+              },
+              areaServed: 'Worldwide',
+              hasOfferCatalog: {
+                '@type': 'OfferCatalog',
+                name: 'Fragrance Discovery Services',
+                itemListElement: [
+                  {
+                    '@type': 'Offer',
+                    name: 'AI Fragrance Quiz',
+                    description: 'Get personalized fragrance recommendations in under 2 minutes',
+                    price: '0',
+                    priceCurrency: 'USD',
+                  },
+                  {
+                    '@type': 'Offer',
+                    name: 'Sample Recommendations',
+                    description: 'Affordable fragrance samples starting from $3',
+                    priceRange: '$3-$15',
+                    priceCurrency: 'USD',
+                  }
+                ]
+              }
+            },
+            breadcrumb: {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'Home',
+                  item: 'https://scentmatch.app'
+                }
+              ]
+            }
+          })
+        }}
+      />
+      
+      <main className="min-h-screen bg-background">
+      {/* Navigation Header - Optimized for LCP */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="relative h-8 w-8">
+            <div className="relative h-8 w-8" aria-label="ScentMatch Logo">
               <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-plum-600 to-plum-800 flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
+                <Sparkles className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
             </div>
             <span className="font-serif text-xl font-bold text-gradient-primary">ScentMatch</span>
           </div>
           
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link href="/fragrances" className="text-foreground/60 hover:text-foreground transition-colors">
+            <Link href="/browse" className="text-foreground/60 hover:text-foreground transition-colors">
               Browse Fragrances
             </Link>
             <Link href="/how-it-works" className="text-foreground/60 hover:text-foreground transition-colors">
@@ -46,11 +123,12 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section - Optimized for Core Web Vitals */}
       <section className="relative overflow-hidden">
-        {/* Background gradient */}
+        {/* Background gradient - optimized for paint performance */}
         <div className="absolute inset-0 bg-gradient-to-br from-cream-50 via-background to-plum-50/30" />
         
+        {/* Preload critical content for LCP optimization */}
         <div className="container relative">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-16 sm:py-20 lg:py-32">
             {/* Hero Content */}
@@ -72,30 +150,30 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
-                <Button size="lg" className="text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14" asChild>
-                  <Link href="/quiz">
+                <Button size="lg" className="text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14 animate-pulse-soft" asChild>
+                  <Link href="/quiz" data-analytics="hero-cta-quiz">
                     Start Finding Your Scent
                     <ArrowRight className="ml-2 h-4 w-4 lg:h-5 lg:w-5" />
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" className="text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14" asChild>
-                  <Link href="/fragrances">Browse Fragrances</Link>
+                  <Link href="/browse" data-analytics="hero-cta-browse">Browse Fragrances</Link>
                 </Button>
               </div>
 
-              {/* Social Proof */}
+              {/* Social Proof - Conversion Optimized */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-3 sm:space-y-0 sm:space-x-6 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center space-x-2">
-                  <div className="flex -space-x-1.5 sm:-space-x-2">
+                  <div className="flex -space-x-1.5 sm:-space-x-2" role="img" aria-label="User avatars">
                     <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-r from-plum-400 to-plum-600 border-2 border-background" />
                     <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-r from-gold-400 to-gold-600 border-2 border-background" />
                     <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-r from-cream-400 to-cream-600 border-2 border-background" />
                   </div>
-                  <span>Trusted by 10,000+ fragrance lovers</span>
+                  <span>Trusted by <strong>10,000+</strong> fragrance lovers</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-gold-400 text-gold-400" />
-                  <span>4.9/5 rating</span>
+                  <span><strong>4.9/5</strong> rating</span>
                 </div>
               </div>
             </div>
@@ -297,30 +375,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-16 sm:py-20 lg:py-32">
+      {/* Final CTA Section - Conversion Optimized */}
+      <section className="py-16 sm:py-20 lg:py-32 bg-gradient-to-br from-plum-50/20 to-gold-50/20">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center space-y-6 lg:space-y-8">
             <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
               Ready to Discover Your Perfect Fragrance?
             </h2>
             <p className="text-base sm:text-lg lg:text-xl text-muted-foreground">
-              Join thousands of fragrance lovers who've found their signature scents with ScentMatch's AI-powered recommendations.
+              Join <strong>thousands</strong> of fragrance lovers who've found their signature scents with ScentMatch's AI-powered recommendations.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center">
-              <Button size="lg" className="text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14" asChild>
-                <Link href="/quiz">
+              <Button size="lg" className="text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14 shadow-medium" asChild>
+                <Link href="/quiz" data-analytics="final-cta-quiz">
                   Start Your Fragrance Journey
                   <ArrowRight className="ml-2 h-4 w-4 lg:h-5 lg:w-5" />
                 </Link>
               </Button>
               <Button variant="outline" size="lg" className="text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14" asChild>
-                <Link href="/how-it-works">Learn How It Works</Link>
+                <Link href="/how-it-works" data-analytics="final-cta-learn">Learn How It Works</Link>
               </Button>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Free to start • No credit card required • Sample recommendations from $3
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                <strong>Free to start</strong> • No credit card required • Sample recommendations from <strong>$3</strong>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ⚡ Get personalized recommendations in under 2 minutes
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -346,7 +429,7 @@ export default function HomePage() {
             <div className="space-y-3 lg:space-y-4">
               <h4 className="font-medium text-sm sm:text-base">Discover</h4>
               <nav className="space-y-2 text-xs sm:text-sm">
-                <Link href="/fragrances" className="text-muted-foreground hover:text-foreground transition-colors block">
+                <Link href="/browse" className="text-muted-foreground hover:text-foreground transition-colors block">
                   Browse Fragrances
                 </Link>
                 <Link href="/quiz" className="text-muted-foreground hover:text-foreground transition-colors block">
@@ -408,5 +491,6 @@ export default function HomePage() {
         </div>
       </footer>
     </main>
+    </>
   );
 }

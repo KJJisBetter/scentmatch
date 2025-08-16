@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: ".",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,
@@ -9,9 +9,9 @@ export default defineConfig({
   reporter: "line",
   timeout: 30000,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3001",
     trace: "on-first-retry",
-    headless: true
+    headless: false
   },
   projects: [
     {

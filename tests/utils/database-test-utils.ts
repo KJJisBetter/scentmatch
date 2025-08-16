@@ -268,6 +268,11 @@ export class DatabaseTestHelper {
         rating: 4,
         notes: 'Love this scent for evening wear',
         date_added: '2025-01-01',
+        collection_type: 'owned',
+        added_at: '2025-01-01T00:00:00Z',
+        usage_frequency: 'weekly',
+        occasions: ['evening', 'date'],
+        seasons: ['fall', 'winter']
       },
     ];
 
@@ -303,6 +308,164 @@ export class DatabaseTestHelper {
   }
 
   /**
+   * Mock user preferences database operations
+   */
+  setupUserPreferencesDatabase() {
+    const mockPreferences = [
+      {
+        id: '1',
+        user_id: 'user-123',
+        preference_type: 'scent_family',
+        preference_value: 'woody',
+        preference_strength: 0.8,
+        learned_from: 'collection_analysis',
+        created_at: '2025-01-01T00:00:00Z'
+      },
+      {
+        id: '2', 
+        user_id: 'user-123',
+        preference_type: 'intensity',
+        preference_value: 'moderate',
+        preference_strength: 0.6,
+        learned_from: 'quiz',
+        created_at: '2025-01-01T00:00:00Z'
+      }
+    ];
+
+    mockSupabaseClient.from.mockImplementation((table: string) => {
+      if (table === 'user_preferences') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({
+                data: mockPreferences,
+                error: null,
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({
+              data: [mockPreferences[0]],
+              error: null,
+            }),
+          }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: [{ ...mockPreferences[0], preference_strength: 0.9 }],
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      return this.getDefaultMockTable();
+    });
+  }
+
+  /**
+   * Mock user fragrance interactions database operations
+   */
+  setupUserInteractionsDatabase() {
+    const mockInteractions = [
+      {
+        id: '1',
+        user_id: 'user-123',
+        fragrance_id: 1,
+        interaction_type: 'view',
+        interaction_context: 'recommendation',
+        created_at: '2025-01-01T00:00:00Z'
+      },
+      {
+        id: '2',
+        user_id: 'user-123', 
+        fragrance_id: 2,
+        interaction_type: 'like',
+        interaction_context: 'search',
+        created_at: '2025-01-01T01:00:00Z'
+      }
+    ];
+
+    mockSupabaseClient.from.mockImplementation((table: string) => {
+      if (table === 'user_fragrance_interactions') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({
+                data: mockInteractions,
+                error: null,
+              }),
+            }),
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({
+                data: mockInteractions,
+                error: null,
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({
+              data: [mockInteractions[0]],
+              error: null,
+            }),
+          }),
+        };
+      }
+      return this.getDefaultMockTable();
+    });
+  }
+
+  /**
+   * Mock fragrance embeddings database operations
+   */
+  setupFragranceEmbeddingsDatabase() {
+    const mockEmbeddings = [
+      {
+        id: '1',
+        fragrance_id: 1,
+        embedding_version: 'voyage-3.5',
+        embedding: new Array(1024).fill(0.1), // 1024-dim vector
+        embedding_source: 'combined',
+        created_at: '2025-01-01T00:00:00Z'
+      },
+      {
+        id: '2',
+        fragrance_id: 1,
+        embedding_version: 'openai-ada-002', 
+        embedding: new Array(1536).fill(0.1), // 1536-dim vector
+        embedding_source: 'description',
+        created_at: '2025-01-01T00:00:00Z'
+      }
+    ];
+
+    mockSupabaseClient.from.mockImplementation((table: string) => {
+      if (table === 'fragrance_embeddings') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue({
+                data: mockEmbeddings,
+                error: null,
+              }),
+              single: vi.fn().mockResolvedValue({
+                data: mockEmbeddings[0],
+                error: null,
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({
+              data: [mockEmbeddings[0]],
+              error: null,
+            }),
+          }),
+        };
+      }
+      return this.getDefaultMockTable();
+    });
+  }
+
+  /**
    * Set up RPC (stored procedure) testing
    */
   setupRpcOperations() {
@@ -320,6 +483,85 @@ export class DatabaseTestHelper {
           case 'search_fragrances':
             return Promise.resolve({
               data: [{ id: 1, name: 'Search Result 1', relevance: 0.9 }],
+              error: null,
+            });
+          case 'get_similar_fragrances':
+            return Promise.resolve({
+              data: [
+                { fragrance_id: 2, similarity_score: 0.92, name: 'Similar Scent 1', brand: 'Test Brand' },
+                { fragrance_id: 3, similarity_score: 0.87, name: 'Similar Scent 2', brand: 'Test Brand' },
+              ],
+              error: null,
+            });
+          case 'get_collection_insights':
+            return Promise.resolve({
+              data: {
+                total_fragrances: 12,
+                dominant_families: [
+                  { family: 'woody', count: 5 },
+                  { family: 'floral', count: 4 },
+                  { family: 'citrus', count: 3 }
+                ],
+                average_intensity: 6.2,
+                most_worn_occasion: 'evening',
+                collection_diversity_score: 0.75
+              },
+              error: null,
+            });
+          case 'get_personalized_recommendations':
+            return Promise.resolve({
+              data: [
+                { 
+                  fragrance_id: 4, 
+                  recommendation_score: 0.91,
+                  recommendation_reasons: ['Similar to your woody collection', 'Popular among users with similar tastes']
+                },
+                { 
+                  fragrance_id: 5, 
+                  recommendation_score: 0.88,
+                  recommendation_reasons: ['Matches your preferred intensity level', 'Great for evening occasions']
+                }
+              ],
+              error: null,
+            });
+          case 'advanced_fragrance_search':
+            return Promise.resolve({
+              data: [
+                { id: 6, name: 'Woody Vanilla', brand: 'Luxury Brand', relevance_score: 0.95 },
+                { id: 7, name: 'Oriental Spice', brand: 'Premium Brand', relevance_score: 0.89 }
+              ],
+              error: null,
+            });
+          case 'semantic_fragrance_search':
+            return Promise.resolve({
+              data: [
+                { id: 8, name: 'Fresh Breeze', semantic_score: 0.93 },
+                { id: 9, name: 'Morning Dew', semantic_score: 0.88 }
+              ],
+              error: null,
+            });
+          case 'match_fragrances':
+            return Promise.resolve({
+              data: [
+                { id: 10, similarity: 0.84 },
+                { id: 11, similarity: 0.79 }
+              ],
+              error: null,
+            });
+          case 'get_fragrance_alternatives':
+            return Promise.resolve({
+              data: [
+                { fragrance_id: 12, price_ratio: 0.6, similarity_score: 0.88 },
+                { fragrance_id: 13, price_ratio: 0.4, similarity_score: 0.82 }
+              ],
+              error: null,
+            });
+          case 'get_platform_trends':
+            return Promise.resolve({
+              data: [
+                { fragrance_id: 14, trend_score: 0.95, trend_type: 'rising' },
+                { fragrance_id: 15, trend_score: 0.91, trend_type: 'popular' }
+              ],
               error: null,
             });
           default:
@@ -440,6 +682,9 @@ export const {
   setupRealtimeSubscription,
   setupFragranceDatabase,
   setupUserCollectionDatabase,
+  setupUserPreferencesDatabase,
+  setupUserInteractionsDatabase,
+  setupFragranceEmbeddingsDatabase,
   setupRpcOperations,
   testDatabaseConnection,
   resetDatabaseMocks,
