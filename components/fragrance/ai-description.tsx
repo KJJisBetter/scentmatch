@@ -122,7 +122,6 @@ function getFragrancePersonality(fragrance: any) {
       wearer: 'those',
       values: 'timeless elegance and natural beauty',
       signature: 'Perfect for making a lasting impression without overwhelming the room.'
-    }
     };
   }
 
