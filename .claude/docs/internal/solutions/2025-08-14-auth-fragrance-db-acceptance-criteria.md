@@ -2,7 +2,7 @@
 
 **Date:** 2025-08-14  
 **Spec:** User Authentication & Fragrance Database Foundation  
-**Status:** Definition of Ready - QA Testing Engineer  
+**Status:** Definition of Ready - QA Testing Engineer
 
 ## Overview
 
@@ -15,6 +15,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a new user wants to create an account  
 **When** they access the registration page  
 **Then** they should see:
+
 - Email input field with validation
 - Password input field with strength requirements
 - "Sign Up" button (disabled until valid inputs)
@@ -24,6 +25,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user enters valid registration details  
 **When** they submit the form  
 **Then** the system should:
+
 - Create Supabase auth user
 - Send email verification
 - Redirect to email verification pending page
@@ -32,6 +34,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user clicks email verification link  
 **When** the token is valid  
 **Then** they should:
+
 - Be redirected to profile setup page
 - Have verified email status in database
 - Receive welcome email
@@ -41,6 +44,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a registered user wants to sign in  
 **When** they access the sign-in page  
 **Then** they should see:
+
 - Email input field
 - Password input field with show/hide toggle
 - "Sign In" button
@@ -51,6 +55,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user enters correct credentials  
 **When** they submit the form  
 **Then** they should:
+
 - Be authenticated via Supabase Auth
 - Be redirected to dashboard/home page
 - Have session persist across browser refresh
@@ -59,6 +64,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user enters incorrect credentials  
 **When** they submit the form  
 **Then** they should see:
+
 - Clear error message: "Invalid email or password"
 - Form fields remain populated (except password)
 - No indication of which field is incorrect (security)
@@ -68,12 +74,14 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user forgot their password  
 **When** they click "Forgot password?" link  
 **Then** they should:
+
 - Be taken to password reset page
 - See email input field and "Send Reset Link" button
 
 **Given** a user enters valid email for reset  
 **When** they submit the form  
 **Then** they should:
+
 - Receive password reset email
 - See confirmation "Reset link sent" message
 - Be able to request another link after 60 seconds
@@ -81,6 +89,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user clicks valid reset link  
 **When** the token is not expired  
 **Then** they should:
+
 - Be taken to new password creation page
 - Be able to set new password meeting requirements
 - Be automatically signed in after successful reset
@@ -90,6 +99,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user wants to sign in with Google  
 **When** they click "Continue with Google" button  
 **Then** they should:
+
 - Be redirected to Google OAuth flow
 - Return to app with authenticated session
 - Have profile data populated from Google (name, email, avatar)
@@ -98,6 +108,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user signs in with social provider for first time  
 **When** OAuth completes successfully  
 **Then** the system should:
+
 - Create new user record in Supabase
 - Populate profile with provider data
 - Send welcome email
@@ -110,6 +121,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** the system needs to store fragrance information  
 **When** a fragrance record is created  
 **Then** it should include:
+
 - Name (required, string, max 200 chars)
 - Brand (required, string, max 100 chars)
 - Fragrance family (enum: Fresh, Floral, Oriental, Woody)
@@ -126,6 +138,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user wants to search fragrances  
 **When** they enter search terms  
 **Then** they should see:
+
 - Results filtered by name, brand, notes
 - Results sorted by relevance
 - Loading states during search
@@ -135,6 +148,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user filters by fragrance family  
 **When** they select filter options  
 **Then** results should:
+
 - Update in real-time without page reload
 - Show filter badges with removal option
 - Maintain search query with filters
@@ -145,6 +159,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** an authenticated user wants to add fragrance to collection  
 **When** they click "Add to Collection" on fragrance detail  
 **Then** the system should:
+
 - Add fragrance to user's collection table
 - Show success confirmation
 - Update UI to show "In Collection" state
@@ -153,6 +168,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 **Given** a user views their collection  
 **When** they access collection page  
 **Then** they should see:
+
 - Grid/list view toggle
 - Filter and sort options
 - Personal rating system (1-5 stars)
@@ -164,17 +180,20 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 ### Performance Requirements
 
 **Largest Contentful Paint (LCP):** < 2.5 seconds
+
 - Authentication pages must load primary content within 2.5s
 - Fragrance list/grid must render initial items within 2.5s
 - Critical above-fold content prioritized
 
 **Interaction to Next Paint (INP):** < 200ms
+
 - Form submissions respond within 200ms
 - Button taps show immediate feedback
 - Search input shows results within 200ms
 - Navigation between pages within 200ms
 
 **Cumulative Layout Shift (CLS):** < 0.1
+
 - No layout shifts during form interactions
 - Image loading must not cause layout shifts
 - Loading states prevent content jumping
@@ -192,6 +211,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 ### Authentication Flow Accessibility
 
 **Form Controls:**
+
 - [ ] All form inputs have associated labels
 - [ ] Error messages linked to form controls via aria-describedby
 - [ ] Required fields indicated with aria-required="true"
@@ -199,6 +219,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 - [ ] Form validation errors announced by screen readers
 
 **Keyboard Navigation:**
+
 - [ ] Tab order logical and intuitive
 - [ ] All interactive elements keyboard accessible
 - [ ] Focus indicators clearly visible (3:1 contrast ratio)
@@ -206,6 +227,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 - [ ] Modal dialogs trap focus appropriately
 
 **Color & Contrast:**
+
 - [ ] Text contrast minimum 4.5:1 for normal text
 - [ ] Text contrast minimum 3:1 for large text (18pt+)
 - [ ] Error states don't rely solely on color
@@ -213,6 +235,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 - [ ] Interactive elements distinguishable when focused
 
 **Screen Reader Support:**
+
 - [ ] Page titles descriptive and unique
 - [ ] Heading structure logical (h1, h2, h3 hierarchy)
 - [ ] Loading states announced to screen readers
@@ -220,6 +243,7 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 - [ ] Form progress indicated for multi-step flows
 
 **Language & Content:**
+
 - [ ] Page language declared in HTML
 - [ ] Instructions clear and concise
 - [ ] Error messages specific and actionable
@@ -228,17 +252,20 @@ Comprehensive acceptance criteria and test plan for ScentMatch's foundational au
 ### Fragrance Database Accessibility
 
 **Data Tables:**
+
 - [ ] Table headers properly associated with data cells
 - [ ] Sort controls keyboard accessible
 - [ ] Column headers indicate sort direction
 - [ ] Row selection announced to screen readers
 
 **Images:**
+
 - [ ] Fragrance images have descriptive alt text
 - [ ] Decorative images marked with alt=""
 - [ ] Missing images gracefully handled
 
 **Interactive Lists:**
+
 - [ ] Collection lists navigable with arrow keys
 - [ ] Selected items announced properly
 - [ ] Batch operations keyboard accessible
@@ -299,24 +326,28 @@ INSERT INTO user_collections (user_id, fragrance_id, rating, notes) VALUES
 ### Authentication Security
 
 **Password Security:**
+
 - [ ] Minimum 8 characters, max 128 characters
 - [ ] Must contain: uppercase, lowercase, number, special character
 - [ ] Passwords hashed with bcrypt/Argon2 in Supabase
 - [ ] No password stored in plaintext anywhere
 
 **Session Management:**
+
 - [ ] JWT tokens expire appropriately (15min access, 7 day refresh)
 - [ ] Tokens invalidated on logout
 - [ ] Concurrent session limits enforced
 - [ ] Session fixation attacks prevented
 
 **Input Validation:**
+
 - [ ] SQL injection protection on all database queries
 - [ ] XSS prevention on all user inputs
 - [ ] CSRF tokens on state-changing operations
 - [ ] Rate limiting on authentication endpoints (5 attempts/5 minutes)
 
 **OAuth Security:**
+
 - [ ] State parameter used to prevent CSRF
 - [ ] Redirect URIs whitelisted
 - [ ] Token exchange over HTTPS only
@@ -325,12 +356,14 @@ INSERT INTO user_collections (user_id, fragrance_id, rating, notes) VALUES
 ### Data Protection
 
 **PII Handling:**
+
 - [ ] Email addresses encrypted at rest
 - [ ] Personal data deletion on account closure
 - [ ] Data export functionality available
 - [ ] Audit logs for sensitive operations
 
 **API Security:**
+
 - [ ] Authentication required for protected endpoints
 - [ ] Input validation on all API routes
 - [ ] Output encoding prevents data leakage
@@ -339,18 +372,21 @@ INSERT INTO user_collections (user_id, fragrance_id, rating, notes) VALUES
 ## Test Execution Plan
 
 ### Phase 1: Unit Tests (Backend)
+
 - [ ] Supabase Auth integration tests
 - [ ] Database model validation tests
 - [ ] API endpoint functionality tests
 - [ ] Security middleware tests
 
 ### Phase 2: Integration Tests (Frontend + Backend)
+
 - [ ] Complete authentication flows
 - [ ] Fragrance CRUD operations
 - [ ] User collection management
 - [ ] Error handling and edge cases
 
 ### Phase 3: E2E Tests (Playwright)
+
 - [ ] User registration journey
 - [ ] Sign-in/sign-out flows
 - [ ] Password reset process
@@ -359,18 +395,21 @@ INSERT INTO user_collections (user_id, fragrance_id, rating, notes) VALUES
 - [ ] Mobile responsive testing
 
 ### Phase 4: Performance Testing
+
 - [ ] Core Web Vitals measurement
 - [ ] Database query performance
 - [ ] API response times
 - [ ] Concurrent user load testing
 
 ### Phase 5: Accessibility Testing
+
 - [ ] Screen reader testing (NVDA, JAWS)
 - [ ] Keyboard navigation testing
 - [ ] Color contrast verification
 - [ ] Mobile accessibility testing
 
 ### Phase 6: Security Testing
+
 - [ ] Authentication bypass attempts
 - [ ] Session management vulnerabilities
 - [ ] Input validation testing
@@ -379,30 +418,35 @@ INSERT INTO user_collections (user_id, fragrance_id, rating, notes) VALUES
 ## Definition of Done
 
 **Functional Requirements:**
+
 - [ ] All acceptance criteria pass
 - [ ] Unit tests achieve 80%+ coverage
 - [ ] Integration tests cover happy path + error scenarios
 - [ ] E2E tests verify core user journeys
 
 **Performance Requirements:**
+
 - [ ] Core Web Vitals meet thresholds on mobile
 - [ ] API responses under 500ms
 - [ ] Database queries optimized
 - [ ] Image loading optimized
 
 **Accessibility Requirements:**
+
 - [ ] WCAG 2.2 AA compliance verified
 - [ ] Screen reader testing completed
 - [ ] Keyboard navigation functional
 - [ ] Color contrast requirements met
 
 **Security Requirements:**
+
 - [ ] Security testing scenarios passed
 - [ ] Penetration testing completed
 - [ ] Data protection verified
 - [ ] Authentication security confirmed
 
 **Quality Requirements:**
+
 - [ ] Code review completed
 - [ ] Documentation updated
 - [ ] Error handling comprehensive
@@ -411,6 +455,7 @@ INSERT INTO user_collections (user_id, fragrance_id, rating, notes) VALUES
 ---
 
 **Next Steps:**
+
 1. Review and approve acceptance criteria
 2. Set up test data in staging environment
 3. Begin implementation with TDD approach

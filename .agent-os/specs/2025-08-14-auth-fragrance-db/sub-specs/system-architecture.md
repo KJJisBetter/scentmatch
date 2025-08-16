@@ -30,7 +30,7 @@ CREATE TABLE public.profiles (
   subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium', 'expert')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Indexes
   CONSTRAINT username_length CHECK (char_length(username) >= 3 AND char_length(username) <= 30)
 );
@@ -60,25 +60,25 @@ CREATE TABLE public.fragrances (
   perfumer TEXT[],
   concentration TEXT CHECK (concentration IN ('parfum', 'edp', 'edt', 'edc', 'cologne', 'oil')),
   gender TEXT CHECK (gender IN ('masculine', 'feminine', 'unisex')),
-  
+
   -- Scent profile
   scent_profile JSONB DEFAULT '{}', -- Detailed note breakdown
   top_notes TEXT[],
   heart_notes TEXT[],
   base_notes TEXT[],
   accords TEXT[],
-  
+
   -- Characteristics
   longevity DECIMAL(3,2) CHECK (longevity >= 0 AND longevity <= 5),
   sillage DECIMAL(3,2) CHECK (sillage >= 0 AND sillage <= 5),
   value_rating DECIMAL(3,2) CHECK (value_rating >= 0 AND value_rating <= 5),
   versatility DECIMAL(3,2) CHECK (versatility >= 0 AND versatility <= 5),
-  
+
   -- Vector embeddings for AI similarity
   embedding VECTOR(1024), -- Voyage AI voyage-3.5 dimensions
   embedding_model TEXT DEFAULT 'voyage-3.5',
   embedding_generated_at TIMESTAMPTZ,
-  
+
   -- Metadata
   description TEXT,
   image_url TEXT,
@@ -86,16 +86,16 @@ CREATE TABLE public.fragrances (
   affiliate_links JSONB DEFAULT '[]',
   sample_available BOOLEAN DEFAULT false,
   discontinued BOOLEAN DEFAULT false,
-  
+
   -- Statistics (denormalized for performance)
   avg_rating DECIMAL(3,2),
   total_ratings INTEGER DEFAULT 0,
   total_reviews INTEGER DEFAULT 0,
   popularity_score DECIMAL(10,2) DEFAULT 0,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Unique constraint for brand + name
   CONSTRAINT unique_brand_fragrance UNIQUE (brand_id, name)
 );
@@ -105,30 +105,30 @@ CREATE TABLE public.user_fragrances (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
-  
+
   -- Collection status
   status TEXT NOT NULL CHECK (status IN ('owned', 'wishlist', 'tested', 'decant', 'sample')),
   acquisition_date DATE,
   bottle_size INTEGER, -- in ml
   purchase_price DECIMAL(10,2),
-  
+
   -- Personal ratings
   rating DECIMAL(3,2) CHECK (rating >= 0 AND rating <= 5),
   longevity_rating DECIMAL(3,2) CHECK (longevity_rating >= 0 AND longevity_rating <= 5),
   sillage_rating DECIMAL(3,2) CHECK (sillage_rating >= 0 AND sillage_rating <= 5),
-  
+
   -- Usage tracking
   usage_count INTEGER DEFAULT 0,
   last_worn DATE,
   seasons TEXT[] DEFAULT '{}',
   occasions TEXT[] DEFAULT '{}',
-  
+
   -- Notes
   personal_notes TEXT,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Unique per user and fragrance
   CONSTRAINT unique_user_fragrance UNIQUE (user_id, fragrance_id)
 );
@@ -138,23 +138,23 @@ CREATE TABLE public.reviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
-  
+
   rating DECIMAL(3,2) NOT NULL CHECK (rating >= 0 AND rating <= 5),
   title TEXT,
   content TEXT NOT NULL,
-  
+
   -- Detailed ratings
   longevity_rating DECIMAL(3,2) CHECK (longevity_rating >= 0 AND longevity_rating <= 5),
   sillage_rating DECIMAL(3,2) CHECK (sillage_rating >= 0 AND sillage_rating <= 5),
   value_rating DECIMAL(3,2) CHECK (value_rating >= 0 AND value_rating <= 5),
-  
+
   -- Review metadata
   verified_purchase BOOLEAN DEFAULT false,
   helpful_count INTEGER DEFAULT 0,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- One review per user per fragrance
   CONSTRAINT unique_user_review UNIQUE (user_id, fragrance_id)
 );
@@ -163,11 +163,11 @@ CREATE TABLE public.reviews (
 CREATE TABLE public.user_preferences (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE,
-  
+
   -- Preference vectors (generated from collection analysis)
   preference_embedding VECTOR(1024),
   anti_preference_embedding VECTOR(1024), -- What they dislike
-  
+
   -- Structured preferences
   favorite_notes TEXT[],
   disliked_notes TEXT[],
@@ -175,19 +175,19 @@ CREATE TABLE public.user_preferences (
   preferred_concentration TEXT[],
   preferred_seasons TEXT[],
   preferred_occasions TEXT[],
-  
+
   -- Budget preferences
   min_price DECIMAL(10,2),
   max_price DECIMAL(10,2),
   prefer_samples BOOLEAN DEFAULT true,
-  
+
   -- Recommendation settings
   include_discontinued BOOLEAN DEFAULT false,
   adventure_level INTEGER DEFAULT 3 CHECK (adventure_level >= 1 AND adventure_level <= 5),
-  
+
   -- Computed preferences (updated via triggers)
   computed_at TIMESTAMPTZ,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -197,20 +197,20 @@ CREATE TABLE public.recommendations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
-  
+
   -- Recommendation metadata
   score DECIMAL(5,4) NOT NULL, -- 0.0000 to 1.0000
   reason TEXT NOT NULL,
   recommendation_type TEXT CHECK (recommendation_type IN ('similar', 'complementary', 'adventure', 'trending', 'seasonal')),
-  
+
   -- Tracking
   viewed BOOLEAN DEFAULT false,
   clicked BOOLEAN DEFAULT false,
   dismissed BOOLEAN DEFAULT false,
-  
+
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Unique active recommendation
   CONSTRAINT unique_active_recommendation UNIQUE (user_id, fragrance_id, recommendation_type)
 );
@@ -335,30 +335,30 @@ CREATE POLICY "System can manage recommendations"
 interface AuthConfig {
   providers: {
     email: {
-      enabled: true,
-      confirmEmail: true,
-      passwordMinLength: 8,
-      passwordRequireUppercase: true,
-      passwordRequireNumbers: true,
-    },
+      enabled: true;
+      confirmEmail: true;
+      passwordMinLength: 8;
+      passwordRequireUppercase: true;
+      passwordRequireNumbers: true;
+    };
     google: {
-      enabled: true,
-      scopes: ['email', 'profile'],
-    },
+      enabled: true;
+      scopes: ['email', 'profile'];
+    };
     apple: {
-      enabled: true,
-      scopes: ['email', 'name'],
-    },
-  },
+      enabled: true;
+      scopes: ['email', 'name'];
+    };
+  };
   jwt: {
-    expiryTime: '1h',
-    refreshWindow: '30d',
-  },
+    expiryTime: '1h';
+    refreshWindow: '30d';
+  };
   rateLimit: {
-    emailSignups: '5/hour/ip',
-    loginAttempts: '10/hour/ip',
-    passwordReset: '3/hour/email',
-  },
+    emailSignups: '5/hour/ip';
+    loginAttempts: '10/hour/ip';
+    passwordReset: '3/hour/email';
+  };
 }
 ```
 
@@ -368,16 +368,20 @@ interface AuthConfig {
 // app/middleware/auth.ts
 export class AuthMiddleware {
   // Session validation
-  async validateSession(token: string): Promise<User | null>
-  
+  async validateSession(token: string): Promise<User | null>;
+
   // Permission checks
-  async hasPermission(userId: string, resource: string, action: string): Promise<boolean>
-  
+  async hasPermission(
+    userId: string,
+    resource: string,
+    action: string
+  ): Promise<boolean>;
+
   // Rate limiting
-  async checkRateLimit(identifier: string, action: string): Promise<boolean>
-  
+  async checkRateLimit(identifier: string, action: string): Promise<boolean>;
+
   // Token refresh
-  async refreshToken(refreshToken: string): Promise<TokenPair>
+  async refreshToken(refreshToken: string): Promise<TokenPair>;
 }
 ```
 
@@ -421,7 +425,7 @@ app/
 
 ```typescript
 // app/actions/fragrances.ts
-'use server'
+'use server';
 
 export async function searchFragrances(query: string, filters: FilterOptions) {
   // Input validation
@@ -430,7 +434,10 @@ export async function searchFragrances(query: string, filters: FilterOptions) {
   // Error handling
 }
 
-export async function getSimilarFragrances(fragranceId: string, limit: number = 10) {
+export async function getSimilarFragrances(
+  fragranceId: string,
+  limit: number = 10
+) {
   // Vector similarity search
   // Result ranking
   // Cache management
@@ -448,28 +455,28 @@ interface EmbeddingPipeline {
   async generateFragranceEmbedding(fragrance: Fragrance): Promise<void> {
     // 1. Construct embedding text
     const text = buildEmbeddingText(fragrance)
-    
+
     // 2. Call Voyage AI API
     const embedding = await voyageAI.embed(text, {
       model: 'voyage-3.5',
       inputType: 'document',
     })
-    
+
     // 3. Store in database
     await updateFragranceEmbedding(fragrance.id, embedding)
-    
+
     // 4. Invalidate recommendation cache
     await invalidateRecommendationCache(fragrance.id)
   }
-  
+
   // User preference embedding
   async generateUserPreferenceEmbedding(userId: string): Promise<void> {
     // 1. Analyze user's collection
     const preferences = await analyzeUserCollection(userId)
-    
+
     // 2. Generate preference vector
     const embedding = await generatePreferenceVector(preferences)
-    
+
     // 3. Store and cache
     await updateUserPreferenceEmbedding(userId, embedding)
   }
@@ -485,42 +492,34 @@ interface CacheStrategy {
   layers: {
     // L1: In-memory cache (Next.js)
     memory: {
-      ttl: 300, // 5 minutes
-      maxSize: '100MB',
-      keys: ['hot-fragrances', 'trending', 'user-sessions'],
-    },
-    
+      ttl: 300; // 5 minutes
+      maxSize: '100MB';
+      keys: ['hot-fragrances', 'trending', 'user-sessions'];
+    };
+
     // L2: Redis cache (Upstash)
     redis: {
-      ttl: 3600, // 1 hour
+      ttl: 3600; // 1 hour
       keys: [
         'fragrance-details',
         'user-collections',
         'recommendations',
         'search-results',
-      ],
-    },
-    
+      ];
+    };
+
     // L3: Database materialized views
     database: {
-      refresh: 'hourly',
-      views: [
-        'popular_fragrances',
-        'trending_by_season',
-        'brand_statistics',
-      ],
-    },
-    
+      refresh: 'hourly';
+      views: ['popular_fragrances', 'trending_by_season', 'brand_statistics'];
+    };
+
     // L4: CDN edge cache (Vercel)
     cdn: {
-      ttl: 86400, // 1 day
-      paths: [
-        '/api/fragrances/trending',
-        '/api/brands',
-        '/images/*',
-      ],
-    },
-  },
+      ttl: 86400; // 1 day
+      paths: ['/api/fragrances/trending', '/api/brands', '/images/*'];
+    };
+  };
 }
 ```
 
@@ -531,7 +530,7 @@ interface CacheStrategy {
 ```sql
 -- Materialized view for popular fragrances
 CREATE MATERIALIZED VIEW popular_fragrances AS
-SELECT 
+SELECT
   f.*,
   COUNT(DISTINCT uf.user_id) as owner_count,
   AVG(r.rating) as avg_rating,
@@ -571,7 +570,7 @@ async function findSimilarFragrances(embedding: number[], limit: number = 10) {
     ORDER BY embedding <=> $1::vector
     LIMIT $2
   `;
-  
+
   // Pre-filter by user preferences for better performance
   const filteredQuery = `
     WITH user_prefs AS (
@@ -618,15 +617,15 @@ export class ErrorHandler {
       SUPABASE_ERROR: { code: 'EXT002', status: 503 },
       RATE_LIMIT_EXCEEDED: { code: 'EXT003', status: 429 },
     },
-  }
-  
+  };
+
   // Logging with Sentry
   async logError(error: AppError, context: ErrorContext) {
     // Development: console
     if (process.env.NODE_ENV === 'development') {
-      console.error(error, context)
+      console.error(error, context);
     }
-    
+
     // Production: Sentry
     Sentry.captureException(error, {
       tags: {
@@ -635,17 +634,17 @@ export class ErrorHandler {
         action: context.action,
       },
       extra: context.metadata,
-    })
+    });
   }
-  
+
   // User-friendly error messages
   getUserMessage(error: AppError): string {
     const messages = {
       AUTH001: 'Please log in to continue',
       DATA001: 'The requested item was not found',
       EXT001: 'Our recommendation service is temporarily unavailable',
-    }
-    return messages[error.code] || 'An unexpected error occurred'
+    };
+    return messages[error.code] || 'An unexpected error occurred';
   }
 }
 ```
@@ -657,39 +656,40 @@ interface MonitoringSetup {
   // Application metrics
   metrics: {
     // Performance
-    apiResponseTime: Histogram,
-    databaseQueryTime: Histogram,
-    vectorSearchTime: Histogram,
-    cacheHitRate: Gauge,
-    
+    apiResponseTime: Histogram;
+    databaseQueryTime: Histogram;
+    vectorSearchTime: Histogram;
+    cacheHitRate: Gauge;
+
     // Business metrics
-    dailyActiveUsers: Counter,
-    recommendationClickRate: Gauge,
-    collectionAdditions: Counter,
-    reviewsCreated: Counter,
-  },
-  
+    dailyActiveUsers: Counter;
+    recommendationClickRate: Gauge;
+    collectionAdditions: Counter;
+    reviewsCreated: Counter;
+  };
+
   // Health checks
   healthChecks: {
-    database: '/api/health/db',
-    redis: '/api/health/redis',
-    voyageAI: '/api/health/voyage',
-    storage: '/api/health/storage',
-  },
-  
+    database: '/api/health/db';
+    redis: '/api/health/redis';
+    voyageAI: '/api/health/voyage';
+    storage: '/api/health/storage';
+  };
+
   // Alerting rules
   alerts: {
-    highErrorRate: 'error_rate > 0.01',
-    slowApiResponse: 'p95_response_time > 2000ms',
-    lowCacheHitRate: 'cache_hit_rate < 0.7',
-    databaseConnectionPool: 'available_connections < 5',
-  },
+    highErrorRate: 'error_rate > 0.01';
+    slowApiResponse: 'p95_response_time > 2000ms';
+    lowCacheHitRate: 'cache_hit_rate < 0.7';
+    databaseConnectionPool: 'available_connections < 5';
+  };
 }
 ```
 
 ## Data Flow Diagrams
 
 ### Authentication Flow
+
 ```
 User → Next.js App → Supabase Auth → PostgreSQL
          ↓              ↓
@@ -699,6 +699,7 @@ User → Next.js App → Supabase Auth → PostgreSQL
 ```
 
 ### Recommendation Generation Flow
+
 ```
 User Collection → Analyze Preferences → Generate Embedding
                                               ↓
@@ -740,7 +741,7 @@ const scalingConfig = {
       scaleDownThreshold: 0.3,
     },
   },
-  
+
   vercel: {
     functions: {
       maxDuration: 10, // seconds
@@ -748,13 +749,13 @@ const scalingConfig = {
       regions: ['iad1'], // Primary region
     },
   },
-  
+
   redis: {
     maxMemory: '256mb',
     evictionPolicy: 'allkeys-lru',
     maxConnections: 50,
   },
-}
+};
 ```
 
 ## Security Model
@@ -783,24 +784,28 @@ const scalingConfig = {
 ## Migration Strategy
 
 ### Phase 1: Initial Schema (Week 1)
+
 1. Deploy core tables (profiles, brands, fragrances)
 2. Set up authentication flow
 3. Implement basic RLS policies
 4. Deploy to staging environment
 
 ### Phase 2: Collection Features (Week 2)
+
 1. Deploy user_fragrances and reviews tables
 2. Implement collection management APIs
 3. Add caching layer
 4. Load test with simulated data
 
 ### Phase 3: AI Integration (Week 3)
+
 1. Deploy embedding columns and indexes
 2. Set up Voyage AI integration
 3. Implement embedding generation pipeline
 4. Deploy recommendation system
 
 ### Phase 4: Optimization (Week 4)
+
 1. Create materialized views
 2. Optimize indexes based on query patterns
 3. Implement full caching strategy
@@ -813,26 +818,26 @@ const scalingConfig = {
 interface SeedStrategy {
   sources: {
     fragrances: {
-      initial: 1000, // Top fragrances
-      expansion: 10000, // Full catalog
-      source: 'Fragrantica API / Web scraping',
-    },
+      initial: 1000; // Top fragrances
+      expansion: 10000; // Full catalog
+      source: 'Fragrantica API / Web scraping';
+    };
     brands: {
-      count: 500,
-      priority: ['designer', 'niche', 'indie'],
-    },
+      count: 500;
+      priority: ['designer', 'niche', 'indie'];
+    };
     samples: {
       // Prioritize fragrances with available samples
-      sources: ['LuckyScent', 'Surrender to Chance', 'The Perfumed Court'],
-    },
-  },
-  
+      sources: ['LuckyScent', 'Surrender to Chance', 'The Perfumed Court'];
+    };
+  };
+
   automation: {
     // Supabase Edge Function for batch processing
-    batchSize: 100,
-    parallelEmbeddings: 10,
-    retryStrategy: 'exponential-backoff',
-  },
+    batchSize: 100;
+    parallelEmbeddings: 10;
+    retryStrategy: 'exponential-backoff';
+  };
 }
 ```
 
@@ -840,14 +845,14 @@ interface SeedStrategy {
 
 ### Estimated Monthly Costs at Scale
 
-| Component | 1K Users | 10K Users | 100K Users |
-|-----------|----------|-----------|------------|
-| Supabase (Database) | $25 | $135 | $599 |
-| Vercel (Hosting) | $20 | $20 | $150 |
-| Voyage AI (Embeddings) | $10 | $50 | $400 |
-| Redis (Caching) | $0 | $10 | $120 |
-| CDN/Storage | $5 | $20 | $200 |
-| **Total** | **$60** | **$235** | **$1,469** |
+| Component              | 1K Users | 10K Users | 100K Users |
+| ---------------------- | -------- | --------- | ---------- |
+| Supabase (Database)    | $25      | $135      | $599       |
+| Vercel (Hosting)       | $20      | $20       | $150       |
+| Voyage AI (Embeddings) | $10      | $50       | $400       |
+| Redis (Caching)        | $0       | $10       | $120       |
+| CDN/Storage            | $5       | $20       | $200       |
+| **Total**              | **$60**  | **$235**  | **$1,469** |
 
 ### Cost Optimization Strategies
 
@@ -861,13 +866,13 @@ interface SeedStrategy {
 
 ### Technical Risks
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| Voyage AI API downtime | High | Low | Fallback to OpenAI embeddings |
-| Database connection exhaustion | High | Medium | Connection pooling + read replicas |
-| Vector search performance degradation | Medium | Medium | Index optimization + caching |
-| Cache invalidation issues | Low | Medium | TTL-based expiry + manual purge |
-| Authentication vulnerabilities | High | Low | Regular security audits |
+| Risk                                  | Impact | Likelihood | Mitigation                         |
+| ------------------------------------- | ------ | ---------- | ---------------------------------- |
+| Voyage AI API downtime                | High   | Low        | Fallback to OpenAI embeddings      |
+| Database connection exhaustion        | High   | Medium     | Connection pooling + read replicas |
+| Vector search performance degradation | Medium | Medium     | Index optimization + caching       |
+| Cache invalidation issues             | Low    | Medium     | TTL-based expiry + manual purge    |
+| Authentication vulnerabilities        | High   | Low        | Regular security audits            |
 
 ### Mitigation Strategies
 
@@ -880,6 +885,7 @@ interface SeedStrategy {
 ## Implementation Checklist
 
 ### Week 1: Foundation
+
 - [ ] Set up Supabase project
 - [ ] Deploy authentication schema and RLS policies
 - [ ] Implement auth flows with Next.js
@@ -887,6 +893,7 @@ interface SeedStrategy {
 - [ ] Set up error handling and logging
 
 ### Week 2: Core Features
+
 - [ ] Deploy fragrance and collection schemas
 - [ ] Implement fragrance search and display
 - [ ] Create collection management APIs
@@ -894,6 +901,7 @@ interface SeedStrategy {
 - [ ] Implement user profile management
 
 ### Week 3: AI Integration
+
 - [ ] Set up Voyage AI integration
 - [ ] Deploy embedding generation pipeline
 - [ ] Implement vector similarity search
@@ -901,6 +909,7 @@ interface SeedStrategy {
 - [ ] Add preference learning system
 
 ### Week 4: Production Readiness
+
 - [ ] Performance optimization
 - [ ] Security audit
 - [ ] Load testing

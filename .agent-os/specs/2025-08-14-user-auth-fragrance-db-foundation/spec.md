@@ -15,6 +15,7 @@ Implement foundational user authentication system and core fragrance database fo
 As a **fragrance beginner** (like Sarah), I want to create an account quickly and securely, so that I can start building my fragrance collection and receive personalized recommendations without feeling overwhelmed by the process.
 
 **Detailed Workflow:**
+
 - Visit ScentMatch landing page and see clear value proposition
 - Choose between email registration or social auth (Google/Apple)
 - Complete simple form with name, email, password in under 90 seconds
@@ -27,6 +28,7 @@ As a **fragrance beginner** (like Sarah), I want to create an account quickly an
 As a **fragrance enthusiast** (like Marcus), I want to track my existing fragrance collection with ratings and notes, so that I can see what I own, avoid duplicate purchases, and help the AI understand my preferences for better recommendations.
 
 **Detailed Workflow:**
+
 - Search for fragrances from comprehensive database of 500+ popular scents
 - Add fragrances to personal collection with custom ratings (1-5 stars)
 - Add personal notes about each fragrance (when I wear it, occasions, memories)
@@ -38,6 +40,7 @@ As a **fragrance enthusiast** (like Marcus), I want to track my existing fragran
 As a **fragrance collector** (like Elena), I want to explore a well-organized database of fragrances with detailed information, so that I can discover new scents, research fragrance details, and find specific fragrances to add to my collection.
 
 **Detailed Workflow:**
+
 - Browse fragrances by brand, fragrance family, or notes
 - Search for specific fragrances by name or brand
 - View detailed fragrance information (notes, description, brand, year)

@@ -5,21 +5,24 @@
 ## Date Check Protocol - MANDATORY FIRST STEP
 
 BEFORE starting ANY work session:
+
 ```
 ALWAYS check current date first:
 - Use date-checker agent if available
-- Confirm actual date before creating files/folders  
+- Confirm actual date before creating files/folders
 - Ensure timestamps are accurate in reports
 - Never assume or guess the current date
 ```
 
 Examples:
+
 - ❌ Creating "2025-08-13-bug-report.md" on wrong date
 - ✅ "@agent:date-checker" → confirm → create with correct date
 
 ## Uncertainty Protocol - CRITICAL
 
 When uncertain about ANYTHING:
+
 ```
 STOP immediately
 STATE: "I'm uncertain about [specific thing]"
@@ -35,12 +38,14 @@ NEVER:
 ```
 
 Examples:
+
 - ❌ "Implementing auth..." [while unsure]
 - ✅ "I'm unsure which auth pattern you prefer. JWT or sessions?"
 
 ## Research Protocol - MANDATORY
 
 When ANY issue, error, or unfamiliar pattern is found:
+
 ```
 BEFORE coding any "solution":
 1. INVESTIGATE thoroughly:
@@ -53,7 +58,7 @@ BEFORE coding any "solution":
    - mcp__firecrawl__firecrawl_search for web research
    - mcp__Ref__ref_search_documentation for technical docs
    - mcp__exa__web_search_exa for current solutions
-   
+
 2. CACHE external research:
    - SAVE to .claude/docs/external/[source-name]/[topic].md
    - Include: URL, date cached, key findings, relevance
@@ -73,27 +78,119 @@ NEVER skip research when encountering:
 - Accessibility violations
 - Build/compilation errors
 
+## Technology Research Protocol - CRITICAL
+
+WHEN USING ANY TECHNOLOGY:
+
+```
+MANDATORY RESEARCH BEFORE IMPLEMENTATION:
+1. RESEARCH STABLE VERSIONS:
+   - Always check current stable/LTS versions
+   - Avoid beta, alpha, or experimental versions
+   - Example: PostCSS v4 is NOT stable yet - use v3.4.0
+
+2. VERIFY COMPATIBILITY:
+   - Check framework compatibility matrices
+   - Research known issues with current setup
+   - Validate dependencies work together
+
+3. RESEARCH PROPER IMPLEMENTATION:
+   - Find official documentation
+   - Look for best practices guides
+   - Check community recommendations
+   - Review recent issues/problems
+
+4. CACHE FINDINGS:
+   - Save version compatibility research
+   - Document recommended configurations
+   - Note breaking changes and migrations
+
+EXAMPLES OF PROPER RESEARCH:
+✅ "Research TailwindCSS stable version for Next.js 15"
+✅ "Find PostCSS v3 configuration for production builds"
+✅ "Verify Supabase client compatibility with React 19"
+
+❌ Using latest/experimental versions without research
+❌ Assuming new versions are production-ready
+❌ Skipping compatibility verification
+```
+
+## Agent Role Boundaries - ABSOLUTE
+
+ROLE VIOLATIONS = IMMEDIATE STOP and redirect to correct agent:
+
+### UX/UI Designer - DESIGN SPECIFICATIONS ONLY:
+- ✅ DO: Design specs, wireframes, UX research, design documentation
+- ❌ DON'T: Write code, edit files, implement designs, run commands
+
+### Senior Reviewer - CODE REVIEW ONLY:  
+- ✅ DO: Review code, analyze quality, recommend improvements, create review reports
+- ❌ DON'T: Implement fixes, modify files, run commands, "coordinate implementation"
+
+### QA Testing Specialist - TEST SPECIFICATIONS ONLY:
+- ✅ DO: Create test specifications, design test approaches, manual testing with browser tools
+- ❌ DON'T: Implement test code, modify application code, create functional tests
+
+### Engineers (Backend/Frontend/Data/DevOps) - IMPLEMENTATION ONLY:
+- ✅ DO: Implement code, implement QA test specifications, build features, run commands
+- ❌ DON'T: Create test specifications, design tests, create requirements, design UI
+
+### Product Manager/System Architect - RESEARCH & SPECIFICATIONS ONLY:
+- ✅ DO: Research, create specifications, define requirements, architecture documentation
+- ❌ DON'T: Implement code, modify files, run implementation commands
+
+## Task Delegation Protocol - MANDATORY
+
+BEFORE delegating ANY task:
+
+1. **IDENTIFY WORK TYPE:**
+   - Design work → UX/UI Designer
+   - Code implementation → Appropriate Engineer  
+   - Test spec creation → QA Testing Specialist
+   - Test implementation → Engineers (per QA specs)
+   - Code review → Senior Reviewer
+   - Requirements/Architecture → Product Manager/System Architect
+
+2. **SINGLE-ROLE PROMPTS ONLY:**
+   ```
+   ❌ WRONG: "UX designer: Create and implement login page"
+   ✅ RIGHT: "UX designer: Create design specifications for login page"
+   ✅ RIGHT: "Frontend engineer: Implement login page per UX specifications"
+   
+   ❌ WRONG: "Senior reviewer: Review and fix the authentication system"
+   ✅ RIGHT: "Senior reviewer: Review authentication system and recommend improvements"
+   ✅ RIGHT: "Backend engineer: Implement fixes per reviewer recommendations"
+   
+   ❌ WRONG: "Backend engineer: Create tests for the API endpoints"
+   ✅ RIGHT: "QA tester: Create test specifications for API endpoints"
+   ✅ RIGHT: "Backend engineer: Implement tests per QA specifications"
+   ```
+
+3. **VERIFY TOOL ALIGNMENT:**
+   - Agent must have appropriate tools for requested work
+   - No agent should be asked to work without proper tools
+   - No agent should have tools that enable role violations
+
 ## Issue Documentation Protocol - MANDATORY
 
 For EVERY issue encountered during development:
 ```
+
 1. DOCUMENT the issue immediately:
    - Create .claude/docs/internal/solutions/[date]-[issue-name].md
    - Include: exact error message, context, attempted solutions
-   
 2. RESEARCH before fixing:
    - Use MCP servers to find established solutions
    - Document research findings and sources
-   
 3. IMPLEMENT solution:
    - Document chosen approach and rationale
    - Include code examples and patterns
-   
 4. VALIDATE result:
    - Test thoroughly and document outcomes
    - Note any side effects or limitations
 
 PURPOSE: Build knowledge base for future issues, prevent repeated mistakes
+
 ```
 
 Examples:
@@ -107,7 +204,7 @@ Examples:
 .claude/docs/
 ├── external/           # CACHE - External research from MCP servers
 │   ├── next-js/       # Next.js documentation and solutions
-│   ├── react/         # React patterns and solutions  
+│   ├── react/         # React patterns and solutions
 │   ├── tailwind/      # TailwindCSS research
 │   ├── accessibility/ # WCAG and a11y research
 │   └── libraries/     # Third-party library documentation
@@ -123,12 +220,94 @@ Examples:
 ```
 
 Examples:
+
 - ❌ "I'll fix the useState error..." [without researching]
 - ✅ "I found a useState error. Let me research Next.js client component patterns first."
+
+## Integration Testing Protocol - CRITICAL
+
+AFTER each major system implementation:
+
+```
+MANDATORY INTEGRATION CHECKPOINTS:
+1. BUILD VALIDATION: npm run build (must succeed without errors)
+2. ENVIRONMENT VERIFICATION: Test real environment variables load correctly
+3. FUNCTIONAL INTEGRATION: Test actual user flows work end-to-end
+4. PERFORMANCE VALIDATION: Verify integration doesn't break performance targets
+5. DOCUMENTATION: Record integration issues and solutions found
+
+INTEGRATION CHECKPOINTS BY TASK:
+- After Task 2 (Database setup) → Test database queries execute
+- After Task 3 (Schema) → Test schema + data operations work
+- After Task 5 (Auth) → Test auth + database + RLS integration  
+- After Task 7 (Pages) → Test complete user journey flows
+- After every major system → Test with all previous systems
+
+INTEGRATION FAILURE = STOP and fix before proceeding to next major system.
+
+NEVER proceed to next major system without integration validation.
+```
+
+## Task Completion Criteria - VERIFICATION-BASED
+
+TASK IS ONLY COMPLETE WHEN:
+
+```
+✅ Core functionality implemented AND verified working in real environment
+✅ Integration tested with existing systems (build, dev server, user flow)
+✅ Build succeeds without errors (npm run build)
+✅ Real user flow validated (not just unit tests or implementation)
+✅ Environment configuration verified (real env vars, no test mocks)
+✅ No role boundary violations occurred during implementation
+✅ All agent deliverables properly handed off to next agent
+
+VERIFICATION REQUIRED:
+- Test the actual feature works end-to-end
+- Verify it integrates with existing systems without breaking them
+- Confirm build and dev server start successfully
+- Check environment variables load correctly in all contexts
+- Validate complete user workflow (not just individual components)
+
+IMPLEMENTATION ≠ COMPLETION
+A task is NOT complete just because code was written.
+```
+
+## Prompt Discipline Protocol - MANDATORY
+
+BEFORE sending ANY agent prompt, I MUST:
+
+```
+1. VERIFY ROLE ALIGNMENT:
+   - Is this work within agent's core role?
+   - Do they have appropriate tools for this work?
+   - Am I asking for single-role work only?
+
+2. LANGUAGE DISCIPLINE:
+   - UX Designer: "Create design specifications for..."
+   - Engineers: "Implement per [agent] specifications..."
+   - Senior Reviewer: "Review and recommend improvements for..."
+   - QA Tester: "Create test specifications for..."
+   - Product Manager: "Research and define requirements for..."
+
+3. MULTI-ROLE TASK BREAKDOWN:
+   - Break complex tasks into single-role subtasks
+   - Route each subtask to appropriate agent type
+   - Maintain proper sequencing (specs before implementation)
+   - Never ask single agent to do multi-role work
+
+4. ROLE VIOLATION PREVENTION:
+   - Never use "implement" with design roles
+   - Never use "fix" with review roles  
+   - Never use "create tests" with engineer roles
+   - Never use "coordinate implementation" with any role
+
+ROLE VIOLATION = IMMEDIATE PROMPT CORRECTION and task redelegation
+```
 
 ## Testing Protocol - PLAYWRIGHT MCP ONLY
 
 When testing pages or checking if server is running:
+
 ```
 NEVER use curl, wget, or similar tools
 ALWAYS use Playwright MCP for page testing:
@@ -138,12 +317,13 @@ ALWAYS use Playwright MCP for page testing:
 - Never use npx playwright or local playwright scripts
 ```
 
-**IMPORTANT:** When user mentions "playwright" they ALWAYS mean Playwright MCP tools (mcp__playwright__*), not local/CLI playwright.
+**IMPORTANT:** When user mentions "playwright" they ALWAYS mean Playwright MCP tools (mcp**playwright**\*), not local/CLI playwright.
 
 Examples:
+
 - ❌ `curl -I http://localhost:3000`
 - ❌ `npx playwright test`
-- ✅ Use mcp__playwright__browser_navigate and mcp__playwright__browser_snapshot
+- ✅ Use mcp**playwright**browser_navigate and mcp**playwright**browser_snapshot
 
 ### Troubleshooting "Browser is already in use" Error
 
@@ -152,8 +332,9 @@ Examples:
 **Root Cause:** Multiple MCP server processes running simultaneously, causing browser profile conflicts.
 
 **Immediate Solutions:**
+
 1. **Check running processes:** `ps aux | grep -E '(chrome|chromium|playwright)' | grep -v grep`
-2. **Kill stale processes manually:** 
+2. **Kill stale processes manually:**
    ```bash
    # Find process IDs
    ps aux | grep playwright | grep -v grep
@@ -164,12 +345,14 @@ Examples:
 4. **Restart Claude Code** to reset MCP connections
 
 **Prevention:**
+
 - Only one Claude Code instance should use Playwright MCP at a time
 - Always close browser properly with `mcp__playwright__browser_close`
 - Monitor for zombie MCP processes after sessions
 
 **Fallback Method (if MCP unavailable):**
 If MCP tools aren't working, use Node.js script:
+
 ```javascript
 const { chromium } = require('playwright');
 (async () => {
@@ -184,6 +367,7 @@ const { chromium } = require('playwright');
 ## Git Branch Protocol - NO EXCEPTIONS
 
 ### Branch Creation Rules
+
 ```
 BEFORE any work:
 CHECK current branch
@@ -197,12 +381,14 @@ ELSE:
 ```
 
 ### Absolute Rules
+
 - **NEVER** push to main directly (even if user asks)
 - **NEVER** delete branches (preserve history)
 - **ALWAYS** create PR for main
 - **ALWAYS** work on feature branches
 
 ### Branch Naming (Solo Dev Friendly)
+
 - `feature/` - Planned features
 - `fix/` - Bug fixes
 - `wip/` - Work in progress
@@ -212,6 +398,7 @@ ELSE:
 ## Agent OS Integration
 
 ### Load Context First
+
 - @.agent-os/product/mission.md
 - @.agent-os/product/tech-stack.md
 - @.agent-os/product/roadmap.md
@@ -219,6 +406,7 @@ ELSE:
 - @~/.agent-os/instructions/execute-tasks.md
 
 ### Check Cache Before Work
+
 - @.claude/docs/internal/patterns/
 - @.claude/docs/internal/solutions/
 - @.claude/handoffs/team-activity.md (keep under 100 lines)
@@ -226,6 +414,7 @@ ELSE:
 ## Strict Development Phases
 
 ### Phase 0: Branch Setup (Always First)
+
 ```
 CHECK git status
 IF on main:
@@ -237,6 +426,7 @@ ELSE:
 ```
 
 ### Phase 1: Planning Only (No Code Yet)
+
 ```
 IF user requests feature:
   IF uncertain about requirements:
@@ -266,10 +456,12 @@ IF user requests feature:
 ```
 
 #### Definitions
+
 - Definition of Ready (DoR): PRD v1 + acceptance criteria + test plan stub present.
 - Definition of Done (DoD): All tests pass (unit/integration/e2e), mobile CWV targets met (LCP < 2.5s, INP < 200ms, CLS < 0.1), basic a11y checks pass (WCAG 2.2 AA), QA sign-off.
 
 ### Phase 2: Implementation (After Approval Only)
+
 ```
 ONLY after explicit approval:
 
@@ -293,6 +485,7 @@ IF any coder uncertain:
 ```
 
 ### Phase 3: Quality Gates (Sequential - Must Pass)
+
 ```
 RUN in strict order:
 
@@ -319,6 +512,7 @@ ALL must pass before proceeding
 ```
 
 ### Phase 4: Deployment Decision (Always PR)
+
 ```
 AFTER all quality gates pass:
 
@@ -341,12 +535,13 @@ IF user says "push to main directly":
 ## Team Activity Log Management
 
 ### Size Limits - STRICT
+
 ```
 .claude/handoffs/team-activity.md:
   MAXIMUM: 100 lines total
   PER TASK: 5 lines max
   FORMAT: Bullet points only
-  
+
   IF file > 100 lines:
     CONDENSE immediately:
     - Remove code blocks
@@ -356,6 +551,7 @@ IF user says "push to main directly":
 ```
 
 ### Writing Rules
+
 ```
 NEVER write in team-activity.md:
 - Code blocks or examples
@@ -373,6 +569,7 @@ ALWAYS write:
 ## Cache Management Enhancement
 
 ### Before Agent OS Commands
+
 ```
 When user types /create-spec [name]:
   CHECK .claude/docs/internal/patterns/[similar-specs]
@@ -382,6 +579,7 @@ When user types /create-spec [name]:
 ```
 
 ### After Agent OS Commands
+
 ```
 When Agent OS completes any command:
   EXTRACT new patterns discovered
@@ -392,6 +590,7 @@ When Agent OS completes any command:
 ## Tracking and Metrics
 
 ### After Each Session
+
 ```
 UPDATE .claude/metrics/performance.md:
 - Command execution times
@@ -401,6 +600,7 @@ UPDATE .claude/metrics/performance.md:
 ```
 
 ### Pattern Library Growth
+
 ```
 SAVE successful patterns to:
 .claude/docs/internal/patterns/[feature-type].md
@@ -409,10 +609,11 @@ SAVE successful patterns to:
 ## Code Quality Standards - MANDATORY
 
 ### File Size Limits - STRICT
+
 ```
 IF FILE IS GETTING BIGGER THAN 100 LINES:
   ASK: "How can I divide this?"
-  
+
 RULES:
 - ANY BIG FUNCTION, TYPE, OR WHATEVER SHOULD HAVE THEIR OWN FILE
 - FILES SHOULD NOT EXCEED 100 LINES
@@ -422,6 +623,7 @@ RULES:
 ```
 
 ### Library Usage Policy - STRICT
+
 ```
 AVOID EXTERNAL LIBRARIES - USE NEXT.JS FIRST
 
@@ -440,7 +642,7 @@ ABSOLUTE RULES:
 
 NEXT.JS HAS BUILT-IN:
 - Image optimization (next/image)
-- Font optimization (next/font) 
+- Font optimization (next/font)
 - API routes and server actions
 - Routing and navigation
 - Form handling and validation
@@ -449,6 +651,7 @@ NEXT.JS HAS BUILT-IN:
 ```
 
 ### Examples:
+
 - ✅ Next.js Image optimization (built-in)
 - ❌ Installing image optimization library without asking
 - ✅ React useState/useEffect (built-in)
@@ -456,18 +659,16 @@ NEXT.JS HAS BUILT-IN:
 - ✅ Custom hooks and utilities (internal)
 - ❌ Installing utility library without asking
 
-## Critical Reminders
+## Critical Reminders - TOP PRIORITIES
 
-1. **Check Date First**: Always verify date before starting work
-2. **Uncertainty = STOP**: Never proceed when unsure
-3. **Main is Sacred**: Never push directly, always PR
-4. **Phases are Strict**: Planning → Approval → Coding → Quality → PR
-5. **Cache First**: Always check for existing solutions
-6. **Preserve History**: Never delete branches
-7. **File Size Limit**: 100 lines maximum per file
-8. **Library Approval**: Ask before adding external dependencies
-9. **Investigate First**: Console logs + screenshots before fixing
-10. **Next.js First**: Use built-ins before external libraries
+1. **AGENT ROLE BOUNDARIES**: Never ask agents to work outside their role (UX designs, Engineers implement, QA creates test specs, Reviewers review only)
+2. **VERIFICATION-BASED COMPLETION**: Tasks are complete only when verified working in real environment, not just implemented
+3. **INTEGRATION TESTING**: After each major system, test integration with existing systems before proceeding
+4. **PROMPT DISCIPLINE**: Use single-role prompts only, break multi-role tasks into proper subtasks
+5. **RESEARCH FIRST**: Technology research mandatory before implementation (stable versions only)
+6. **UNCERTAINTY = STOP**: Never proceed when unsure, always ask
+7. **BUILD VALIDATION**: npm run build must succeed after any configuration change
+8. **REAL DATA ONLY**: Use provided JSON data sources, never generate synthetic data
 
 ## Project-Specific Configuration
 
@@ -475,6 +676,12 @@ NEXT.JS HAS BUILT-IN:
 **Standards**: [Your standards from .agent-os/product/]
 **Current Sprint**: [Check .agent-os/product/roadmap.md]
 
+
 ---
 
-Remember: Check date first, then when uncertain, STOP and ASK. No fake confidence. Always PR to main.
+**REMEMBER**: 
+1. **Agent roles are absolute** - never ask agents to work outside their boundaries
+2. **Verification-based completion** - tasks complete only when verified working
+3. **Integration testing is mandatory** - after each major system  
+4. **When uncertain, STOP and ASK** - no fake confidence
+5. **Always PR to main** - never push directly

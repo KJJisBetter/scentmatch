@@ -3,6 +3,7 @@
 ## Migration Files Structure
 
 ### Migration 001: Enable Extensions
+
 ```sql
 -- migrations/001_enable_extensions.sql
 -- Enable required PostgreSQL extensions for ScentMatch
@@ -24,6 +25,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_cron";
 ```
 
 ### Migration 002: Core User Tables
+
 ```sql
 -- migrations/002_user_tables.sql
 -- Core user profile and authentication tables
@@ -46,7 +48,7 @@ CREATE TABLE public.profiles (
   subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium', 'expert')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT username_length CHECK (char_length(username) >= 3 AND char_length(username) <= 30),
   CONSTRAINT username_format CHECK (username ~ '^[a-zA-Z0-9_]+$')
 );
@@ -89,6 +91,7 @@ CREATE TRIGGER profiles_updated_at
 ```
 
 ### Migration 003: Fragrance Catalog Tables
+
 ```sql
 -- migrations/003_fragrance_catalog.sql
 -- Fragrance brands and main fragrance table
@@ -126,7 +129,7 @@ CREATE TABLE public.fragrances (
   perfumer TEXT[],
   concentration TEXT CHECK (concentration IN ('parfum', 'edp', 'edt', 'edc', 'cologne', 'oil', 'extrait', 'absolute')),
   gender TEXT CHECK (gender IN ('masculine', 'feminine', 'unisex')),
-  
+
   -- Scent DNA
   scent_profile JSONB DEFAULT '{
     "pyramid": {
@@ -142,37 +145,37 @@ CREATE TABLE public.fragrances (
   heart_notes TEXT[] DEFAULT '{}',
   base_notes TEXT[] DEFAULT '{}',
   accords TEXT[] DEFAULT '{}',
-  
+
   -- Performance metrics (1-5 scale)
   longevity DECIMAL(3,2) CHECK (longevity >= 0 AND longevity <= 5),
   sillage DECIMAL(3,2) CHECK (sillage >= 0 AND sillage <= 5),
   value_rating DECIMAL(3,2) CHECK (value_rating >= 0 AND value_rating <= 5),
   versatility DECIMAL(3,2) CHECK (versatility >= 0 AND versatility <= 5),
-  
+
   -- AI embeddings
   embedding VECTOR(1024), -- Voyage AI voyage-3.5
   embedding_model TEXT DEFAULT 'voyage-3.5',
   embedding_version INTEGER DEFAULT 1,
   embedding_generated_at TIMESTAMPTZ,
-  
+
   -- Content
   description TEXT,
   story TEXT,
   image_url TEXT,
   thumbnail_url TEXT,
-  
+
   -- Commerce
   affiliate_links JSONB DEFAULT '[]'::jsonb,
   sample_available BOOLEAN DEFAULT false,
   travel_size_available BOOLEAN DEFAULT false,
   avg_price_full DECIMAL(10,2),
   avg_price_sample DECIMAL(10,2),
-  
+
   -- Status
   discontinued BOOLEAN DEFAULT false,
   limited_edition BOOLEAN DEFAULT false,
   seasonal BOOLEAN DEFAULT false,
-  
+
   -- Computed statistics (denormalized)
   avg_rating DECIMAL(3,2),
   total_ratings INTEGER DEFAULT 0,
@@ -180,10 +183,10 @@ CREATE TABLE public.fragrances (
   total_owners INTEGER DEFAULT 0,
   popularity_score DECIMAL(10,2) DEFAULT 0,
   trending_score DECIMAL(10,2) DEFAULT 0,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT unique_brand_fragrance UNIQUE (brand_id, name),
   CONSTRAINT valid_year CHECK (year_released IS NULL OR (year_released >= 1900 AND year_released <= EXTRACT(YEAR FROM NOW()) + 1))
 );
@@ -197,20 +200,20 @@ CREATE INDEX idx_fragrances_concentration ON public.fragrances(concentration);
 CREATE INDEX idx_fragrances_year ON public.fragrances(year_released);
 
 -- Composite indexes for common queries
-CREATE INDEX idx_fragrances_notes_gin ON public.fragrances 
+CREATE INDEX idx_fragrances_notes_gin ON public.fragrances
   USING gin((top_notes || heart_notes || base_notes));
 CREATE INDEX idx_fragrances_accords_gin ON public.fragrances USING gin(accords);
 
 -- Vector index for similarity search (IVFFlat for performance)
-CREATE INDEX idx_fragrances_embedding ON public.fragrances 
-  USING ivfflat (embedding vector_cosine_ops) 
+CREATE INDEX idx_fragrances_embedding ON public.fragrances
+  USING ivfflat (embedding vector_cosine_ops)
   WITH (lists = 100);
 
 -- Indexes for filtering
-CREATE INDEX idx_fragrances_available ON public.fragrances(discontinued, sample_available) 
+CREATE INDEX idx_fragrances_available ON public.fragrances(discontinued, sample_available)
   WHERE discontinued = false;
 CREATE INDEX idx_fragrances_popularity ON public.fragrances(popularity_score DESC NULLS LAST);
-CREATE INDEX idx_fragrances_trending ON public.fragrances(trending_score DESC NULLS LAST) 
+CREATE INDEX idx_fragrances_trending ON public.fragrances(trending_score DESC NULLS LAST)
   WHERE trending_score > 0;
 
 -- Update trigger
@@ -224,6 +227,7 @@ CREATE TRIGGER brands_updated_at
 ```
 
 ### Migration 004: User Collection Tables
+
 ```sql
 -- migrations/004_user_collections.sql
 -- User fragrance collections and preferences
@@ -233,34 +237,34 @@ CREATE TABLE public.user_fragrances (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
-  
+
   -- Collection categorization
   status TEXT NOT NULL CHECK (status IN ('owned', 'wishlist', 'tested', 'decant', 'sample', 'had')),
   acquisition_date DATE,
   bottle_size INTEGER CHECK (bottle_size > 0), -- in ml
   purchase_price DECIMAL(10,2) CHECK (purchase_price >= 0),
   purchase_location TEXT,
-  
+
   -- Personal ratings (nullable for wishlist items)
   rating DECIMAL(3,2) CHECK (rating >= 0 AND rating <= 5),
   longevity_rating DECIMAL(3,2) CHECK (longevity_rating >= 0 AND longevity_rating <= 5),
   sillage_rating DECIMAL(3,2) CHECK (sillage_rating >= 0 AND sillage_rating <= 5),
   versatility_rating DECIMAL(3,2) CHECK (versatility_rating >= 0 AND versatility_rating <= 5),
-  
+
   -- Usage tracking
   usage_count INTEGER DEFAULT 0,
   last_worn DATE,
   favorite_seasons TEXT[] DEFAULT '{}',
   favorite_occasions TEXT[] DEFAULT '{}',
   favorite_layering TEXT[], -- Other fragrance IDs for layering
-  
+
   -- Personal notes
   personal_notes TEXT,
   would_repurchase BOOLEAN,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT unique_user_fragrance UNIQUE (user_id, fragrance_id)
 );
 
@@ -268,7 +272,7 @@ CREATE TABLE public.user_fragrances (
 CREATE INDEX idx_user_fragrances_user ON public.user_fragrances(user_id);
 CREATE INDEX idx_user_fragrances_fragrance ON public.user_fragrances(fragrance_id);
 CREATE INDEX idx_user_fragrances_status ON public.user_fragrances(user_id, status);
-CREATE INDEX idx_user_fragrances_rating ON public.user_fragrances(user_id, rating DESC) 
+CREATE INDEX idx_user_fragrances_rating ON public.user_fragrances(user_id, rating DESC)
   WHERE rating IS NOT NULL;
 CREATE INDEX idx_user_fragrances_worn ON public.user_fragrances(user_id, last_worn DESC NULLS LAST);
 
@@ -290,7 +294,7 @@ BEGIN
       AND status IN ('owned', 'decant', 'sample')
   )
   WHERE id = COALESCE(NEW.fragrance_id, OLD.fragrance_id);
-  
+
   RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
@@ -301,6 +305,7 @@ CREATE TRIGGER update_fragrance_stats_on_collection_change
 ```
 
 ### Migration 005: Reviews and Ratings
+
 ```sql
 -- migrations/005_reviews_ratings.sql
 -- User reviews and ratings system
@@ -309,34 +314,34 @@ CREATE TABLE public.reviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
-  
+
   -- Overall rating (required)
   rating DECIMAL(3,2) NOT NULL CHECK (rating >= 0 AND rating <= 5),
-  
+
   -- Review content
   title TEXT,
   content TEXT NOT NULL CHECK (char_length(content) >= 10),
-  
+
   -- Detailed ratings (optional)
   longevity_rating DECIMAL(3,2) CHECK (longevity_rating >= 0 AND longevity_rating <= 5),
   sillage_rating DECIMAL(3,2) CHECK (sillage_rating >= 0 AND sillage_rating <= 5),
   value_rating DECIMAL(3,2) CHECK (value_rating >= 0 AND value_rating <= 5),
   versatility_rating DECIMAL(3,2) CHECK (versatility_rating >= 0 AND versatility_rating <= 5),
-  
+
   -- Review metadata
   verified_purchase BOOLEAN DEFAULT false,
   ownership_status TEXT CHECK (ownership_status IN ('owned', 'sample', 'decant', 'tested')),
   helpful_count INTEGER DEFAULT 0,
   unhelpful_count INTEGER DEFAULT 0,
-  
+
   -- Moderation
   is_visible BOOLEAN DEFAULT true,
   moderation_status TEXT DEFAULT 'pending' CHECK (moderation_status IN ('pending', 'approved', 'rejected', 'flagged')),
   moderation_notes TEXT,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT unique_user_review UNIQUE (user_id, fragrance_id),
   CONSTRAINT review_content_length CHECK (char_length(content) >= 10 AND char_length(content) <= 5000)
 );
@@ -355,7 +360,7 @@ CREATE TABLE public.review_votes (
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   vote_type TEXT NOT NULL CHECK (vote_type IN ('helpful', 'unhelpful')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT unique_review_vote UNIQUE (review_id, user_id)
 );
 
@@ -368,17 +373,17 @@ RETURNS trigger AS $$
 BEGIN
   -- Update helpful/unhelpful counts
   UPDATE public.reviews
-  SET 
+  SET
     helpful_count = (
-      SELECT COUNT(*) FROM public.review_votes 
+      SELECT COUNT(*) FROM public.review_votes
       WHERE review_id = NEW.review_id AND vote_type = 'helpful'
     ),
     unhelpful_count = (
-      SELECT COUNT(*) FROM public.review_votes 
+      SELECT COUNT(*) FROM public.review_votes
       WHERE review_id = NEW.review_id AND vote_type = 'unhelpful'
     )
   WHERE id = NEW.review_id;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -392,28 +397,28 @@ CREATE OR REPLACE FUNCTION public.update_fragrance_ratings()
 RETURNS trigger AS $$
 BEGIN
   UPDATE public.fragrances
-  SET 
+  SET
     avg_rating = (
-      SELECT AVG(rating) 
-      FROM public.reviews 
+      SELECT AVG(rating)
+      FROM public.reviews
       WHERE fragrance_id = COALESCE(NEW.fragrance_id, OLD.fragrance_id)
         AND is_visible = true
     ),
     total_ratings = (
-      SELECT COUNT(*) 
-      FROM public.reviews 
+      SELECT COUNT(*)
+      FROM public.reviews
       WHERE fragrance_id = COALESCE(NEW.fragrance_id, OLD.fragrance_id)
         AND is_visible = true
     ),
     total_reviews = (
-      SELECT COUNT(*) 
-      FROM public.reviews 
+      SELECT COUNT(*)
+      FROM public.reviews
       WHERE fragrance_id = COALESCE(NEW.fragrance_id, OLD.fragrance_id)
         AND is_visible = true
         AND content IS NOT NULL
     )
   WHERE id = COALESCE(NEW.fragrance_id, OLD.fragrance_id);
-  
+
   RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
@@ -429,6 +434,7 @@ CREATE TRIGGER reviews_updated_at
 ```
 
 ### Migration 006: AI and Recommendations
+
 ```sql
 -- migrations/006_ai_recommendations.sql
 -- AI-powered preference learning and recommendations
@@ -437,19 +443,19 @@ CREATE TRIGGER reviews_updated_at
 CREATE TABLE public.user_preferences (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE,
-  
+
   -- Learned preference vectors
   preference_embedding VECTOR(1024), -- What they like
   anti_preference_embedding VECTOR(1024), -- What they dislike
   exploration_embedding VECTOR(1024), -- For discovering new scents
-  
+
   -- Structured preferences
   favorite_notes TEXT[] DEFAULT '{}',
   disliked_notes TEXT[] DEFAULT '{}',
   favorite_accords TEXT[] DEFAULT '{}',
   disliked_accords TEXT[] DEFAULT '{}',
   favorite_brands UUID[] DEFAULT '{}', -- Brand IDs
-  
+
   -- Preference settings
   preferred_concentration TEXT[],
   preferred_gender TEXT[],
@@ -457,36 +463,36 @@ CREATE TABLE public.user_preferences (
   preferred_occasions TEXT[],
   preferred_longevity_min DECIMAL(3,2),
   preferred_sillage_min DECIMAL(3,2),
-  
+
   -- Budget and shopping preferences
   budget_min DECIMAL(10,2),
   budget_max DECIMAL(10,2),
   prefer_samples BOOLEAN DEFAULT true,
   prefer_niche BOOLEAN DEFAULT false,
   prefer_designer BOOLEAN DEFAULT true,
-  
+
   -- Discovery settings
   include_discontinued BOOLEAN DEFAULT false,
   include_limited_edition BOOLEAN DEFAULT true,
   adventure_level INTEGER DEFAULT 3 CHECK (adventure_level >= 1 AND adventure_level <= 5),
   similarity_threshold DECIMAL(3,2) DEFAULT 0.7 CHECK (similarity_threshold >= 0 AND similarity_threshold <= 1),
-  
+
   -- Computation metadata
   last_computed_at TIMESTAMPTZ,
   computation_version INTEGER DEFAULT 1,
   sample_size INTEGER, -- Number of fragrances used to compute
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Preference indexes
 CREATE INDEX idx_user_preferences_user ON public.user_preferences(user_id);
-CREATE INDEX idx_preferences_embedding ON public.user_preferences 
-  USING ivfflat (preference_embedding vector_cosine_ops) 
+CREATE INDEX idx_preferences_embedding ON public.user_preferences
+  USING ivfflat (preference_embedding vector_cosine_ops)
   WITH (lists = 50);
-CREATE INDEX idx_anti_preferences_embedding ON public.user_preferences 
-  USING ivfflat (anti_preference_embedding vector_cosine_ops) 
+CREATE INDEX idx_anti_preferences_embedding ON public.user_preferences
+  USING ivfflat (anti_preference_embedding vector_cosine_ops)
   WITH (lists = 50);
 
 -- Recommendation cache
@@ -494,21 +500,21 @@ CREATE TABLE public.recommendations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
-  
+
   -- Recommendation scoring
   overall_score DECIMAL(5,4) NOT NULL CHECK (overall_score >= 0 AND overall_score <= 1),
   similarity_score DECIMAL(5,4),
   novelty_score DECIMAL(5,4),
   trending_score DECIMAL(5,4),
-  
+
   -- Recommendation metadata
   recommendation_type TEXT NOT NULL CHECK (recommendation_type IN (
-    'similar', 'complementary', 'adventure', 'trending', 'seasonal', 
+    'similar', 'complementary', 'adventure', 'trending', 'seasonal',
     'occasion', 'layering', 'upgrade', 'budget', 'discovery'
   )),
   reason TEXT NOT NULL, -- Human-readable explanation
   context JSONB DEFAULT '{}', -- Additional context
-  
+
   -- User interaction tracking
   viewed BOOLEAN DEFAULT false,
   viewed_at TIMESTAMPTZ,
@@ -518,16 +524,16 @@ CREATE TABLE public.recommendations (
   dismissed_at TIMESTAMPTZ,
   purchased BOOLEAN DEFAULT false,
   feedback TEXT CHECK (feedback IN ('love', 'like', 'neutral', 'dislike', 'hate')),
-  
+
   -- Recommendation lifecycle
   generated_at TIMESTAMPTZ DEFAULT NOW(),
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
   is_active BOOLEAN DEFAULT true,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  CONSTRAINT unique_active_recommendation 
-    UNIQUE (user_id, fragrance_id, recommendation_type) 
+
+  CONSTRAINT unique_active_recommendation
+    UNIQUE (user_id, fragrance_id, recommendation_type)
     WHERE is_active = true
 );
 
@@ -546,15 +552,15 @@ CREATE TABLE public.recommendation_feedback (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   recommendation_id UUID REFERENCES public.recommendations(id) ON DELETE CASCADE,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  
+
   action TEXT NOT NULL CHECK (action IN (
     'view', 'click', 'dismiss', 'wishlist', 'purchase', 'rate'
   )),
   rating DECIMAL(3,2) CHECK (rating >= 0 AND rating <= 5),
   feedback_text TEXT,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   CONSTRAINT unique_feedback_action UNIQUE (recommendation_id, action)
 );
 
@@ -581,22 +587,23 @@ SELECT cron.schedule('expire-recommendations', '0 0 * * *', 'SELECT public.expir
 ```
 
 ### Migration 007: Performance Optimizations
+
 ```sql
 -- migrations/007_performance_optimizations.sql
 -- Materialized views and performance enhancements
 
 -- Popular fragrances view
 CREATE MATERIALIZED VIEW public.popular_fragrances AS
-SELECT 
+SELECT
   f.*,
   COUNT(DISTINCT uf.user_id) as owner_count,
   COUNT(DISTINCT r.id) as review_count,
   AVG(r.rating)::DECIMAL(3,2) as calculated_avg_rating,
   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY r.rating) as median_rating
 FROM public.fragrances f
-LEFT JOIN public.user_fragrances uf ON f.id = uf.fragrance_id 
+LEFT JOIN public.user_fragrances uf ON f.id = uf.fragrance_id
   AND uf.status IN ('owned', 'decant', 'sample')
-LEFT JOIN public.reviews r ON f.id = r.fragrance_id 
+LEFT JOIN public.reviews r ON f.id = r.fragrance_id
   AND r.is_visible = true
 GROUP BY f.id
 ORDER BY owner_count DESC, calculated_avg_rating DESC;
@@ -608,22 +615,22 @@ CREATE INDEX idx_popular_fragrances_rating ON public.popular_fragrances(calculat
 -- Trending fragrances (last 30 days)
 CREATE MATERIALIZED VIEW public.trending_fragrances AS
 WITH recent_activity AS (
-  SELECT 
+  SELECT
     fragrance_id,
     COUNT(*) as activity_count,
     COUNT(DISTINCT user_id) as unique_users
   FROM (
-    SELECT fragrance_id, user_id, created_at 
-    FROM public.user_fragrances 
+    SELECT fragrance_id, user_id, created_at
+    FROM public.user_fragrances
     WHERE created_at > NOW() - INTERVAL '30 days'
     UNION ALL
-    SELECT fragrance_id, user_id, created_at 
-    FROM public.reviews 
+    SELECT fragrance_id, user_id, created_at
+    FROM public.reviews
     WHERE created_at > NOW() - INTERVAL '30 days'
   ) combined
   GROUP BY fragrance_id
 )
-SELECT 
+SELECT
   f.*,
   ra.activity_count,
   ra.unique_users,
@@ -637,7 +644,7 @@ CREATE INDEX idx_trending_fragrances_score ON public.trending_fragrances(trendin
 
 -- Seasonal recommendations
 CREATE MATERIALIZED VIEW public.seasonal_fragrances AS
-SELECT 
+SELECT
   f.*,
   season,
   COUNT(*) as season_mentions,
@@ -658,7 +665,7 @@ CREATE TABLE public.fragrance_similarities (
   similar_fragrance_id UUID REFERENCES public.fragrances(id) ON DELETE CASCADE,
   similarity_score DECIMAL(5,4) NOT NULL,
   computed_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   PRIMARY KEY (fragrance_id, similar_fragrance_id)
 );
 
@@ -685,19 +692,19 @@ CREATE OR REPLACE FUNCTION public.compute_fragrance_similarities(
 RETURNS void AS $$
 BEGIN
   -- Delete existing similarities for this fragrance
-  DELETE FROM public.fragrance_similarities 
+  DELETE FROM public.fragrance_similarities
   WHERE fragrance_id = fragrance_id_param;
-  
+
   -- Insert new similarities
   INSERT INTO public.fragrance_similarities (fragrance_id, similar_fragrance_id, similarity_score)
-  SELECT 
+  SELECT
     fragrance_id_param,
     f.id,
     1 - (f.embedding <=> source.embedding) as similarity
   FROM public.fragrances f
   CROSS JOIN (
-    SELECT embedding 
-    FROM public.fragrances 
+    SELECT embedding
+    FROM public.fragrances
     WHERE id = fragrance_id_param
   ) source
   WHERE f.id != fragrance_id_param
@@ -710,6 +717,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 ### Migration 008: Row-Level Security
+
 ```sql
 -- migrations/008_row_level_security.sql
 -- Enable RLS and create security policies
@@ -851,6 +859,7 @@ CREATE POLICY "Service role has full access to similarities"
 ## Rollback Scripts
 
 ### Rollback 008 to 007
+
 ```sql
 -- rollback/008_to_007.sql
 -- Disable RLS policies
@@ -865,6 +874,7 @@ ALTER TABLE public.brands DISABLE ROW LEVEL SECURITY;
 ```
 
 ### Rollback 007 to 006
+
 ```sql
 -- rollback/007_to_006.sql
 -- Drop performance optimizations
@@ -880,6 +890,7 @@ DROP FUNCTION IF EXISTS public.compute_fragrance_similarities(UUID, INTEGER);
 ## Migration Execution Plan
 
 ### Local Development
+
 ```bash
 # Run migrations
 npx supabase migration up
@@ -892,6 +903,7 @@ npx supabase migration new <name>
 ```
 
 ### Production Deployment
+
 ```bash
 # 1. Test on staging
 supabase db push --db-url $STAGING_DATABASE_URL
@@ -910,23 +922,23 @@ supabase migration list --db-url $PRODUCTION_DATABASE_URL
 
 ```sql
 -- Verify all tables created
-SELECT table_name 
-FROM information_schema.tables 
+SELECT table_name
+FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY table_name;
 
 -- Check RLS is enabled
-SELECT tablename, rowsecurity 
-FROM pg_tables 
+SELECT tablename, rowsecurity
+FROM pg_tables
 WHERE schemaname = 'public';
 
 -- Verify indexes
-SELECT schemaname, tablename, indexname 
-FROM pg_indexes 
+SELECT schemaname, tablename, indexname
+FROM pg_indexes
 WHERE schemaname = 'public'
 ORDER BY tablename, indexname;
 
 -- Check extensions
-SELECT extname, extversion 
+SELECT extname, extversion
 FROM pg_extension;
 ```

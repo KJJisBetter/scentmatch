@@ -15,18 +15,21 @@ ScentMatch is an AI-powered fragrance discovery platform that helps users find t
 ### User Personas
 
 **Sarah** (25-35 years old)
+
 - **Role:** Young Professional
 - **Context:** New to fragrances, wants to smell good for work and dates
 - **Pain Points:** Overwhelmed by department store options, afraid of buying expensive bottles she won't like
 - **Goals:** Find affordable samples to test, get reliable recommendations, learn fragrance basics
 
 **Marcus** (28-40 years old)
+
 - **Role:** Fragrance Enthusiast
 - **Context:** Owns 10-15 fragrances, knows what he likes but wants to expand
 - **Pain Points:** Unsure what to try next, wants to avoid similar purchases, seeking variety
 - **Goals:** Discover new scent profiles, understand fragrance relationships, make informed purchases
 
 **Elena** (30-50 years old)
+
 - **Role:** Fragrance Collector
 - **Context:** Extensive collection, seeks rare and discontinued fragrances
 - **Pain Points:** Finding unique scents, tracking collection, discovering hidden gems
