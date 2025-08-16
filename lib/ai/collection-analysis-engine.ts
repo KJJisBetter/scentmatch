@@ -11,7 +11,7 @@ import type { Database } from '@/types/database';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || process.env.OPEN_API_KEY,
 });
 
 type UserCollection =
@@ -222,9 +222,16 @@ Focus on patterns, contradictions, and insights that reveal the user's true pref
         max_tokens: 2000,
       });
 
-      const aiAnalysis = JSON.parse(
-        response.choices[0].message.content || '{}'
-      );
+      // Extract JSON from response (handle markdown code blocks)
+      let content = response.choices[0].message.content || '{}';
+
+      // Remove markdown code blocks if present
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        content = jsonMatch[1];
+      }
+
+      const aiAnalysis = JSON.parse(content);
 
       return this.convertAIAnalysisToProfile(aiAnalysis, collection);
     } catch (error) {
@@ -427,9 +434,13 @@ Focus on practical, strategic recommendations that enhance collection balance.`;
         max_tokens: 1500,
       });
 
-      const aiGapAnalysis = JSON.parse(
-        response.choices[0].message.content || '{}'
-      );
+      // Extract JSON from response (handle markdown code blocks)
+      let content = response.choices[0].message.content || '{}';
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        content = jsonMatch[1];
+      }
+      const aiGapAnalysis = JSON.parse(content);
       return this.convertAIGapAnalysis(aiGapAnalysis);
     } catch (error) {
       console.error('Error in gap analysis:', error);
@@ -512,9 +523,13 @@ Be specific and consider the user's preferences if provided.`;
         max_tokens: 800,
       });
 
-      const categorization = JSON.parse(
-        response.choices[0].message.content || '{}'
-      );
+      // Extract JSON from response (handle markdown code blocks)
+      let content = response.choices[0].message.content || '{}';
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        content = jsonMatch[1];
+      }
+      const categorization = JSON.parse(content);
 
       return {
         scentFamily:
