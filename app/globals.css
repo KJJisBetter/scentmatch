@@ -221,4 +221,29 @@
   .animate-slide-up.active {
     @apply translate-y-0 opacity-100;
   }
+
+  /* Conversion optimization - subtle CTA animation */
+  .animate-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: var(--shadow-medium);
+    }
+    50% {
+      transform: scale(1.01);
+      box-shadow: var(--shadow-strong);
+    }
+  }
+
+  /* Performance optimizations for Core Web Vitals */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-auto {
+    will-change: auto;
+  }
 }

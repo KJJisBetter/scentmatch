@@ -43,3 +43,23 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Development files
+*.jpg
+*.png
+*.jpeg
+*.gif
+*verification*.md
+*verification*.js
+*test*.js
+*demo*.md
+TODO.md
+TASK_*.md
+INTEGRATION_*.md
+import-report-*.json
+no-longer-used.md
+*.sh
+CLAUDE-OLD.md
+
+# Refactoring plans
+refactors/

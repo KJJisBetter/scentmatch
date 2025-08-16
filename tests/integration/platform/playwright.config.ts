@@ -1,7 +1,7 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./tests/integration/platform",
+  testDir: ".",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: "html",
   timeout: 60000,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3001",
     trace: "on-first-retry",
     video: "retain-on-failure",
     screenshot: "only-on-failure"
@@ -25,7 +25,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    port: 3000,
+    port: 3001,
     reuseExistingServer: !process.env.CI,
     timeout: 120000
   },

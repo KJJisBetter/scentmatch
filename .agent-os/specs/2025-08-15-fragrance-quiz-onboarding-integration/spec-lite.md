@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Create a comprehensive fragrance discovery quiz that seamlessly integrates with account creation and AI-powered recommendations. The quiz reduces time-to-value for new users by providing immediate personalized insights and fragrance style profiles, eliminating the cold start problem and enabling instant sample recommendations. Users can discover their fragrance personality, create accounts with preserved quiz data, and receive tailored recommendations within minutes of first interaction.

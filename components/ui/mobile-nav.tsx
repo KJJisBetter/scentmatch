@@ -29,7 +29,7 @@ export function MobileNav() {
   }, [isOpen]);
 
   return (
-    <div className="md:hidden">
+    <div className="md:hidden" data-mobile-nav>
       <Button
         variant="ghost"
         size="icon"
@@ -57,7 +57,7 @@ export function MobileNav() {
                 <h3 className="font-medium text-foreground">Discover</h3>
                 <div className="space-y-3 pl-4">
                   <Link
-                    href="/fragrances"
+                    href="/browse"
                     className="block text-muted-foreground hover:text-foreground transition-colors touch-target"
                     onClick={() => setIsOpen(false)}
                   >

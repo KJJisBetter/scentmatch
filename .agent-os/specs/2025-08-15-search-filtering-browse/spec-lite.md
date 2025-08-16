@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement a comprehensive fragrance search and filtering system with a dedicated browse page that leverages AI-powered search, progressive filtering options, and the existing vector database for intelligent fragrance discovery. The system will provide mobile-first design with progressive disclosure, serving beginners through simple categories and enthusiasts through advanced note-specific filters.
