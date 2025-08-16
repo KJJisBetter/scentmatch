@@ -10,7 +10,9 @@ interface FragrancePageProps {
 }
 
 // Simple fragrance page without complex components
-export default async function SimpleFragrancePage({ params }: FragrancePageProps) {
+export default async function SimpleFragrancePage({
+  params,
+}: FragrancePageProps) {
   const { id } = await params;
 
   if (!id || id.trim() === '') {
@@ -24,7 +26,8 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
   try {
     const { data: fragranceResults, error } = await supabase
       .from('fragrances')
-      .select(`
+      .select(
+        `
         id,
         name,
         scent_family,
@@ -34,7 +37,8 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
         fragrance_brands:brand_id (
           name
         )
-      `)
+      `
+      )
       .eq('id', id)
       .limit(1);
 
@@ -42,10 +46,13 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
       console.error('Fragrance query failed, trying search API approach');
 
       // Fallback: use the search results that we know work
-      const { data: searchResults } = await supabase.rpc('simple_fragrance_search', {
-        query_text: '',
-        limit_count: 100
-      });
+      const { data: searchResults } = await supabase.rpc(
+        'simple_fragrance_search',
+        {
+          query_text: '',
+          limit_count: 100,
+        }
+      );
 
       if (searchResults) {
         const found = searchResults.find((f: any) => f.fragrance_id === id);
@@ -62,6 +69,10 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
       }
     } else {
       const result = fragranceResults[0];
+      if (!result) {
+        console.error('Fragrance data is empty:', id);
+        notFound();
+      }
       fragrance = {
         id: result.id,
         name: result.name,
@@ -83,75 +94,100 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
   const aiDescription = generateAIDescription(fragrance);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className='min-h-screen bg-background'>
       {/* Simple header */}
-      <div className="border-b border-border/40 bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Link href="/" className="hover:text-foreground">Home</Link>
+      <div className='border-b border-border/40 bg-background/95 backdrop-blur'>
+        <div className='container mx-auto px-4 py-6'>
+          <div className='flex items-center gap-2 text-sm text-muted-foreground mb-2'>
+            <Link href='/' className='hover:text-foreground'>
+              Home
+            </Link>
             <span>/</span>
-            <Link href="/browse" className="hover:text-foreground">Browse</Link>
+            <Link href='/browse' className='hover:text-foreground'>
+              Browse
+            </Link>
             <span>/</span>
-            <span className="text-foreground">{fragrance.name}</span>
+            <span className='text-foreground'>{fragrance.name}</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+          <div className='flex items-center gap-3'>
+            <div className='inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs'>
               <span>{fragrance.scent_family}</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">{fragrance.name}</h1>
-            <span className="text-lg text-muted-foreground">by {fragrance.brand}</span>
+            <h1 className='text-2xl font-bold text-foreground'>
+              {fragrance.name}
+            </h1>
+            <span className='text-lg text-muted-foreground'>
+              by {fragrance.brand}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className='container mx-auto px-4 py-8'>
+        <div className='grid lg:grid-cols-3 gap-8'>
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-8">
-
+          <div className='lg:col-span-2 space-y-8'>
             {/* AI Description Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-plum-600" />
-                <h2 className="text-xl font-semibold text-plum-600">AI Fragrance Analysis</h2>
+            <div className='space-y-4'>
+              <div className='flex items-center gap-2'>
+                <Sparkles className='h-5 w-5 text-plum-600' />
+                <h2 className='text-xl font-semibold text-plum-600'>
+                  AI Fragrance Analysis
+                </h2>
               </div>
 
-              <div className="prose prose-stone max-w-none">
-                <div className="text-lg leading-relaxed space-y-4 text-foreground">
+              <div className='prose prose-stone max-w-none'>
+                <div className='text-lg leading-relaxed space-y-4 text-foreground'>
                   {aiDescription}
                 </div>
               </div>
             </div>
 
             {/* Battle Points Preview */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">Performance Battle Points</h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {generateBattlePoints(fragrance).map(({ name, score, icon }) => (
-                  <div key={name} className="text-center p-4 border border-border rounded-lg">
-                    <div className="text-2xl mb-2">{icon}</div>
-                    <div className="text-2xl font-bold text-foreground">{score}/10</div>
-                    <div className="text-sm text-muted-foreground">{name}</div>
-                  </div>
-                ))}
+            <div className='space-y-4'>
+              <h2 className='text-xl font-semibold text-foreground'>
+                Performance Battle Points
+              </h2>
+              <div className='grid grid-cols-2 md:grid-cols-5 gap-4'>
+                {generateBattlePoints(fragrance).map(
+                  ({ name, score, icon }) => (
+                    <div
+                      key={name}
+                      className='text-center p-4 border border-border rounded-lg'
+                    >
+                      <div className='text-2xl mb-2'>{icon}</div>
+                      <div className='text-2xl font-bold text-foreground'>
+                        {score}/10
+                      </div>
+                      <div className='text-sm text-muted-foreground'>
+                        {name}
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </div>
 
             {/* YouTuber Reviews Preview */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">YouTuber Reviews</h2>
-              <div className="space-y-4">
-                <div className="border border-border rounded-lg p-4 bg-muted/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 rounded flex items-center justify-center text-white text-xs font-bold">
+            <div className='space-y-4'>
+              <h2 className='text-xl font-semibold text-foreground'>
+                YouTuber Reviews
+              </h2>
+              <div className='space-y-4'>
+                <div className='border border-border rounded-lg p-4 bg-muted/50'>
+                  <div className='flex items-center gap-2 mb-2'>
+                    <div className='w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 rounded flex items-center justify-center text-white text-xs font-bold'>
                       YT
                     </div>
-                    <span className="font-medium">Review integration coming soon</span>
+                    <span className='font-medium'>
+                      Review integration coming soon
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    YouTuber reviews and ratings will be displayed here once content is populated.
-                    This framework is ready for video embeds, reviewer profiles, and rating aggregation.
+                  <p className='text-sm text-muted-foreground'>
+                    YouTuber reviews and ratings will be displayed here once
+                    content is populated. This framework is ready for video
+                    embeds, reviewer profiles, and rating aggregation.
                   </p>
                 </div>
               </div>
@@ -159,48 +195,56 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="border border-border rounded-lg p-6 bg-card">
-              <h3 className="text-lg font-semibold mb-4">Try This Fragrance</h3>
+          <div className='space-y-6'>
+            <div className='border border-border rounded-lg p-6 bg-card'>
+              <h3 className='text-lg font-semibold mb-4'>Try This Fragrance</h3>
 
               {fragrance.sample_available && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Sample (2ml)</span>
-                    <span className="text-lg font-bold">${fragrance.sample_price_usd || 3.95}</span>
+                <div className='space-y-4'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-sm text-muted-foreground'>
+                      Sample (2ml)
+                    </span>
+                    <span className='text-lg font-bold'>
+                      ${fragrance.sample_price_usd || 3.95}
+                    </span>
                   </div>
 
-                  <button className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-                    <ShoppingCart className="h-4 w-4" />
+                  <button className='w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2'>
+                    <ShoppingCart className='h-4 w-4' />
                     Try Sample
                   </button>
                 </div>
               )}
 
-              <div className="mt-4 text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-1">
+              <div className='mt-4 text-xs text-muted-foreground space-y-1'>
+                <div className='flex items-center gap-1'>
                   <span>🚚</span>
                   <span>Free shipping over $50</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className='flex items-center gap-1'>
                   <span>🛡️</span>
                   <span>Authenticity guaranteed</span>
                 </div>
               </div>
             </div>
 
-            <div className="border border-border rounded-lg p-6 bg-card">
-              <h3 className="text-lg font-semibold mb-4">Fragrance Stats</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Family</span>
-                  <span className="text-sm font-medium">{fragrance.scent_family}</span>
+            <div className='border border-border rounded-lg p-6 bg-card'>
+              <h3 className='text-lg font-semibold mb-4'>Fragrance Stats</h3>
+              <div className='space-y-3'>
+                <div className='flex justify-between'>
+                  <span className='text-sm text-muted-foreground'>Family</span>
+                  <span className='text-sm font-medium'>
+                    {fragrance.scent_family}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Popularity</span>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">Top 10%</span>
+                <div className='flex justify-between'>
+                  <span className='text-sm text-muted-foreground'>
+                    Popularity
+                  </span>
+                  <div className='flex items-center gap-1'>
+                    <Star className='h-3 w-3 fill-yellow-400 text-yellow-400' />
+                    <span className='text-sm font-medium'>Top 10%</span>
                   </div>
                 </div>
               </div>
@@ -222,12 +266,18 @@ function generateAIDescription(fragrance: any) {
     return (
       <div>
         <p>
-          <strong>{name} by {brand}</strong> is a sophisticated and refined composition that embodies understated luxury and timeless elegance.
-          This fragrance appeals to those who appreciate subtle complexity and aren't drawn to fleeting trends.
+          <strong>
+            {name} by {brand}
+          </strong>{' '}
+          is a sophisticated and refined composition that embodies understated
+          luxury and timeless elegance. This fragrance appeals to those who
+          appreciate subtle complexity and aren't drawn to fleeting trends.
         </p>
-        <p className="mt-4">
-          With its distinguished iris character, it creates an aura of quiet confidence and intellectual sophistication.
-          Perfect for individuals who value depth, authenticity, and want a signature scent that reflects their refined taste and thoughtful approach to life.
+        <p className='mt-4'>
+          With its distinguished iris character, it creates an aura of quiet
+          confidence and intellectual sophistication. Perfect for individuals
+          who value depth, authenticity, and want a signature scent that
+          reflects their refined taste and thoughtful approach to life.
         </p>
       </div>
     );
@@ -237,12 +287,18 @@ function generateAIDescription(fragrance: any) {
     return (
       <div>
         <p>
-          <strong>{name} by {brand}</strong> is an elegant floral composition that embodies grace and sophisticated femininity.
-          This fragrance speaks to those who appreciate timeless beauty and aren't afraid to express their romantic side.
+          <strong>
+            {name} by {brand}
+          </strong>{' '}
+          is an elegant floral composition that embodies grace and sophisticated
+          femininity. This fragrance speaks to those who appreciate timeless
+          beauty and aren't afraid to express their romantic side.
         </p>
-        <p className="mt-4">
-          With its refined floral character, this scent creates an enchanting aura that's both approachable and memorable.
-          Perfect for someone who values authenticity and wants to project confidence with a touch of classic elegance.
+        <p className='mt-4'>
+          With its refined floral character, this scent creates an enchanting
+          aura that's both approachable and memorable. Perfect for someone who
+          values authenticity and wants to project confidence with a touch of
+          classic elegance.
         </p>
       </div>
     );
@@ -252,12 +308,18 @@ function generateAIDescription(fragrance: any) {
   return (
     <div>
       <p>
-        <strong>{name} by {brand}</strong> is a distinctive and well-crafted fragrance that offers a unique olfactory experience.
-        This composition speaks to fragrance lovers who appreciate quality and craftsmanship.
+        <strong>
+          {name} by {brand}
+        </strong>{' '}
+        is a distinctive and well-crafted fragrance that offers a unique
+        olfactory experience. This composition speaks to fragrance lovers who
+        appreciate quality and craftsmanship.
       </p>
-      <p className="mt-4">
-        Its balanced character creates a pleasant and sophisticated presence that's versatile enough for various occasions.
-        Perfect for those who want a reliable signature scent that reflects their appreciation for the artistry of perfumery.
+      <p className='mt-4'>
+        Its balanced character creates a pleasant and sophisticated presence
+        that's versatile enough for various occasions. Perfect for those who
+        want a reliable signature scent that reflects their appreciation for the
+        artistry of perfumery.
       </p>
     </div>
   );

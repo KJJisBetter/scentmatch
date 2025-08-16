@@ -6,7 +6,7 @@
  */
 
 import OpenAI from 'openai';
-import { createClient } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase-client';
 import type { Database } from '@/types/database';
 
 // Initialize OpenAI client
@@ -68,7 +68,7 @@ interface CollectionInsights {
 }
 
 export class CollectionAnalysisEngine {
-  private supabase = createClient();
+  private supabase = createClientSupabase();
 
   async analyzeUserCollection(
     userId: string,
@@ -223,11 +223,11 @@ Focus on patterns, contradictions, and insights that reveal the user's true pref
       });
 
       // Extract JSON from response (handle markdown code blocks)
-      let content = response.choices[0].message.content || '{}';
+      let content = response.choices[0]?.message?.content || '{}';
 
       // Remove markdown code blocks if present
       const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch && jsonMatch[1]) {
         content = jsonMatch[1];
       }
 
@@ -306,8 +306,8 @@ Focus on patterns, contradictions, and insights that reveal the user's true pref
       (uniqueFamilies.size * 0.6 + uniqueBrands.size * 0.4) / collection.length;
 
     let gapAnalysis = {
-      scentFamilyGaps: [],
-      intensityGaps: [],
+      scentFamilyGaps: [] as string[],
+      intensityGaps: [] as string[],
       occasionGaps: missingOccasions,
       seasonalGaps: missingSeasons,
     };
@@ -435,9 +435,9 @@ Focus on practical, strategic recommendations that enhance collection balance.`;
       });
 
       // Extract JSON from response (handle markdown code blocks)
-      let content = response.choices[0].message.content || '{}';
+      let content = response.choices[0]?.message?.content || '{}';
       const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch && jsonMatch[1]) {
         content = jsonMatch[1];
       }
       const aiGapAnalysis = JSON.parse(content);
@@ -524,9 +524,9 @@ Be specific and consider the user's preferences if provided.`;
       });
 
       // Extract JSON from response (handle markdown code blocks)
-      let content = response.choices[0].message.content || '{}';
+      let content = response.choices[0]?.message?.content || '{}';
       const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch && jsonMatch[1]) {
         content = jsonMatch[1];
       }
       const categorization = JSON.parse(content);
@@ -765,7 +765,7 @@ Be specific and consider the user's preferences if provided.`;
     // Generate basic preference profile using rule-based analysis
     const scentFamilies = collection
       .map(c => c.fragrance.scent_family)
-      .filter(Boolean);
+      .filter((family): family is string => Boolean(family));
     const familyFreq = scentFamilies.reduce(
       (acc, family) => {
         acc[family] = (acc[family] || 0) + 1;
@@ -918,7 +918,7 @@ Write in a friendly, expert tone as if consulting with a fragrance enthusiast.`;
       });
 
       return (
-        response.choices[0].message.content ||
+        response.choices[0]?.message?.content ||
         'Analysis completed successfully.'
       );
     } catch (error) {
