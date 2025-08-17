@@ -36,6 +36,8 @@ export function AdvancedQuizInterface() {
   const [profileRecommendations, setProfileRecommendations] = useState<any[]>(
     []
   );
+  const [quizStartTime] = useState(Date.now());
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const router = useRouter();
 
   const currentQ = ADVANCED_QUIZ_QUESTIONS[currentQuestion];
@@ -43,7 +45,47 @@ export function AdvancedQuizInterface() {
     ((currentQuestion + 1) / ADVANCED_QUIZ_QUESTIONS.length) * 100;
   const isLastQuestion = currentQuestion === ADVANCED_QUIZ_QUESTIONS.length - 1;
 
-  // Multi-selection handlers
+  // Auto-save quiz progress to localStorage
+  useEffect(() => {
+    const quizState = {
+      currentQuestion,
+      responses,
+      selectedOptions,
+      sliderValue,
+      timestamp: Date.now(),
+    };
+
+    try {
+      localStorage.setItem(
+        'scentmatch_quiz_progress',
+        JSON.stringify(quizState)
+      );
+    } catch (error) {
+      console.warn('Failed to save quiz progress:', error);
+    }
+  }, [currentQuestion, responses, selectedOptions, sliderValue]);
+
+  // Restore quiz progress on component mount
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem('scentmatch_quiz_progress');
+      if (savedState) {
+        const parsed = JSON.parse(savedState);
+
+        // Only restore if session is less than 24 hours old
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          setCurrentQuestion(parsed.currentQuestion || 0);
+          setResponses(parsed.responses || []);
+          setSelectedOptions(parsed.selectedOptions || []);
+          setSliderValue(parsed.sliderValue || 50);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to restore quiz progress:', error);
+    }
+  }, []);
+
+  // Multi-selection handlers with enhanced validation
   const handleOptionToggle = useCallback(
     (optionId: string) => {
       const currentQ = ADVANCED_QUIZ_QUESTIONS[currentQuestion];
@@ -65,8 +107,20 @@ export function AdvancedQuizInterface() {
           }
         }
       });
+
+      // Track selection for engagement analytics
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'quiz_trait_selected', {
+          trait: optionId,
+          question_id: currentQ.id,
+          question_number: currentQuestion + 1,
+          selection_count:
+            selectedOptions.length +
+            (selectedOptions.includes(optionId) ? 0 : 1),
+        });
+      }
     },
-    [currentQuestion]
+    [currentQuestion, selectedOptions]
   );
 
   // Progress to next question
@@ -158,13 +212,40 @@ export function AdvancedQuizInterface() {
     }
 
     if (isLastQuestion) {
+      // Track quiz completion metrics
+      const totalTime = Date.now() - quizStartTime;
+      const completionRate = responses.length / ADVANCED_QUIZ_QUESTIONS.length;
+
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'advanced_quiz_completion_metrics', {
+          total_time_ms: totalTime,
+          completion_rate: completionRate,
+          avg_time_per_question: totalTime / ADVANCED_QUIZ_QUESTIONS.length,
+          trait_selections_total: updatedResponses
+            .flatMap(r => r.selected_options || [r.selected_option])
+            .filter(Boolean).length,
+        });
+      }
+
       // Complete quiz and analyze
       await analyzeAdvancedProfile(updatedResponses);
     } else {
+      // Track question completion time
+      const questionTime = Date.now() - questionStartTime;
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'quiz_question_completion_time', {
+          question_id: currentQ.id,
+          completion_time_ms: questionTime,
+          selections_made:
+            selectedOptions.length || (sliderValue !== 50 ? 1 : 0),
+        });
+      }
+
       // Move to next question
       setCurrentQuestion(prev => prev + 1);
       setSelectedOptions([]);
       setSliderValue(50);
+      setQuestionStartTime(Date.now()); // Reset timer for next question
     }
   }, [
     currentQ,
@@ -322,14 +403,17 @@ export function AdvancedQuizInterface() {
                     key={option.id}
                     onClick={() => !isAtLimit && handleOptionToggle(option.id)}
                     disabled={isAtLimit}
+                    aria-pressed={isSelected}
+                    aria-describedby={`option-${option.id}-desc`}
                     className={`
-                      w-full p-4 text-left border-2 rounded-lg transition-all duration-200 group
+                      w-full min-h-[48px] p-4 text-left border-2 rounded-lg transition-all duration-200 group
                       ${
                         isSelected
                           ? 'border-plum-500 bg-plum-50 shadow-md'
                           : 'border-border hover:border-plum-300 hover:bg-plum-25'
                       }
                       ${isAtLimit ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01] active:scale-[0.99]'}
+                      focus:outline-none focus:ring-2 focus:ring-plum-500 focus:ring-offset-2
                     `}
                   >
                     <div className='flex items-center space-x-4'>
@@ -357,6 +441,7 @@ export function AdvancedQuizInterface() {
                           )}
                         </div>
                         <p
+                          id={`option-${option.id}-desc`}
                           className={`text-sm ${
                             isSelected
                               ? 'text-plum-600'
@@ -384,9 +469,9 @@ export function AdvancedQuizInterface() {
               {/* Multi-selection guidance */}
               {currentQ.type === 'multi_select' && (
                 <div className='text-center text-sm text-muted-foreground mt-6'>
-                  <p>
+                  <p aria-live='polite'>
                     Selected: <strong>{selectedOptions.length}</strong> of{' '}
-                    {currentQ.max_selections || 3} maximum
+                    <strong>{currentQ.max_selections || 3}</strong> maximum
                   </p>
                   {selectedOptions.length === 0 && (
                     <p className='text-plum-600 mt-2'>
@@ -395,6 +480,15 @@ export function AdvancedQuizInterface() {
                       to you
                     </p>
                   )}
+                  {selectedOptions.length > 0 &&
+                    selectedOptions.length < (currentQ.min_selections || 1) && (
+                      <p className='text-plum-600 mt-2'>
+                        💡 Select{' '}
+                        {(currentQ.min_selections || 1) -
+                          selectedOptions.length}{' '}
+                        more to continue
+                      </p>
+                    )}
                 </div>
               )}
             </div>
@@ -406,11 +500,13 @@ export function AdvancedQuizInterface() {
               <div className='px-4'>
                 <Slider
                   value={[sliderValue]}
-                  onValueChange={value => setSliderValue(value[0])}
+                  onValueChange={value => setSliderValue(value[0] ?? 50)}
                   max={100}
                   min={0}
                   step={5}
                   className='w-full'
+                  aria-label='Fragrance intensity preference'
+                  aria-describedby='slider-description'
                 />
               </div>
 
@@ -431,13 +527,17 @@ export function AdvancedQuizInterface() {
 
               {/* Current intensity visualization */}
               <div className='text-center'>
-                <div className='inline-flex items-center space-x-2 bg-plum-50 px-4 py-2 rounded-full'>
+                <div
+                  id='slider-description'
+                  className='inline-flex items-center space-x-2 bg-plum-50 px-4 py-2 rounded-full'
+                >
                   <div
                     className='w-3 h-3 rounded-full bg-plum-500'
                     style={{
                       opacity: sliderValue / 100,
                       transform: `scale(${0.5 + (sliderValue / 100) * 0.5})`,
                     }}
+                    aria-hidden='true'
                   />
                   <span className='text-sm font-medium text-plum-700'>
                     {sliderValue}% intensity
@@ -455,14 +555,15 @@ export function AdvancedQuizInterface() {
           variant='outline'
           onClick={handlePrevious}
           disabled={currentQuestion === 0}
-          className='flex items-center space-x-2'
+          className='flex items-center space-x-2 min-h-[48px] min-w-[120px]'
+          aria-label={`Go back to question ${currentQuestion}`}
         >
           <ChevronLeft className='w-4 h-4' />
           <span>Previous</span>
         </Button>
 
-        <div className='text-center'>
-          <p className='text-xs text-muted-foreground'>
+        <div className='text-center px-4'>
+          <p className='text-xs text-muted-foreground' aria-live='polite'>
             {canProceed
               ? 'Ready to continue'
               : currentQ.type === 'multi_select'
@@ -474,7 +575,12 @@ export function AdvancedQuizInterface() {
         <Button
           onClick={handleNext}
           disabled={!canProceed}
-          className='flex items-center space-x-2 bg-plum-600 hover:bg-plum-700'
+          className='flex items-center space-x-2 bg-plum-600 hover:bg-plum-700 min-h-[48px] min-w-[140px]'
+          aria-label={
+            isLastQuestion
+              ? 'Complete quiz and build personality profile'
+              : `Continue to question ${currentQuestion + 2}`
+          }
         >
           <span>{isLastQuestion ? 'Build My Profile' : 'Next Question'}</span>
           <ChevronRight className='w-4 h-4' />
@@ -503,7 +609,8 @@ export function AdvancedQuizInterface() {
                           e.stopPropagation();
                           handleOptionToggle(optionId);
                         }}
-                        className='ml-1 hover:bg-plum-200 rounded-full p-0.5'
+                        className='ml-1 hover:bg-plum-200 rounded-full p-1 min-w-[24px] min-h-[24px] flex items-center justify-center'
+                        aria-label={`Remove ${option?.label} selection`}
                       >
                         <X className='w-3 h-3' />
                       </button>

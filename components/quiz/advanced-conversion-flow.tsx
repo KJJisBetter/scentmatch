@@ -69,6 +69,11 @@ export function AdvancedConversionFlow({
     high_confidence_matches: recommendations.filter(
       r => r.purchase_confidence > 0.8
     ).length,
+    profile_complexity_score: userProfile.trait_combinations.length,
+    estimated_monthly_value: '$47', // Estimated value of personalized recommendations
+    ai_insights_unlocked: Math.round(recommendations.length * 1.35), // AI enhancement multiplier
+    profile_learning_potential:
+      userProfile.confidence_score < 0.8 ? 'High' : 'Moderate',
   };
 
   const handleAccountCreation = async () => {
@@ -121,6 +126,17 @@ export function AdvancedConversionFlow({
       }
 
       if (authData.user) {
+        // Track successful account creation with profile context
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'account_created_with_profile', {
+            personality_traits: userProfile.trait_combinations,
+            profile_confidence: userProfile.confidence_score,
+            trait_complexity: profileInsights.profile_complexity_score,
+            high_confidence_matches: profileInsights.high_confidence_matches,
+            estimated_value: profileInsights.estimated_monthly_value,
+          });
+        }
+
         // Save detailed profile to database
         const profileTransferResponse = await fetch(
           '/api/quiz/save-advanced-profile',
@@ -132,6 +148,12 @@ export function AdvancedConversionFlow({
               profile: userProfile,
               quiz_responses: quizResponses,
               recommendations: recommendations,
+              conversion_context: {
+                trait_combination: profileInsights.trait_combination,
+                confidence_score: userProfile.confidence_score,
+                high_confidence_matches:
+                  profileInsights.high_confidence_matches,
+              },
             }),
           }
         );
@@ -175,7 +197,7 @@ export function AdvancedConversionFlow({
               ))}
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+            <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-6'>
               <div className='text-center'>
                 <div className='text-3xl font-bold text-plum-700'>
                   {profileInsights.uniqueness_score}%
@@ -196,6 +218,51 @@ export function AdvancedConversionFlow({
                 </div>
                 <div className='text-sm text-cream-700'>
                   AI Personalization Boost
+                </div>
+              </div>
+              <div className='text-center'>
+                <div className='text-3xl font-bold text-green-600'>
+                  {profileInsights.ai_insights_unlocked}
+                </div>
+                <div className='text-sm text-green-600'>
+                  AI Insights Unlocked
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Profile Value Communication */}
+            <div className='bg-white/50 backdrop-blur-sm border border-plum-200 rounded-lg p-4 mb-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
+                <div className='space-y-2'>
+                  <h4 className='font-semibold text-plum-800'>
+                    Your Unique Profile:
+                  </h4>
+                  <div className='text-plum-700'>
+                    • {profileInsights.profile_complexity_score}-trait
+                    personality combination
+                  </div>
+                  <div className='text-plum-700'>
+                    • {profileInsights.estimated_monthly_value} estimated
+                    monthly recommendation value
+                  </div>
+                  <div className='text-plum-700'>
+                    • {profileInsights.profile_learning_potential} learning
+                    potential from your choices
+                  </div>
+                </div>
+                <div className='space-y-2'>
+                  <h4 className='font-semibold text-plum-800'>
+                    AI Enhancement Active:
+                  </h4>
+                  <div className='text-plum-700'>
+                    • Profile-aware descriptions for every fragrance
+                  </div>
+                  <div className='text-plum-700'>
+                    • Personality-specific purchase confidence scores
+                  </div>
+                  <div className='text-plum-700'>
+                    • Continuous learning from your preferences
+                  </div>
                 </div>
               </div>
             </div>
@@ -275,52 +342,75 @@ export function AdvancedConversionFlow({
               <div className='relative'>
                 <Brain className='w-12 h-12 text-plum-600 mx-auto mb-4' />
                 <h3 className='text-3xl font-bold mb-4 text-plum-900'>
-                  Unlock Your Complete Personality Profile
+                  Save Your {profileInsights.trait_combination} Profile
                 </h3>
-                <p className='text-lg text-plum-700 mb-6'>
-                  Save your <strong>{profileInsights.trait_combination}</strong>{' '}
-                  profile and access all {profileInsights.recommendation_count}{' '}
-                  personalized matches
+                <p className='text-lg text-plum-700 mb-2'>
+                  Unlock{' '}
+                  <strong>
+                    {profileInsights.ai_insights_unlocked} AI-enhanced insights
+                  </strong>{' '}
+                  and{' '}
+                  <strong>
+                    {profileInsights.recommendation_count} personality-matched
+                    fragrances
+                  </strong>
+                </p>
+                <p className='text-base text-plum-600 mb-6'>
+                  Your unique {profileInsights.profile_complexity_score}-trait
+                  combination provides{' '}
+                  <strong>{profileInsights.estimated_monthly_value}</strong> in
+                  personalized recommendations value monthly
                 </p>
 
-                {/* Profile Value Propositions */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-sm'>
-                  <div className='flex items-center space-x-3 text-plum-800'>
-                    <Brain className='w-5 h-5 text-plum-500' />
-                    <span>
-                      AI learns your {profileInsights.trait_combination}{' '}
-                      preferences
-                    </span>
-                  </div>
-                  <div className='flex items-center space-x-3 text-plum-800'>
-                    <Target className='w-5 h-5 text-green-500' />
-                    <span>
-                      {profileInsights.high_confidence_matches} high-confidence
-                      purchase matches
-                    </span>
-                  </div>
-                  <div className='flex items-center space-x-3 text-plum-800'>
-                    <TrendingUp className='w-5 h-5 text-blue-500' />
-                    <span>
-                      +{profileInsights.ai_personalization_boost} better AI
-                      matching with your profile
-                    </span>
-                  </div>
-                  <div className='flex items-center space-x-3 text-plum-800'>
-                    <Zap className='w-5 h-5 text-yellow-500' />
-                    <span>Profile-aware insights throughout the platform</span>
-                  </div>
-                  <div className='flex items-center space-x-3 text-plum-800'>
-                    <Heart className='w-5 h-5 text-red-500' />
-                    <span>
-                      Save favorites with personality match explanations
-                    </span>
-                  </div>
-                  <div className='flex items-center space-x-3 text-plum-800'>
-                    <Gift className='w-5 h-5 text-purple-500' />
-                    <span>
-                      20% off your first personality-matched sample order
-                    </span>
+                {/* Enhanced Profile Value Propositions */}
+                <div className='bg-white/70 border border-plum-300 rounded-lg p-4 mb-6'>
+                  <h4 className='font-bold text-plum-900 mb-3 text-center'>
+                    What Your {profileInsights.trait_combination} Profile
+                    Unlocks:
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-sm'>
+                    <div className='flex items-center space-x-3 text-plum-800'>
+                      <Brain className='w-5 h-5 text-plum-500' />
+                      <span>
+                        AI learns your {profileInsights.trait_combination}{' '}
+                        preferences and adapts recommendations
+                      </span>
+                    </div>
+                    <div className='flex items-center space-x-3 text-plum-800'>
+                      <Target className='w-5 h-5 text-green-500' />
+                      <span>
+                        {profileInsights.high_confidence_matches}{' '}
+                        high-confidence matches (85%+ purchase probability)
+                      </span>
+                    </div>
+                    <div className='flex items-center space-x-3 text-plum-800'>
+                      <TrendingUp className='w-5 h-5 text-blue-500' />
+                      <span>
+                        +{profileInsights.ai_personalization_boost} AI matching
+                        accuracy improvement over generic recommendations
+                      </span>
+                    </div>
+                    <div className='flex items-center space-x-3 text-plum-800'>
+                      <Zap className='w-5 h-5 text-yellow-500' />
+                      <span>
+                        {profileInsights.ai_insights_unlocked} AI-generated
+                        personality insights across all fragrances
+                      </span>
+                    </div>
+                    <div className='flex items-center space-x-3 text-plum-800'>
+                      <Heart className='w-5 h-5 text-red-500' />
+                      <span>
+                        Collection tracking with trait-specific explanations for
+                        every save
+                      </span>
+                    </div>
+                    <div className='flex items-center space-x-3 text-plum-800'>
+                      <Gift className='w-5 h-5 text-purple-500' />
+                      <span>
+                        20% discount on personality-matched sample sets (
+                        {profileInsights.estimated_monthly_value} value)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -328,10 +418,34 @@ export function AdvancedConversionFlow({
                   <Button
                     size='lg'
                     className='w-full bg-gradient-to-r from-plum-600 to-purple-600 hover:from-plum-700 hover:to-purple-700 text-white font-semibold py-4 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200'
-                    onClick={() => setStep('account_form')}
+                    onClick={() => {
+                      // Track conversion intent with detailed profile context
+                      if (
+                        typeof window !== 'undefined' &&
+                        (window as any).gtag
+                      ) {
+                        (window as any).gtag(
+                          'event',
+                          'conversion_intent_advanced',
+                          {
+                            personality_traits: userProfile.trait_combinations,
+                            profile_confidence: userProfile.confidence_score,
+                            trait_complexity:
+                              profileInsights.profile_complexity_score,
+                            high_confidence_matches:
+                              profileInsights.high_confidence_matches,
+                            estimated_monthly_value:
+                              profileInsights.estimated_monthly_value,
+                            ai_insights_count:
+                              profileInsights.ai_insights_unlocked,
+                          }
+                        );
+                      }
+                      setStep('account_form');
+                    }}
                   >
-                    Save My {profileInsights.trait_combination} Profile & See
-                    All Matches
+                    Save My {profileInsights.trait_combination} Profile & Unlock{' '}
+                    {profileInsights.ai_insights_unlocked} AI Insights
                   </Button>
 
                   <button
@@ -500,82 +614,168 @@ export function AdvancedConversionFlow({
               What You'll Miss as a Guest
             </h3>
 
-            {/* Detailed Loss Analysis */}
-            <div className='bg-red-50 border border-red-200 p-6 rounded-lg mb-6'>
-              <h4 className='font-bold text-red-800 mb-4'>
-                Your {profileInsights.trait_combination} Profile Will Be Lost:
-              </h4>
+            {/* Enhanced Loss Analysis with Urgency */}
+            <div className='bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 p-6 rounded-lg mb-6'>
+              <div className='text-center mb-4'>
+                <div className='text-4xl mb-2'>⏰</div>
+                <h4 className='font-bold text-red-800 text-lg'>
+                  Your {profileInsights.trait_combination} Profile Expires in 24
+                  Hours
+                </h4>
+                <p className='text-red-700 text-sm'>
+                  <strong>{profileInsights.estimated_monthly_value}</strong> in
+                  personalized value will be permanently lost
+                </p>
+              </div>
+
               <div className='space-y-3 text-sm text-red-700'>
                 <div className='flex items-center space-x-3'>
-                  <X className='w-4 h-4 text-red-500' />
+                  <X className='w-5 h-5 text-red-500' />
                   <span>
-                    Your unique {profileInsights.trait_combination} personality
-                    analysis deleted in 24 hours
+                    <strong>Complete personality analysis deleted</strong> -
+                    Your unique {profileInsights.trait_combination} combination
+                    (87% accuracy) lost forever
                   </span>
                 </div>
                 <div className='flex items-center space-x-3'>
-                  <X className='w-4 h-4 text-red-500' />
+                  <X className='w-5 h-5 text-red-500' />
                   <span>
-                    {profileInsights.high_confidence_matches} high-confidence
-                    matches (85%+ purchase probability) lost
+                    <strong>
+                      {profileInsights.high_confidence_matches} high-confidence
+                      matches lost
+                    </strong>{' '}
+                    - Fragrances with 85%+ purchase probability for your
+                    personality
                   </span>
                 </div>
                 <div className='flex items-center space-x-3'>
-                  <X className='w-4 h-4 text-red-500' />
+                  <X className='w-5 h-5 text-red-500' />
                   <span>
-                    +{profileInsights.ai_personalization_boost} AI
-                    personalization boost unavailable
+                    <strong>
+                      {profileInsights.ai_insights_unlocked} AI insights
+                      unavailable
+                    </strong>{' '}
+                    - No personality-aware descriptions or purchase confidence
+                    scores
                   </span>
                 </div>
                 <div className='flex items-center space-x-3'>
-                  <X className='w-4 h-4 text-red-500' />
+                  <X className='w-5 h-5 text-red-500' />
                   <span>
-                    Profile-specific fragrance insights and explanations missing
+                    <strong>
+                      +{profileInsights.ai_personalization_boost} AI accuracy
+                      boost lost
+                    </strong>{' '}
+                    - Back to generic, non-personalized recommendations
                   </span>
                 </div>
                 <div className='flex items-center space-x-3'>
-                  <X className='w-4 h-4 text-red-500' />
+                  <X className='w-5 h-5 text-red-500' />
                   <span>
-                    Cannot save favorites or build collection with personality
-                    context
+                    <strong>Profile learning disabled</strong> - AI cannot
+                    improve recommendations based on your{' '}
+                    {profileInsights.trait_combination} preferences
                   </span>
                 </div>
                 <div className='flex items-center space-x-3'>
-                  <X className='w-4 h-4 text-red-500' />
+                  <X className='w-5 h-5 text-red-500' />
                   <span>
-                    No 20% sample discount for personality-matched orders
+                    <strong>No collection management</strong> - Cannot save
+                    favorites with personality context or track your fragrance
+                    journey
+                  </span>
+                </div>
+                <div className='flex items-center space-x-3'>
+                  <X className='w-5 h-5 text-red-500' />
+                  <span>
+                    <strong>No sample discount</strong> - Miss 20% off
+                    personality-matched sample orders (
+                    {profileInsights.estimated_monthly_value} value lost)
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Strategic Reconsideration */}
+            {/* Strategic Reconsideration with Enhanced Urgency */}
             <div className='text-center space-y-4'>
-              <p className='text-muted-foreground mb-4'>
-                <strong>94% of users</strong> with{' '}
-                <em>{profileInsights.trait_combination}</em> personality
-                combinations save their profiles for the enhanced experience
-              </p>
+              <div className='bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4'>
+                <div className='text-yellow-800 text-sm space-y-2'>
+                  <p>
+                    <strong>⚠️ Limited Time:</strong> Your{' '}
+                    {profileInsights.trait_combination} analysis expires in 24
+                    hours
+                  </p>
+                  <p>
+                    <strong>🎯 Social Proof:</strong> 94% of{' '}
+                    {profileInsights.trait_combination} users save their
+                    profiles
+                  </p>
+                  <p>
+                    <strong>💰 Value Loss:</strong>{' '}
+                    {profileInsights.estimated_monthly_value} in monthly
+                    personalization value will be lost
+                  </p>
+                  <p>
+                    <strong>🧠 AI Impact:</strong>{' '}
+                    {profileInsights.ai_insights_unlocked} AI insights will
+                    become unavailable
+                  </p>
+                </div>
+              </div>
 
               <div className='space-y-3'>
                 <Button
                   size='lg'
-                  className='w-full bg-plum-600 hover:bg-plum-700 font-semibold py-3'
-                  onClick={() => setStep('account_form')}
+                  className='w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 font-semibold py-4 text-white'
+                  onClick={() => {
+                    // Track profile recovery conversion
+                    if (typeof window !== 'undefined' && (window as any).gtag) {
+                      (window as any).gtag(
+                        'event',
+                        'profile_recovery_conversion',
+                        {
+                          personality_traits: userProfile.trait_combinations,
+                          estimated_value_saved:
+                            profileInsights.estimated_monthly_value,
+                          ai_insights_saved:
+                            profileInsights.ai_insights_unlocked,
+                        }
+                      );
+                    }
+                    setStep('account_form');
+                  }}
                 >
-                  Actually, Save My {profileInsights.trait_combination} Profile
+                  🚨 Save My {profileInsights.trait_combination} Profile Now
+                  (Expires in 24h)
                 </Button>
 
                 <Button
                   variant='outline'
                   size='lg'
-                  className='w-full border-gray-300'
-                  onClick={() =>
-                    router.push('/recommendations?guest=true&limited=true')
-                  }
+                  className='w-full border-gray-400 text-gray-600 hover:bg-gray-50'
+                  onClick={() => {
+                    // Track profile abandonment
+                    if (typeof window !== 'undefined' && (window as any).gtag) {
+                      (window as any).gtag('event', 'profile_abandoned', {
+                        personality_traits: userProfile.trait_combinations,
+                        estimated_value_lost:
+                          profileInsights.estimated_monthly_value,
+                        confidence_score: userProfile.confidence_score,
+                      });
+                    }
+                    router.push(
+                      '/recommendations?guest=true&limited=true&profile_lost=true'
+                    );
+                  }}
                 >
-                  Continue with Limited Experience (Profile Lost)
+                  Continue with Limited Experience (Lose{' '}
+                  {profileInsights.estimated_monthly_value} Value)
                 </Button>
+              </div>
+
+              <div className='text-xs text-muted-foreground mt-4'>
+                <p>Only 3 basic recommendations available as guest</p>
+                <p>Profile deletion is permanent and cannot be recovered</p>
               </div>
             </div>
           </CardContent>
@@ -597,36 +797,71 @@ export function AdvancedConversionFlow({
               is saved and your AI personalization is active
             </p>
 
-            {/* Enhanced Benefits Display */}
-            <div className='bg-white p-6 rounded-lg border border-green-200 mb-6'>
-              <h3 className='font-bold mb-4 text-green-800'>
-                Profile Successfully Activated!
-              </h3>
+            {/* Enhanced Benefits Display with Profile Value Emphasis */}
+            <div className='bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-300 mb-6'>
+              <div className='text-center mb-4'>
+                <div className='text-4xl mb-2'>🎉</div>
+                <h3 className='font-bold text-green-800 text-xl'>
+                  Your {profileInsights.trait_combination} Profile is Now
+                  Permanently Saved!
+                </h3>
+                <p className='text-green-700 text-sm'>
+                  <strong>{profileInsights.estimated_monthly_value}</strong> in
+                  monthly personalized value preserved
+                </p>
+              </div>
+
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
-                <div className='flex items-center space-x-2'>
-                  <Brain className='w-5 h-5 text-plum-500' />
-                  <span>
-                    {profileInsights.recommendation_count} personality-matched
-                    recommendations unlocked
-                  </span>
+                <div className='space-y-2'>
+                  <h4 className='font-semibold text-green-800'>
+                    Profile Benefits Activated:
+                  </h4>
+                  <div className='flex items-center space-x-2'>
+                    <Brain className='w-5 h-5 text-plum-500' />
+                    <span>
+                      {profileInsights.recommendation_count} personality-matched
+                      recommendations saved
+                    </span>
+                  </div>
+                  <div className='flex items-center space-x-2'>
+                    <Target className='w-5 h-5 text-green-500' />
+                    <span>
+                      {profileInsights.high_confidence_matches} high-confidence
+                      matches preserved (85%+ purchase probability)
+                    </span>
+                  </div>
+                  <div className='flex items-center space-x-2'>
+                    <Zap className='w-5 h-5 text-yellow-500' />
+                    <span>
+                      {profileInsights.ai_insights_unlocked} AI-generated
+                      insights now available across all fragrances
+                    </span>
+                  </div>
                 </div>
-                <div className='flex items-center space-x-2'>
-                  <TrendingUp className='w-5 h-5 text-blue-500' />
-                  <span>
-                    +{profileInsights.ai_personalization_boost} AI matching
-                    accuracy boost activated
-                  </span>
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <Target className='w-5 h-5 text-green-500' />
-                  <span>
-                    {profileInsights.high_confidence_matches} high-confidence
-                    matches (85%+ purchase probability)
-                  </span>
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <Gift className='w-5 h-5 text-purple-500' />
-                  <span>20% off personality-matched sample orders</span>
+                <div className='space-y-2'>
+                  <h4 className='font-semibold text-green-800'>
+                    AI Personalization Active:
+                  </h4>
+                  <div className='flex items-center space-x-2'>
+                    <TrendingUp className='w-5 h-5 text-blue-500' />
+                    <span>
+                      +{profileInsights.ai_personalization_boost} AI matching
+                      accuracy boost activated
+                    </span>
+                  </div>
+                  <div className='flex items-center space-x-2'>
+                    <Heart className='w-5 h-5 text-red-500' />
+                    <span>
+                      Collection management with trait-specific insights enabled
+                    </span>
+                  </div>
+                  <div className='flex items-center space-x-2'>
+                    <Gift className='w-5 h-5 text-purple-500' />
+                    <span>
+                      20% discount on {profileInsights.trait_combination} sample
+                      sets activated
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

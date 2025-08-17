@@ -6,9 +6,11 @@
  *
  * Key Features:
  * - Multi-trait selection (casual+sophisticated+confident)
- * - 12-dimension structured vectors (no embeddings = $0 cost)
+ * - 256-dimension structured vectors (no embeddings = $0 cost)
+ * - Weighted trait combinations (primary 50%, secondary 30%, tertiary 20%)
  * - Conversion-optimized trait weighting (35-40% better conversion)
  * - Progressive Personality Mapping approach
+ * - Database function integration for vector storage and similarity matching
  */
 
 import { createClientSupabase } from '@/lib/supabase-client';
@@ -51,6 +53,52 @@ export interface UserProfile {
   confidence_score: number; // 0-1: How confident we are in this profile
   created_at: string;
   quiz_version: number;
+}
+
+// Enhanced interfaces for multi-dimensional profile analysis
+export interface TraitWeights {
+  primary: number; // 50% weight
+  secondary?: number; // 30% weight
+  tertiary?: number; // 20% weight
+}
+
+export interface ConfidenceMetrics {
+  trait_consistency: number; // How consistent traits are across responses
+  response_clarity: number; // How clear and decisive responses were
+  overall_confidence: number; // Combined confidence score
+  trait_confidences: Record<string, number>; // Confidence per trait
+}
+
+export interface MultiTraitProfile {
+  primary_traits: string[]; // Most dominant trait(s)
+  secondary_traits: string[]; // Supporting traits
+  trait_weights: TraitWeights; // Weighted importance of trait levels
+  confidence_metrics: ConfidenceMetrics; // Multi-factor confidence analysis
+  profile_vector: number[]; // 256-dimension structured vector
+  generation_method: 'structured' | 'embedding'; // Cost tracking
+  session_token: string;
+  created_at: string;
+}
+
+export interface QuizResponse {
+  question_id: string;
+  selected_traits: string[];
+  trait_weights: number[];
+  response_timestamp: string;
+}
+
+export interface SimilarProfile {
+  user_id: string;
+  similarity_score: number;
+  successful_purchases?: number;
+}
+
+export interface Recommendation {
+  fragrance_id: string;
+  match_score: number;
+  reasoning: string;
+  personality_boost?: number;
+  final_score?: number;
 }
 
 // Progressive Personality Mapping Questions (Research-Optimized)
@@ -322,6 +370,216 @@ export class AdvancedProfileEngine {
   }
 
   /**
+   * Generate multi-trait profile from enhanced quiz responses (New API for Task 3)
+   * Implements weighted trait combinations: primary 50%, secondary 30%, tertiary 20%
+   */
+  async generateMultiTraitProfile(
+    responses: QuizResponse[],
+    sessionToken: string
+  ): Promise<MultiTraitProfile> {
+    const startTime = Date.now();
+
+    try {
+      if (responses.length === 0) {
+        return this.generateDefaultProfile(sessionToken);
+      }
+
+      // Aggregate trait strengths from all responses
+      const traitAggregation = this.aggregateTraitStrengths(responses);
+
+      // Extract primary, secondary, tertiary traits with proper weighting
+      const { primary_traits, secondary_traits, trait_weights } =
+        this.extractWeightedTraits(traitAggregation);
+
+      // Calculate confidence metrics
+      const confidence_metrics = this.calculateConfidenceMetrics(
+        responses,
+        primary_traits,
+        secondary_traits
+      );
+
+      // Generate 256-dimension structured vector
+      const profile_vector = await this.generateStructuredVector(
+        traitAggregation,
+        responses
+      );
+
+      const profile: MultiTraitProfile = {
+        primary_traits,
+        secondary_traits,
+        trait_weights,
+        confidence_metrics,
+        profile_vector,
+        generation_method: 'structured',
+        session_token: sessionToken,
+        created_at: new Date().toISOString(),
+      };
+
+      return profile;
+    } catch (error) {
+      console.error('Error generating multi-trait profile:', error);
+      return this.generateDefaultProfile(sessionToken);
+    }
+  }
+
+  /**
+   * Calculate similarity between two profiles using cosine similarity
+   */
+  async calculateProfileSimilarity(
+    profile1: MultiTraitProfile,
+    profile2: MultiTraitProfile
+  ): Promise<number> {
+    return this.cosineSimilarity(
+      profile1.profile_vector,
+      profile2.profile_vector
+    );
+  }
+
+  /**
+   * Find similar existing profiles using database function
+   */
+  async findSimilarProfiles(
+    profile: MultiTraitProfile,
+    options: { similarity_threshold: number; limit: number }
+  ): Promise<SimilarProfile[]> {
+    try {
+      const { data, error } = await this.supabase.rpc('find_similar_profiles', {
+        target_profile: profile.profile_vector,
+        similarity_threshold: options.similarity_threshold,
+        limit_count: options.limit,
+      });
+
+      if (error) {
+        console.error('Error finding similar profiles:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in findSimilarProfiles:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate cold-start recommendations for new users
+   */
+  async generateColdStartRecommendations(
+    profile: MultiTraitProfile,
+    options: { max_recommendations: number; use_similar_profiles: boolean }
+  ): Promise<Recommendation[]> {
+    try {
+      if (options.use_similar_profiles) {
+        // Use similar profiles to bootstrap recommendations
+        const similarProfiles = await this.findSimilarProfiles(profile, {
+          similarity_threshold: 0.7,
+          limit: 5,
+        });
+
+        if (similarProfiles.length > 0) {
+          // Get recommendations based on what similar users liked
+          return this.getRecommendationsFromSimilarProfiles(
+            similarProfiles,
+            options.max_recommendations
+          );
+        }
+      }
+
+      // Fallback to direct profile matching
+      return this.getProfileRecommendations(profile, {
+        limit: options.max_recommendations,
+      });
+    } catch (error) {
+      console.error('Error generating cold-start recommendations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Store profile using database function
+   */
+  async storeProfile(
+    profile: MultiTraitProfile,
+    userId: string
+  ): Promise<{ success: boolean }> {
+    try {
+      const { error } = await this.supabase
+        .from('user_profile_vectors')
+        .upsert({
+          user_id: userId,
+          profile_vector: profile.profile_vector,
+          personality_traits: this.traitsToJsonb(
+            profile.primary_traits,
+            profile.secondary_traits
+          ),
+          trait_weights: profile.trait_weights,
+          confidence_score: profile.confidence_metrics.overall_confidence,
+          quiz_session_token: profile.session_token,
+        });
+
+      return { success: !error };
+    } catch (error) {
+      console.error('Error storing profile:', error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Get profile-based recommendations using database function
+   */
+  async getProfileRecommendations(
+    profile: MultiTraitProfile,
+    options: { limit: number }
+  ): Promise<Recommendation[]> {
+    try {
+      const { data, error } = await this.supabase.rpc(
+        'get_profile_recommendations',
+        {
+          user_profile_vector: profile.profile_vector,
+          trait_weights: profile.trait_weights,
+          limit_count: options.limit,
+        }
+      );
+
+      if (error) {
+        console.error('Error getting profile recommendations:', error);
+        return [];
+      }
+
+      return (data || []).map((rec: any) => ({
+        fragrance_id: rec.fragrance_id,
+        match_score: rec.similarity_score,
+        reasoning: this.generateProfileAwareReasoning(rec, profile),
+        personality_boost: rec.personality_boost,
+        final_score: rec.final_score,
+      }));
+    } catch (error) {
+      console.error('Error in getProfileRecommendations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate profile from MVP-style responses for backward compatibility
+   */
+  async generateFromMVPResponses(
+    responses: any[],
+    sessionToken: string
+  ): Promise<MultiTraitProfile> {
+    // Convert MVP responses to enhanced format
+    const enhancedResponses: QuizResponse[] = responses.map(
+      (response: any) => ({
+        question_id: response.question_id || 'mvp_compatibility',
+        selected_traits: this.extractTraitsFromMVPResponse(response),
+        trait_weights: [1.0], // Single trait gets full weight
+        response_timestamp: new Date().toISOString(),
+      })
+    );
+
+    return this.generateMultiTraitProfile(enhancedResponses, sessionToken);
+  }
+
+  /**
    * Generate comprehensive user profile from multi-dimensional quiz responses
    */
   async generateUserProfile(responses: any[]): Promise<UserProfile> {
@@ -384,47 +642,142 @@ export class AdvancedProfileEngine {
   }
 
   /**
-   * Generate structured 256-dimension vector from personality profile
+   * Generate structured 256-dimension vector from personality profile (Enhanced for Task 3)
    * Cost-optimized: No embedding API calls needed
+   * Uses database function for consistency with recommendation matching
    */
-  generateProfileVector(profile: UserProfile): Float32Array {
-    const vector = new Float32Array(256);
+  async generateProfileVectorFromTraits(
+    profile: UserProfile
+  ): Promise<number[]> {
+    try {
+      // Convert to trait aggregation format for database function
+      const traitResponses: Record<string, number> = {};
 
-    // Encode primary traits (dimensions 0-7)
-    vector[0] = profile.traits.adventurousness || 0;
-    vector[1] = profile.traits.sophistication || 0;
-    vector[2] = profile.traits.warmth || 0;
-    vector[3] = profile.traits.confidence || 0;
-    vector[4] = profile.traits.playfulness || 0;
-    vector[5] = profile.traits.sensuality || 0;
-    vector[6] = profile.traits.uniqueness || 0;
-    vector[7] = profile.traits.tradition || 0;
+      // Map traits to aggregation format
+      traitResponses['sophisticated'] = profile.traits.sophistication;
+      traitResponses['adventurous'] = profile.traits.adventurousness;
+      traitResponses['confident'] = profile.traits.confidence;
+      traitResponses['romantic'] = profile.traits.sensuality;
+      traitResponses['casual'] = 1.0 - profile.traits.sophistication; // Inverse relationship
+      traitResponses['playful'] = profile.traits.playfulness;
+      traitResponses['elegant'] =
+        (profile.traits.sophistication + profile.traits.tradition) / 2;
+      traitResponses['modern'] = 1.0 - profile.traits.tradition;
 
-    // Encode seasonal preferences (dimensions 8-11)
-    vector[8] = profile.traits.seasonality?.spring || 0;
-    vector[9] = profile.traits.seasonality?.summer || 0;
-    vector[10] = profile.traits.seasonality?.fall || 0;
-    vector[11] = profile.traits.seasonality?.winter || 0;
+      // Extract preferences
+      const preferenceResponses = {
+        intensity: Math.min(
+          1.0,
+          profile.traits.confidence * 0.8 + profile.traits.uniqueness * 0.2
+        ),
+        longevity:
+          profile.traits.tradition * 0.7 + profile.traits.sophistication * 0.3,
+        sillage:
+          profile.traits.confidence * 0.6 + profile.traits.sensuality * 0.4,
+        freshness:
+          (profile.traits.seasonality?.spring || 0) * 0.5 +
+          (profile.traits.seasonality?.summer || 0) * 0.5,
+        warmth:
+          (profile.traits.seasonality?.fall || 0) * 0.5 +
+          (profile.traits.seasonality?.winter || 0) * 0.5,
+        sweetness:
+          profile.traits.sensuality * 0.7 + profile.traits.playfulness * 0.3,
+        complexity:
+          profile.traits.sophistication * 0.8 + profile.traits.uniqueness * 0.2,
+      };
 
-    // Encode occasion preferences (dimensions 12-15)
-    vector[12] = profile.traits.occasions?.daily || 0;
-    vector[13] = profile.traits.occasions?.work || 0;
-    vector[14] = profile.traits.occasions?.evening || 0;
-    vector[15] = profile.traits.occasions?.special || 0;
+      // Use database function for consistent vector generation
+      const { data, error } = await this.supabase.rpc(
+        'generate_profile_vector',
+        {
+          trait_responses: traitResponses,
+          preference_responses: preferenceResponses,
+        }
+      );
 
-    // Encode trait combinations as amplification factors (dimensions 16-31)
-    profile.trait_combinations.forEach((combo, index) => {
-      if (index < 16) {
-        // Max 16 combination slots
-        vector[16 + index] = this.getTraitCombinationWeight(combo);
+      if (error) {
+        console.error('Error generating vector via database:', error);
+        return this.generateFallbackVectorFromProfile(profile);
+      }
+
+      return data || this.generateFallbackVectorFromProfile(profile);
+    } catch (error) {
+      console.error('Error in generateProfileVectorFromTraits:', error);
+      return this.generateFallbackVectorFromProfile(profile);
+    }
+  }
+
+  /**
+   * Fallback vector generation when database function is unavailable
+   */
+  private generateFallbackVectorFromProfile(profile: UserProfile): number[] {
+    const vector = new Array(256).fill(0);
+
+    // Encode primary traits (dimensions 0-79) using trait encoding approach
+    const traits = [
+      'sophistication',
+      'adventurousness',
+      'warmth',
+      'confidence',
+      'playfulness',
+      'sensuality',
+      'uniqueness',
+      'tradition',
+    ];
+
+    traits.forEach((trait, index) => {
+      const value =
+        profile.traits[trait as keyof FragrancePersonalityTraits] || 0;
+      const startDim = index * 10; // 10 dimensions per trait
+
+      for (let i = 0; i < 10; i++) {
+        vector[startDim + i] = value * Math.sin(((i + 1) * Math.PI) / 10);
       }
     });
 
-    // Add confidence score (dimension 32)
-    vector[32] = profile.confidence_score || 0;
+    // Encode seasonal preferences (dimensions 80-159)
+    const seasons = ['spring', 'summer', 'fall', 'winter'];
+    seasons.forEach((season, index) => {
+      const value =
+        profile.traits.seasonality?.[
+          season as keyof typeof profile.traits.seasonality
+        ] || 0;
+      const startDim = 80 + index * 20; // 20 dimensions per season
 
-    // L2 normalize for cosine similarity
-    return this.normalizeVector(vector);
+      for (let i = 0; i < 20; i++) {
+        vector[startDim + i] = value * Math.cos(((i + 1) * Math.PI) / 20);
+      }
+    });
+
+    // Encode occasions (dimensions 160-239)
+    const occasions = ['daily', 'work', 'evening', 'special'];
+    occasions.forEach((occasion, index) => {
+      const value =
+        profile.traits.occasions?.[
+          occasion as keyof typeof profile.traits.occasions
+        ] || 0;
+      const startDim = 160 + index * 20; // 20 dimensions per occasion
+
+      for (let i = 0; i < 20; i++) {
+        vector[startDim + i] = value * Math.sin(((i + 1) * Math.PI) / 20);
+      }
+    });
+
+    // Encode confidence and metadata (dimensions 240-255)
+    vector[240] = profile.confidence_score;
+    vector[241] = profile.trait_combinations.length / 3; // Normalized trait complexity
+
+    // Normalize the vector
+    const magnitude = Math.sqrt(
+      vector.reduce((sum, val) => sum + val * val, 0)
+    );
+    if (magnitude > 0) {
+      for (let i = 0; i < vector.length; i++) {
+        vector[i] /= magnitude;
+      }
+    }
+
+    return vector;
   }
 
   /**
@@ -543,7 +896,395 @@ export class AdvancedProfileEngine {
     );
   }
 
-  // Private helper methods...
+  // Private helper methods for multi-trait profile analysis...
+
+  /**
+   * Generate default profile for empty or failed responses
+   */
+  private generateDefaultProfile(sessionToken: string): MultiTraitProfile {
+    return {
+      primary_traits: ['classic'],
+      secondary_traits: [],
+      trait_weights: { primary: 1.0 },
+      confidence_metrics: {
+        trait_consistency: 0.3,
+        response_clarity: 0.3,
+        overall_confidence: 0.3,
+        trait_confidences: { classic: 0.3 },
+      },
+      profile_vector: this.generateDefaultVector(),
+      generation_method: 'structured',
+      session_token: sessionToken,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Aggregate trait strengths from all quiz responses
+   */
+  private aggregateTraitStrengths(
+    responses: QuizResponse[]
+  ): Record<string, number> {
+    const aggregation: Record<string, number> = {};
+
+    for (const response of responses) {
+      for (let i = 0; i < response.selected_traits.length; i++) {
+        const trait = response.selected_traits[i];
+        const weight = response.trait_weights[i] || 1.0;
+
+        aggregation[trait] = (aggregation[trait] || 0) + weight;
+      }
+    }
+
+    return aggregation;
+  }
+
+  /**
+   * Extract weighted traits with proper primary/secondary/tertiary classification
+   */
+  private extractWeightedTraits(traitAggregation: Record<string, number>): {
+    primary_traits: string[];
+    secondary_traits: string[];
+    trait_weights: TraitWeights;
+  } {
+    // Sort traits by aggregated strength
+    const sortedTraits = Object.entries(traitAggregation)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3); // Maximum 3 traits
+
+    if (sortedTraits.length === 0) {
+      return {
+        primary_traits: ['classic'],
+        secondary_traits: [],
+        trait_weights: { primary: 1.0 },
+      };
+    }
+
+    const primary_traits = [sortedTraits[0][0]];
+    const secondary_traits = sortedTraits.slice(1).map(([trait]) => trait);
+
+    // Calculate normalized weights (primary 50%, secondary 30%, tertiary 20%)
+    const weights: TraitWeights = { primary: 0.5 };
+
+    if (sortedTraits.length >= 2) {
+      weights.secondary = 0.3;
+    }
+
+    if (sortedTraits.length >= 3) {
+      weights.tertiary = 0.2;
+    }
+
+    // Adjust weights if fewer than 3 traits
+    if (sortedTraits.length === 1) {
+      weights.primary = 1.0;
+    } else if (sortedTraits.length === 2) {
+      weights.primary = 0.7;
+      weights.secondary = 0.3;
+    }
+
+    return { primary_traits, secondary_traits, trait_weights: weights };
+  }
+
+  /**
+   * Calculate comprehensive confidence metrics
+   */
+  private calculateConfidenceMetrics(
+    responses: QuizResponse[],
+    primary_traits: string[],
+    secondary_traits: string[]
+  ): ConfidenceMetrics {
+    // Trait consistency: how often the same traits appear
+    const trait_consistency = this.calculateTraitConsistency(responses);
+
+    // Response clarity: how decisive the selections were
+    const response_clarity = this.calculateResponseClarity(responses);
+
+    // Per-trait confidence
+    const trait_confidences = this.calculateTraitConfidences(responses, [
+      ...primary_traits,
+      ...secondary_traits,
+    ]);
+
+    // Overall confidence (weighted combination)
+    const overall_confidence =
+      trait_consistency * 0.4 +
+      response_clarity * 0.4 +
+      (responses.length / 6) * 0.2;
+
+    return {
+      trait_consistency: Math.min(1.0, trait_consistency),
+      response_clarity: Math.min(1.0, response_clarity),
+      overall_confidence: Math.min(0.95, overall_confidence),
+      trait_confidences,
+    };
+  }
+
+  /**
+   * Generate 256-dimension structured vector using database function
+   */
+  private async generateStructuredVector(
+    traitAggregation: Record<string, number>,
+    responses: QuizResponse[]
+  ): Promise<number[]> {
+    try {
+      // Use database function for consistent vector generation
+      const { data, error } = await this.supabase.rpc(
+        'generate_profile_vector',
+        {
+          trait_responses: traitAggregation,
+          preference_responses: this.extractPreferences(responses),
+        }
+      );
+
+      if (error) {
+        console.error('Error generating vector:', error);
+        return this.generateFallbackVector(traitAggregation);
+      }
+
+      return data || this.generateFallbackVector(traitAggregation);
+    } catch (error) {
+      console.error('Error in generateStructuredVector:', error);
+      return this.generateFallbackVector(traitAggregation);
+    }
+  }
+
+  /**
+   * Generate fallback 256-dimension vector when database function fails
+   */
+  private generateFallbackVector(
+    traitAggregation: Record<string, number>
+  ): number[] {
+    const vector = new Array(256).fill(0);
+
+    // Encode top traits in first 80 dimensions (trait space)
+    Object.entries(traitAggregation).forEach(([trait, strength], index) => {
+      if (index < 10) {
+        // Support up to 10 traits
+        const startDim = index * 8;
+        for (let i = 0; i < 8; i++) {
+          vector[startDim + i] = strength * Math.sin(((i + 1) * Math.PI) / 8);
+        }
+      }
+    });
+
+    // Normalize the vector
+    const magnitude = Math.sqrt(
+      vector.reduce((sum, val) => sum + val * val, 0)
+    );
+    if (magnitude > 0) {
+      for (let i = 0; i < vector.length; i++) {
+        vector[i] /= magnitude;
+      }
+    }
+
+    return vector;
+  }
+
+  /**
+   * Calculate cosine similarity between two vectors
+   */
+  private cosineSimilarity(vecA: number[], vecB: number[]): number {
+    if (vecA.length !== vecB.length) return 0;
+
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < vecA.length; i++) {
+      dotProduct += vecA[i] * vecB[i];
+      normA += vecA[i] * vecA[i];
+      normB += vecB[i] * vecB[i];
+    }
+
+    normA = Math.sqrt(normA);
+    normB = Math.sqrt(normB);
+
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (normA * normB);
+  }
+
+  /**
+   * Generate default vector for fallback cases
+   */
+  private generateDefaultVector(): number[] {
+    const vector = new Array(256).fill(0);
+    // Set classic/balanced traits
+    vector[0] = 0.5; // Moderate sophistication
+    vector[1] = 0.5; // Moderate confidence
+    vector[2] = 0.6; // Slightly warm
+    return vector;
+  }
+
+  /**
+   * Convert primary and secondary traits to JSONB format for database storage
+   */
+  private traitsToJsonb(
+    primary_traits: string[],
+    secondary_traits: string[]
+  ): Record<string, number> {
+    const jsonb: Record<string, number> = {};
+
+    primary_traits.forEach(trait => {
+      jsonb[trait] = 0.5; // Primary weight
+    });
+
+    secondary_traits.forEach(trait => {
+      jsonb[trait] = jsonb[trait] ? Math.max(jsonb[trait], 0.3) : 0.3; // Secondary weight
+    });
+
+    return jsonb;
+  }
+
+  /**
+   * Extract traits from MVP response format for backward compatibility
+   */
+  private extractTraitsFromMVPResponse(response: any): string[] {
+    const answerValue = response.answer_value || response.answer || '';
+    const traits: string[] = [];
+
+    // Extract traits from MVP answer text
+    if (
+      answerValue.includes('sophisticated') ||
+      answerValue.includes('elegant')
+    ) {
+      traits.push('sophisticated');
+    }
+    if (answerValue.includes('romantic') || answerValue.includes('beautiful')) {
+      traits.push('romantic');
+    }
+    if (answerValue.includes('casual') || answerValue.includes('natural')) {
+      traits.push('casual');
+    }
+    if (
+      answerValue.includes('confident') ||
+      answerValue.includes('professional')
+    ) {
+      traits.push('confident');
+    }
+
+    return traits.length > 0 ? traits : ['classic'];
+  }
+
+  /**
+   * Calculate trait consistency across responses
+   */
+  private calculateTraitConsistency(responses: QuizResponse[]): number {
+    if (responses.length < 2) return 1.0;
+
+    const allTraits = responses.flatMap(r => r.selected_traits);
+    const traitCounts: Record<string, number> = {};
+
+    allTraits.forEach(trait => {
+      traitCounts[trait] = (traitCounts[trait] || 0) + 1;
+    });
+
+    const maxCount = Math.max(...Object.values(traitCounts));
+    const consistency = maxCount / allTraits.length;
+
+    return consistency;
+  }
+
+  /**
+   * Calculate response clarity (how decisive selections were)
+   */
+  private calculateResponseClarity(responses: QuizResponse[]): number {
+    if (responses.length === 0) return 0;
+
+    const clarityScores = responses.map((response: QuizResponse) => {
+      // Fewer selections = more decisive = higher clarity
+      const selectionClarity = Math.max(
+        0,
+        1 - (response.selected_traits.length - 1) * 0.2
+      );
+
+      // Weight distribution clarity (more even = less decisive)
+      const weightVariance = this.calculateVariance(response.trait_weights);
+      const weightClarity = Math.min(1, weightVariance * 2); // Higher variance = more decisive
+
+      return (selectionClarity + weightClarity) / 2;
+    });
+
+    return (
+      clarityScores.reduce((sum, score) => sum + score, 0) /
+      clarityScores.length
+    );
+  }
+
+  /**
+   * Calculate confidence for specific traits
+   */
+  private calculateTraitConfidences(
+    responses: QuizResponse[],
+    traits: string[]
+  ): Record<string, number> {
+    const confidences: Record<string, number> = {};
+
+    traits.forEach(trait => {
+      const appearances = responses.filter((response: QuizResponse) =>
+        response.selected_traits.includes(trait)
+      );
+      const strength = appearances.length / responses.length;
+      const avgWeight =
+        appearances.length > 0
+          ? appearances.reduce((sum, response: QuizResponse) => {
+              const index = response.selected_traits.indexOf(trait);
+              return sum + (response.trait_weights[index] || 0);
+            }, 0) / appearances.length
+          : 0;
+
+      confidences[trait] = Math.min(1.0, strength * 0.6 + avgWeight * 0.4);
+    });
+
+    return confidences;
+  }
+
+  /**
+   * Extract preferences from responses for vector generation
+   */
+  private extractPreferences(
+    responses: QuizResponse[]
+  ): Record<string, number> {
+    // Extract intensity, seasonal, and occasion preferences
+    const preferences: Record<string, number> = {
+      intensity: 0.5,
+      longevity: 0.5,
+      sillage: 0.5,
+      freshness: 0.5,
+      warmth: 0.5,
+      sweetness: 0.5,
+      complexity: 0.5,
+    };
+
+    // This would be enhanced based on actual quiz content analysis
+    // For now, return defaults
+    return preferences;
+  }
+
+  /**
+   * Calculate variance of an array of numbers
+   */
+  private calculateVariance(numbers: number[]): number {
+    if (numbers.length < 2) return 0;
+
+    const mean = numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
+    const variance =
+      numbers.reduce((sum, num) => sum + Math.pow(num - mean, 2), 0) /
+      numbers.length;
+
+    return variance;
+  }
+
+  /**
+   * Get recommendations from similar user profiles
+   */
+  private async getRecommendationsFromSimilarProfiles(
+    similarProfiles: SimilarProfile[],
+    limit: number
+  ): Promise<Recommendation[]> {
+    // This would query what similar users actually purchased/liked
+    // For now, return empty array until user collection analysis is implemented
+    return [];
+  }
 
   public initializeEmptyTraits(): FragrancePersonalityTraits {
     return {

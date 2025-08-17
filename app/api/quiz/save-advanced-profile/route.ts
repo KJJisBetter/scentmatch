@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     // Save enhanced quiz responses
     if (quiz_responses && quiz_responses.length > 0) {
-      const enhancedResponses = quiz_responses.map(response => ({
+      const enhancedResponses = quiz_responses.map((response: any) => ({
         user_id: user_id,
         session_token: profile.session_token,
         question_id: response.question_id,

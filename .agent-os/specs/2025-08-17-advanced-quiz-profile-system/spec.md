@@ -49,3 +49,24 @@ When I view fragrance pages, browse collections, or get recommendations, the AI 
 2. **Profile-Aware AI System** - AI descriptions and recommendations that adjust dynamically based on user profile complexity
 3. **Enhanced Conversion Flow** - Improved quiz-to-account conversion that emphasizes profile value and personalization benefits
 4. **Research-Backed Question Design** - Quiz questions and options designed for maximum AI guidance and purchase conversion optimization
+
+## Related Linear Issues
+
+**Core Implementation Issues:**
+
+- **SCE-14** - Fix UUID format issues in multi-dimensional profile storage tests (High Priority)
+- **SCE-17** - Fix database function parameter and return format issues (High Priority)
+- **SCE-15** - Fix foreign key constraint violations in fragrance metadata tests (Medium Priority)
+- **SCE-16** - Optimize database query performance to meet <100ms targets (Medium Priority)
+
+**Integration & Enhancement Opportunities:**
+
+- **SCE-18** - Integrate Advanced Quiz Profile System into main quiz flow (High Priority)
+- **SCE-20** - Populate metadata vectors for existing fragrances using Advanced Profile Engine (High Priority)
+- **SCE-19** - Enhance test infrastructure for Advanced Quiz Profile System components (Medium Priority)
+- **SCE-6** - Collection Pre-Population During Quiz Onboarding (Enhanced with multi-trait analysis) (High Priority)
+
+**Synergistic Features:**
+
+- **SCE-11** - Collection Intelligence API Endpoints (Can integrate with ProfileAwareAISystem)
+- **SCE-12** - Smart Collection Organization & Gap Analysis (Can leverage multi-trait profiles)
