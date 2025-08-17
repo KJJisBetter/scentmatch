@@ -222,19 +222,33 @@
     @apply translate-y-0 opacity-100;
   }
 
-  /* Conversion optimization - subtle CTA animation */
+  /* Conversion optimization - CLS-friendly CTA animation */
   .animate-pulse-soft {
     animation: pulse-soft 3s ease-in-out infinite;
+    position: relative;
   }
 
   @keyframes pulse-soft {
     0%, 100% {
-      transform: scale(1);
       box-shadow: var(--shadow-medium);
     }
     50% {
-      transform: scale(1.01);
       box-shadow: var(--shadow-strong);
+    }
+  }
+
+  /* Alternative: Glow effect that doesn't affect layout */
+  .animate-glow-soft {
+    animation: glow-soft 2s ease-in-out infinite;
+    position: relative;
+  }
+
+  @keyframes glow-soft {
+    0%, 100% {
+      box-shadow: var(--shadow-medium);
+    }
+    50% {
+      box-shadow: var(--shadow-medium), 0 0 20px hsl(262 47% 17% / 0.3);
     }
   }
 
