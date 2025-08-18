@@ -12,7 +12,7 @@ interface FragrancePageProps {
 
 /**
  * Individual Fragrance Detail Page
- * 
+ *
  * Dynamic route: /fragrance/[id]
  * Features:
  * - Server-side fragrance data fetching
@@ -22,14 +22,17 @@ interface FragrancePageProps {
  */
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: FragrancePageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: FragrancePageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createServerSupabase();
-  
+
   try {
     const { data: fragrance } = await supabase
       .from('fragrances')
-      .select(`
+      .select(
+        `
         id,
         name,
         brand_id,
@@ -37,7 +40,8 @@ export async function generateMetadata({ params }: FragrancePageProps): Promise<
         fragrance_brands:brand_id (
           name
         )
-      `)
+      `
+      )
       .eq('id', id)
       .single();
 
@@ -48,7 +52,8 @@ export async function generateMetadata({ params }: FragrancePageProps): Promise<
       };
     }
 
-    const brandName = (fragrance.fragrance_brands as any)?.name || 'Unknown Brand';
+    const brandName =
+      (fragrance.fragrance_brands as any)?.name || 'Unknown Brand';
     const title = `${fragrance.name} by ${brandName} - ScentMatch`;
     const description = `Discover ${fragrance.name} by ${brandName}. Explore scent notes, find similar fragrances, and order samples on ScentMatch.`;
 
@@ -63,20 +68,22 @@ export async function generateMetadata({ params }: FragrancePageProps): Promise<
         'scent',
         'notes',
         'samples',
-        'ScentMatch'
+        'ScentMatch',
       ].join(', '),
       openGraph: {
         title,
         description,
         type: 'website',
-        images: fragrance.image_url ? [
-          {
-            url: fragrance.image_url,
-            width: 400,
-            height: 400,
-            alt: `${fragrance.name} by ${brandName}`,
-          }
-        ] : undefined,
+        images: fragrance.image_url
+          ? [
+              {
+                url: fragrance.image_url,
+                width: 400,
+                height: 400,
+                alt: `${fragrance.name} by ${brandName}`,
+              },
+            ]
+          : undefined,
       },
       twitter: {
         card: 'summary_large_image',
@@ -90,11 +97,16 @@ export async function generateMetadata({ params }: FragrancePageProps): Promise<
       },
     };
   } catch (error) {
-    console.error('Error generating metadata for fragrance:', params.id, error);
-    
+    console.error(
+      'Error generating metadata for fragrance:',
+      (await params).id,
+      error
+    );
+
     return {
       title: 'Fragrance - ScentMatch',
-      description: 'Discover fragrances, explore scent notes, and find your perfect match.',
+      description:
+        'Discover fragrances, explore scent notes, and find your perfect match.',
     };
   }
 }
@@ -102,14 +114,12 @@ export async function generateMetadata({ params }: FragrancePageProps): Promise<
 // Fetch fragrance data server-side
 async function getFragranceData(id: string) {
   const supabase = await createServerSupabase();
-  
+
   try {
     // Use the same fallback approach as the search API (which works)
     // Skip RPC calls that cause "call" errors and use direct database queries
-    
-    let fallbackQuery = supabase
-      .from('fragrances')
-      .select(`
+
+    let fallbackQuery = supabase.from('fragrances').select(`
         id,
         name,
         scent_family,
@@ -124,7 +134,8 @@ async function getFragranceData(id: string) {
     // Find the specific fragrance by ID
     fallbackQuery = fallbackQuery.eq('id', id);
 
-    const { data: fragranceResults, error: fallbackError } = await fallbackQuery;
+    const { data: fragranceResults, error: fallbackError } =
+      await fallbackQuery;
 
     if (fallbackError || !fragranceResults || fragranceResults.length === 0) {
       console.error('Fragrance not found:', id, fallbackError);
@@ -134,7 +145,7 @@ async function getFragranceData(id: string) {
     const fragrance = fragranceResults[0];
 
     // For MVP, mock similar fragrances since the function might not exist
-    const similarFragrances = [];
+    const similarFragrances: any[] = [];
 
     // Transform search result to match expected interface
     const transformedFragrance = {
@@ -144,14 +155,13 @@ async function getFragranceData(id: string) {
       scent_family: fragrance.scent_family,
       sample_available: fragrance.sample_available,
       sample_price_usd: fragrance.sample_price_usd,
-      fragrance_brands: [{ name: fragrance.brand }]
+      fragrance_brands: [{ name: fragrance.brand }],
     };
 
     return {
       fragrance: transformedFragrance,
-      similarFragrances
+      similarFragrances,
     };
-
   } catch (error) {
     console.error('Error fetching fragrance data:', id, error);
     return null;
@@ -161,7 +171,7 @@ async function getFragranceData(id: string) {
 // Main page component
 export default async function FragrancePage({ params }: FragrancePageProps) {
   const { id } = await params;
-  
+
   // Validate fragrance ID format
   if (!id || id.trim() === '') {
     console.error('Invalid fragrance ID:', id);
@@ -170,7 +180,7 @@ export default async function FragrancePage({ params }: FragrancePageProps) {
 
   // Fetch fragrance data
   const data = await getFragranceData(id);
-  
+
   if (!data) {
     notFound();
   }
@@ -182,10 +192,10 @@ export default async function FragrancePage({ params }: FragrancePageProps) {
       {/* Track page view interaction */}
       <InteractionTracker
         fragranceId={fragrance.id}
-        interactionType="view"
-        interactionContext="detail_page"
+        interactionType='view'
+        interactionContext='detail_page'
       />
-      
+
       {/* Main fragrance detail page */}
       <FragranceDetailPage
         fragrance={fragrance}

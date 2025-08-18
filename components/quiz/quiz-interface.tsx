@@ -12,7 +12,7 @@ import { ConversionFlow } from './conversion-flow';
 
 /**
  * QuizInterface Component (MVP)
- * 
+ *
  * Simple but effective quiz flow for MVP:
  * - 5 essential questions for personality classification
  * - Immediate analysis and results
@@ -26,69 +26,135 @@ export function QuizInterface() {
   const [personalityResults, setPersonalityResults] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [quizSessionToken] = useState(`guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [quizSessionToken] = useState(
+    `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  );
 
   // MVP Quiz Questions (5 essential questions)
   const mvpQuestions = [
     {
       id: 'style',
-      text: 'How would you describe your personal style?',
+      text: 'What fragrances do you enjoy most?',
       options: [
-        { value: 'professional_sophisticated', text: 'Professional & Sophisticated', emoji: '💼' },
-        { value: 'romantic_feminine', text: 'Romantic & Feminine', emoji: '🌸' },
-        { value: 'casual_natural', text: 'Casual & Natural', emoji: '🌿' },
-        { value: 'bold_confident', text: 'Bold & Confident', emoji: '✨' }
-      ]
+        {
+          value: 'professional_sophisticated',
+          text: 'Elegant and polished scents',
+          emoji: '💼',
+        },
+        {
+          value: 'romantic_feminine',
+          text: 'Soft, romantic florals',
+          emoji: '🌸',
+        },
+        {
+          value: 'casual_natural',
+          text: 'Fresh, everyday scents',
+          emoji: '🌿',
+        },
+        {
+          value: 'bold_confident',
+          text: 'Rich, memorable fragrances',
+          emoji: '✨',
+        },
+      ],
     },
     {
       id: 'occasions',
       text: 'When do you most want to smell amazing?',
       options: [
-        { value: 'work_professional', text: 'At work & professional events', emoji: '🏢' },
-        { value: 'evening_dinner', text: 'Evening dinners & dates', emoji: '🌙' },
-        { value: 'everyday_casual', text: 'Everyday & casual outings', emoji: '☀️' },
-        { value: 'special_celebrations', text: 'Special occasions & celebrations', emoji: '🎉' }
-      ]
+        {
+          value: 'work_professional',
+          text: 'At work & professional events',
+          emoji: '🏢',
+        },
+        {
+          value: 'evening_dinner',
+          text: 'Evening dinners & dates',
+          emoji: '🌙',
+        },
+        {
+          value: 'everyday_casual',
+          text: 'Everyday & casual outings',
+          emoji: '☀️',
+        },
+        {
+          value: 'special_celebrations',
+          text: 'Special occasions & celebrations',
+          emoji: '🎉',
+        },
+      ],
     },
     {
       id: 'preferences',
       text: 'Which scent style appeals to you most?',
       options: [
-        { value: 'complex_layered', text: 'Complex & layered (evolves throughout the day)', emoji: '🎭' },
-        { value: 'fresh_clean', text: 'Fresh & clean (like after a shower)', emoji: '🚿' },
-        { value: 'sweet_floral', text: 'Sweet & floral (like a garden)', emoji: '🌺' },
-        { value: 'warm_cozy', text: 'Warm & cozy (like a hug)', emoji: '🤗' }
-      ]
+        {
+          value: 'complex_layered',
+          text: 'Scents that change throughout the day',
+          emoji: '🎭',
+        },
+        { value: 'fresh_clean', text: 'Clean, refreshing scents', emoji: '🚿' },
+        {
+          value: 'sweet_floral',
+          text: 'Sweet, garden-like florals',
+          emoji: '🌺',
+        },
+        { value: 'warm_cozy', text: 'Warm, comforting scents', emoji: '🤗' },
+      ],
     },
     {
       id: 'intensity',
       text: 'How noticeable do you want your fragrance to be?',
       options: [
         { value: 'subtle_personal', text: 'Subtle - just for me', emoji: '🤫' },
-        { value: 'moderate_noticeable', text: 'Moderate - people notice when close', emoji: '👥' },
-        { value: 'strong_memorable', text: 'Strong - memorable and impactful', emoji: '💫' }
-      ]
+        {
+          value: 'moderate_noticeable',
+          text: 'Moderate - people notice when close',
+          emoji: '👥',
+        },
+        {
+          value: 'strong_memorable',
+          text: 'Strong - memorable and impactful',
+          emoji: '💫',
+        },
+      ],
     },
     {
       id: 'budget',
-      text: 'What\'s your approach to fragrance shopping?',
+      text: 'How do you like to discover new fragrances?',
       options: [
-        { value: 'try_samples_first', text: 'Try samples first, then buy full size', emoji: '🧪' },
-        { value: 'invest_in_quality', text: 'Invest in fewer, high-quality fragrances', emoji: '💎' },
-        { value: 'explore_variety', text: 'Explore many different options', emoji: '🎨' },
-        { value: 'budget_conscious', text: 'Find great scents at good prices', emoji: '💰' }
-      ]
-    }
+        {
+          value: 'try_samples_first',
+          text: 'Try small samples before buying',
+          emoji: '🧪',
+        },
+        {
+          value: 'invest_in_quality',
+          text: 'Choose fewer, special fragrances',
+          emoji: '💎',
+        },
+        {
+          value: 'explore_variety',
+          text: 'Try many different scents',
+          emoji: '🎨',
+        },
+        {
+          value: 'budget_conscious',
+          text: 'Find amazing scents at great prices',
+          emoji: '💰',
+        },
+      ],
+    },
   ];
 
   const handleAnswerSelect = (answer: string) => {
     const currentQ = mvpQuestions[currentQuestion];
     if (!currentQ) return;
-    
+
     const newResponse = {
       question_id: currentQ.id,
       answer_value: answer,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     const updatedResponses = [...responses, newResponse];
@@ -121,26 +187,27 @@ export function QuizInterface() {
 
   const analyzeQuiz = async (allResponses: any[]) => {
     setIsAnalyzing(true);
-    
+
     try {
       // Analyze with MVP engine
       const engine = new MVPPersonalityEngine();
       const analysis = await engine.analyzeQuizResponses(allResponses);
-      
+
       if (analysis.can_generate_recommendations) {
-        const recs = await engine.getFragranceRecommendations(analysis.personality_type);
-        
+        const recs = await engine.getFragranceRecommendations(
+          analysis.personality_type
+        );
+
         // Prepare data for conversion flow
         setPersonalityResults({
           personality_type: analysis.personality_type,
           confidence: analysis.confidence,
           quiz_session_token: quizSessionToken,
-          recommendations: recs.slice(0, 8) // Get 8 for conversion flow (show 3, unlock 5 more)
+          recommendations: recs.slice(0, 8), // Get 8 for conversion flow (show 3, unlock 5 more)
         });
       }
-      
+
       setShowResults(true);
-      
     } catch (error) {
       console.error('Quiz analysis error:', error);
       // Fallback for MVP
@@ -148,7 +215,7 @@ export function QuizInterface() {
         personality_type: 'classic',
         confidence: 0.6,
         quiz_session_token: quizSessionToken,
-        recommendations: []
+        recommendations: [],
       });
       setShowResults(true);
     } finally {
@@ -170,15 +237,19 @@ export function QuizInterface() {
 
   if (isAnalyzing) {
     return (
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="text-center py-12">
-          <div className="relative mb-6">
-            <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto" />
-            <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500" />
+      <Card className='max-w-2xl mx-auto'>
+        <CardContent className='text-center py-12'>
+          <div className='relative mb-6'>
+            <div className='animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto' />
+            <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
           </div>
-          <h3 className="text-xl font-semibold mb-2">Analyzing Your Fragrance Personality...</h3>
-          <p className="text-muted-foreground mb-4">Finding your perfect fragrance matches</p>
-          <div className="text-sm text-muted-foreground space-y-1">
+          <h3 className='text-xl font-semibold mb-2'>
+            Analyzing Your Fragrance Personality...
+          </h3>
+          <p className='text-muted-foreground mb-4'>
+            Finding your perfect fragrance matches
+          </p>
+          <div className='text-sm text-muted-foreground space-y-1'>
             <p>✨ Processing your style preferences</p>
             <p>🧠 AI matching against 1,467 fragrances</p>
             <p>🎯 Personalizing recommendations just for you</p>
@@ -203,16 +274,18 @@ export function QuizInterface() {
   if (!question) return null;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className='max-w-2xl mx-auto'>
       {/* Progress Bar */}
-      <div className="mb-8">
-        <div className="flex justify-between text-sm text-muted-foreground mb-2">
-          <span>Question {currentQuestion + 1} of {mvpQuestions.length}</span>
+      <div className='mb-8'>
+        <div className='flex justify-between text-sm text-muted-foreground mb-2'>
+          <span>
+            Question {currentQuestion + 1} of {mvpQuestions.length}
+          </span>
           <span>{Math.round(progress)}% complete</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+        <div className='w-full bg-gray-200 rounded-full h-2'>
+          <div
+            className='bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300'
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -220,26 +293,26 @@ export function QuizInterface() {
 
       {/* Question Card */}
       <Card>
-        <CardContent className="py-8">
-          <h2 className="text-2xl font-semibold text-center mb-8">
+        <CardContent className='py-8'>
+          <h2 className='text-2xl font-semibold text-center mb-8'>
             {question.text}
           </h2>
-          
-          <div className="space-y-4">
-            {question.options.map((option) => (
+
+          <div className='space-y-4'>
+            {question.options.map(option => (
               <button
                 key={option.value}
                 onClick={() => handleAnswerSelect(option.value)}
-                className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98]"
+                className='w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98]'
               >
-                <div className="flex items-center space-x-4">
-                  <div className="text-2xl">{option.emoji}</div>
-                  <div className="flex-1">
-                    <span className="font-medium group-hover:text-purple-700">
+                <div className='flex items-center space-x-4'>
+                  <div className='text-2xl'>{option.emoji}</div>
+                  <div className='flex-1'>
+                    <span className='font-medium group-hover:text-purple-700'>
                       {option.text}
                     </span>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500" />
+                  <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500' />
                 </div>
               </button>
             ))}
@@ -248,8 +321,11 @@ export function QuizInterface() {
       </Card>
 
       {/* Quiz Benefits */}
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-        <p>✨ Get instant recommendations • 🧪 Try samples risk-free • 💝 Find your signature scent</p>
+      <div className='mt-8 text-center text-sm text-muted-foreground'>
+        <p>
+          ✨ Get instant recommendations • 🧪 Try samples risk-free • 💝 Find
+          your signature scent
+        </p>
       </div>
     </div>
   );
