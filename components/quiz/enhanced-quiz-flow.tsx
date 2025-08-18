@@ -10,6 +10,7 @@ import {
   type ExperienceLevel,
 } from './experience-level-selector';
 import { AdaptiveQuizInterface } from './adaptive-quiz-interface';
+import { getNaturalQuizData } from '@/lib/quiz/natural-quiz-data';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
 import { DirectRecommendationEngine } from '@/lib/quiz/direct-recommendation-engine';
 import { Card, CardContent } from '@/components/ui/card';

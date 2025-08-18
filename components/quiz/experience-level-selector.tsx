@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight } from 'lucide-react';
 
-export type ExperienceLevel = 'beginner' | 'enthusiast' | 'collector';
+export type ExperienceLevel = 'beginner' | 'enthusiast' | 'experienced';
 
 interface ExperienceLevelSelectorProps {
   onLevelSelect: (level: ExperienceLevel) => void;
@@ -26,24 +26,24 @@ export function ExperienceLevelSelector({
   const experienceLevels = [
     {
       id: 'beginner' as ExperienceLevel,
-      display_name: 'New to Fragrances',
-      description: "I'm just starting to explore different scents",
+      display_name: 'Just getting started',
+      description: "I'm new to fragrances and want to learn",
       emoji: '🌱',
       badge_color: 'bg-green-100 text-green-800',
       button_style: 'hover:border-green-300 hover:bg-green-50',
     },
     {
       id: 'enthusiast' as ExperienceLevel,
-      display_name: 'Fragrance Lover',
-      description: 'I enjoy fragrances and know some of my preferences',
+      display_name: 'I have my favorites',
+      description: 'I know what I like but want to discover more',
       emoji: '🌸',
       badge_color: 'bg-purple-100 text-purple-800',
       button_style: 'hover:border-purple-300 hover:bg-purple-50',
     },
     {
-      id: 'collector' as ExperienceLevel,
-      display_name: 'Fragrance Collector',
-      description: 'I have an extensive collection and deep knowledge',
+      id: 'experienced' as ExperienceLevel,
+      display_name: 'Love trying new things',
+      description: 'I enjoy exploring different fragrances and styles',
       emoji: '🎭',
       badge_color: 'bg-indigo-100 text-indigo-800',
       button_style: 'hover:border-indigo-300 hover:bg-indigo-50',
@@ -91,10 +91,8 @@ export function ExperienceLevelSelector({
                     </h3>
                     <Badge className={level.badge_color}>
                       {level.id === 'beginner'
-                        ? '4 questions'
-                        : level.id === 'enthusiast'
-                          ? '6 questions'
-                          : '8-10 questions'}
+                        ? '3 questions'
+                        : '5-6 questions'}
                     </Badge>
                   </div>
                   <p

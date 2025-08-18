@@ -6,10 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, CheckCircle } from 'lucide-react';
 import {
-  getAdaptiveQuizData,
+  getNaturalQuizData,
   type ExperienceLevel,
-  type AdaptiveQuizData,
-} from '@/lib/quiz/adaptive-question-data';
+  type NaturalQuizData,
+} from '@/lib/quiz/natural-quiz-data';
 
 export type QuizMode = ExperienceLevel;
 
@@ -36,7 +36,7 @@ export function AdaptiveQuizInterface({
   const [responses, setResponses] = useState<any[]>([]);
   const [currentSelections, setCurrentSelections] = useState<string[]>([]);
 
-  const quizData = getAdaptiveQuizData(mode);
+  const quizData = getNaturalQuizData(mode);
   const questions = quizData.questions;
   const currentQuestion = questions[currentQuestionIndex];
   const progress = useMemo(
@@ -159,12 +159,12 @@ export function AdaptiveQuizInterface({
             '🌸 Excellent choices! • 🎯 Refining your profile • ✨ Discovering new favorites',
           buttonStyle: 'hover:border-purple-300 hover:bg-purple-50',
         };
-      case 'collector':
+      case 'experienced':
         return {
-          badge: '🎭 Collector Advanced',
+          badge: '🎭 Love Trying New Things',
           badgeColor: 'bg-indigo-100 text-indigo-800',
           encouragement:
-            '🎭 Sophisticated selections • 💎 Curating your profile • 🌟 Exploring rare finds',
+            '🎭 Great exploration • 💎 Discovering new favorites • 🌟 Finding hidden gems',
           buttonStyle: 'hover:border-indigo-300 hover:bg-indigo-50',
         };
       default:
