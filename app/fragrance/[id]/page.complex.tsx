@@ -152,7 +152,7 @@ async function getFragranceData(id: string) {
 
     // Transform search result to match expected interface
     const transformedFragrance = {
-      id: fragrance.fragrance_id || fragrance.id,
+      id: fragrance.id,
       name: fragrance.name,
       brand_id: fragrance.brand || '',
       scent_family: fragrance.scent_family,

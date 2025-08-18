@@ -403,8 +403,7 @@ export function ConversionFlow({
             <div className='text-4xl mb-4'>🎉</div>
             <h2 className='text-3xl font-bold mb-4'>Welcome to ScentMatch!</h2>
             <p className='text-lg text-muted-foreground mb-6'>
-              Your account is ready and your {quizResults.personality_type}{' '}
-              personality has been saved
+              Your account is ready and your quiz results have been saved
             </p>
 
             {/* Immediate Benefits Display */}
@@ -466,8 +465,7 @@ export function ConversionFlow({
                 <div className='text-2xl mb-2'>1️⃣</div>
                 <h4 className='font-medium'>Explore Recommendations</h4>
                 <p className='text-muted-foreground'>
-                  See all 15 matches based on your{' '}
-                  {quizResults.personality_type} style
+                  See more matches based on your quiz responses
                 </p>
               </div>
               <div className='text-center'>
@@ -522,8 +520,8 @@ export function ConversionFlow({
             {/* Reconsideration Opportunity */}
             <div className='text-center space-y-4'>
               <p className='text-muted-foreground mb-4'>
-                Most {quizResults.personality_type} users create accounts to
-                unlock their full matches
+                Most users create accounts to unlock their full matches and save
+                their results
               </p>
 
               <Button
