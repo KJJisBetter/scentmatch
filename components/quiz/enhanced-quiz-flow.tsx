@@ -12,7 +12,7 @@ import {
 import { AdaptiveQuizInterface } from './adaptive-quiz-interface';
 import { getNaturalQuizData } from '@/lib/quiz/natural-quiz-data';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
-import { DirectRecommendationEngine } from '@/lib/quiz/direct-recommendation-engine';
+import { WorkingRecommendationEngine } from '@/lib/quiz/working-recommendation-engine';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
 
@@ -92,7 +92,7 @@ export function EnhancedQuizFlow({ onConversionReady }: EnhancedQuizFlowProps) {
       ];
 
       // Generate recommendations using the enhanced responses
-      const engine = new DirectRecommendationEngine();
+      const engine = new WorkingRecommendationEngine();
       const result = await engine.generateRecommendations(
         enhancedResponses,
         quizSessionToken
