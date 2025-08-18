@@ -12,6 +12,7 @@ export interface QuizOption {
   text: string;
   emoji: string;
   description?: string;
+  autoSelectAll?: boolean; // When selected, automatically selects all other options in the question
 }
 
 export interface NaturalQuestion {
@@ -56,7 +57,7 @@ export const beginnerQuizData: NaturalQuizData = {
       subtitle: 'Pick what sounds nice - you can choose multiple',
       allowMultiple: true,
       minSelections: 1,
-      maxSelections: 3,
+      maxSelections: 5,
       options: [
         {
           value: 'fresh_clean',
@@ -78,7 +79,12 @@ export const beginnerQuizData: NaturalQuizData = {
           text: 'Warm & cozy (wood, spice, amber)',
           emoji: '🤗',
         },
-        { value: 'open_anything', text: "I'm open to anything", emoji: '🎨' },
+        {
+          value: 'open_anything',
+          text: "I'm open to anything",
+          emoji: '🎨',
+          autoSelectAll: true,
+        },
       ],
     },
     {
@@ -96,7 +102,7 @@ export const beginnerQuizData: NaturalQuizData = {
       text: 'When do you want to smell amazing?',
       allowMultiple: true,
       minSelections: 1,
-      maxSelections: 3,
+      maxSelections: 5,
       options: [
         { value: 'every_day', text: 'Every day', emoji: '☀️' },
         { value: 'special_occasions', text: 'Special occasions', emoji: '🎉' },
@@ -106,6 +112,7 @@ export const beginnerQuizData: NaturalQuizData = {
           value: 'versatile_one',
           text: 'I want one versatile fragrance',
           emoji: '🔄',
+          autoSelectAll: true,
         },
       ],
     },
@@ -124,8 +131,8 @@ export const enthusiastQuizData: NaturalQuizData = {
       text: 'What kinds of scents do you gravitate toward?',
       subtitle: 'Choose the categories that excite you',
       allowMultiple: true,
-      minSelections: 2,
-      maxSelections: 4,
+      minSelections: 1,
+      maxSelections: 8,
       options: [
         {
           value: 'fresh_citrusy',
@@ -158,7 +165,12 @@ export const enthusiastQuizData: NaturalQuizData = {
           emoji: '🌶️',
         },
         { value: 'woody', text: 'Woody (sandalwood, cedar, oak)', emoji: '🌲' },
-        { value: 'love_variety', text: 'I love variety', emoji: '🎨' },
+        {
+          value: 'love_variety',
+          text: 'I love variety',
+          emoji: '🎨',
+          autoSelectAll: true,
+        },
       ],
     },
     {
@@ -175,8 +187,8 @@ export const enthusiastQuizData: NaturalQuizData = {
       id: 'occasions_enthusiast',
       text: 'What occasions are important to you?',
       allowMultiple: true,
-      minSelections: 2,
-      maxSelections: 4,
+      minSelections: 1,
+      maxSelections: 7,
       options: [
         { value: 'daily_signature', text: 'Daily signature', emoji: '☀️' },
         { value: 'romantic_moments', text: 'Romantic moments', emoji: '💕' },
@@ -196,6 +208,7 @@ export const enthusiastQuizData: NaturalQuizData = {
           value: 'versatile_options',
           text: 'I want versatile options',
           emoji: '🔄',
+          autoSelectAll: true,
         },
       ],
     },
@@ -245,8 +258,8 @@ export const experiencedQuizData: NaturalQuizData = {
       text: 'What scent families do you love?',
       subtitle: 'Choose the ones that make you happy',
       allowMultiple: true,
-      minSelections: 3,
-      maxSelections: 6,
+      minSelections: 1,
+      maxSelections: 11,
       options: [
         {
           value: 'citrus',
@@ -298,6 +311,7 @@ export const experiencedQuizData: NaturalQuizData = {
           value: 'love_fragrances',
           text: 'I just love fragrances',
           emoji: '❤️',
+          autoSelectAll: true,
         },
       ],
     },
@@ -315,8 +329,8 @@ export const experiencedQuizData: NaturalQuizData = {
       id: 'occasions_experienced',
       text: 'What occasions matter to you?',
       allowMultiple: true,
-      minSelections: 2,
-      maxSelections: 4,
+      minSelections: 1,
+      maxSelections: 8,
       options: [
         { value: 'daily_signature', text: 'Daily signature', emoji: '☀️' },
         {

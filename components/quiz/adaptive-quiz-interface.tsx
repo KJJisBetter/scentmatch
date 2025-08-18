@@ -59,17 +59,44 @@ export function AdaptiveQuizInterface({
     if (!currentQuestion) return;
 
     if (currentQuestion.allowMultiple) {
-      // Handle multiple selection
+      const selectedOption = currentQuestion.options.find(
+        opt => opt.value === answer
+      );
+
+      // Handle auto-select options (like "I love variety" or "I'm open to anything")
+      if (
+        selectedOption?.autoSelectAll &&
+        !currentSelections.includes(answer)
+      ) {
+        // Auto-select all other options except this one
+        const allOtherValues = currentQuestion.options
+          .filter(opt => !opt.autoSelectAll)
+          .map(opt => opt.value);
+        setCurrentSelections([answer, ...allOtherValues]);
+        return;
+      }
+
+      // Handle regular multiple selection
       const newSelections = currentSelections.includes(answer)
         ? currentSelections.filter(s => s !== answer)
         : [...currentSelections, answer];
 
-      // Check max selections
-      if (newSelections.length > (currentQuestion.maxSelections || 3)) {
-        return;
-      }
+      // If selecting a non-auto option, remove any auto-select options
+      if (!selectedOption?.autoSelectAll) {
+        const filteredSelections = newSelections.filter(selection => {
+          const opt = currentQuestion.options.find(o => o.value === selection);
+          return !opt?.autoSelectAll;
+        });
 
-      setCurrentSelections(newSelections);
+        // Check max selections
+        if (filteredSelections.length > (currentQuestion.maxSelections || 3)) {
+          return;
+        }
+
+        setCurrentSelections(filteredSelections);
+      } else {
+        setCurrentSelections(newSelections);
+      }
     } else {
       // Handle single selection (continue immediately)
       const newResponse = {
