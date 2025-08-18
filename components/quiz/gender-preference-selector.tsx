@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronRight } from 'lucide-react';
 
-export type GenderPreference = 'men' | 'women' | 'unisex';
+export type GenderPreference = 'men' | 'women';
 
 interface GenderPreferenceSelectorProps {
   onGenderSelect: (gender: GenderPreference) => void;
@@ -26,23 +26,16 @@ export function GenderPreferenceSelector({
     {
       id: 'women' as GenderPreference,
       display_name: 'For Women',
-      description: 'Fragrances typically marketed to women',
+      description: 'Show me fragrances typically worn by women',
       emoji: '🌺',
       color: 'hover:border-pink-300 hover:bg-pink-50',
     },
     {
       id: 'men' as GenderPreference,
       display_name: 'For Men',
-      description: 'Fragrances typically marketed to men',
+      description: 'Show me fragrances typically worn by men',
       emoji: '🌲',
       color: 'hover:border-blue-300 hover:bg-blue-50',
-    },
-    {
-      id: 'unisex' as GenderPreference,
-      display_name: 'Unisex',
-      description: 'All fragrances - I like what I like',
-      emoji: '🌈',
-      color: 'hover:border-purple-300 hover:bg-purple-50',
     },
   ];
 
@@ -53,7 +46,7 @@ export function GenderPreferenceSelector({
           What type of fragrances interest you?
         </h2>
         <p className='text-muted-foreground'>
-          This helps us show you the most relevant options
+          Both categories include unisex fragrances you can explore
         </p>
       </div>
 
@@ -109,8 +102,8 @@ export function GenderPreferenceSelector({
 
       <div className='mt-6 text-center'>
         <p className='text-xs text-muted-foreground'>
-          Don't worry - you can explore all fragrances regardless of traditional
-          marketing
+          Remember: Many fragrances work beautifully for everyone regardless of
+          traditional marketing
         </p>
       </div>
     </div>
