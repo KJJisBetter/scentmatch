@@ -154,11 +154,11 @@ async function getFragranceData(id: string) {
     const transformedFragrance = {
       id: fragrance.id,
       name: fragrance.name,
-      brand_id: fragrance.brand || '',
+      brand_id: fragrance.fragrance_brands?.[0]?.name || '',
       scent_family: fragrance.scent_family,
       sample_available: fragrance.sample_available,
       sample_price_usd: fragrance.sample_price_usd,
-      fragrance_brands: [{ name: fragrance.brand }],
+      fragrance_brands: fragrance.fragrance_brands || [],
     };
 
     return {
