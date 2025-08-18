@@ -87,8 +87,11 @@ export class WorkingRecommendationEngine {
     } catch (error) {
       console.error('Recommendation generation failed:', error);
 
-      // Fallback to popular fragrances
-      const fallbackRecs = this.getFallbackRecommendations();
+      // Fallback to popular fragrances (extract gender preference first)
+      const preferences = this.extractPreferences(responses);
+      const fallbackRecs = this.getFallbackRecommendations(
+        preferences.gender_preference
+      );
 
       return {
         recommendations: fallbackRecs,
@@ -242,10 +245,28 @@ export class WorkingRecommendationEngine {
    */
   private scoreRecommendations(candidates: any[], preferences: any): any[] {
     return candidates
+      .filter(fragrance => {
+        // CRITICAL FIX: Filter out inappropriate gender fragrances BEFORE scoring
+        if (preferences.gender_preference === 'men') {
+          // Men should only get men's or unisex fragrances
+          return (
+            fragrance.gender_target === 'men' ||
+            fragrance.gender_target === 'unisex'
+          );
+        } else if (preferences.gender_preference === 'women') {
+          // Women should only get women's or unisex fragrances
+          return (
+            fragrance.gender_target === 'women' ||
+            fragrance.gender_target === 'unisex'
+          );
+        }
+        // For 'unisex' preference or missing preference, allow all
+        return true;
+      })
       .map(fragrance => {
         let score = 50; // Base score
 
-        // Gender preference matching
+        // Gender preference matching (bonus points for exact matches)
         if (
           preferences.gender_preference === 'women' &&
           fragrance.gender_target === 'women'
@@ -343,48 +364,136 @@ export class WorkingRecommendationEngine {
   }
 
   /**
-   * Generate personalized AI insight
+   * Generate personalized AI insight with dynamic, unique content
    */
   private generatePersonalizedInsight(
     fragrance: any,
     preferences: any
   ): string {
-    const insights = [];
+    // Build personalized insight based on multiple factors
+    const fragranceName = fragrance.name;
+    const brand = fragrance.brand;
+    const mainAccords = fragrance.accords.slice(0, 3); // Top 3 accords
+    const userPreferences = preferences.scent_families || [];
 
-    // Gender-based insights
-    if (preferences.gender_preference === fragrance.gender_target) {
-      insights.push('Perfect match for your preferences.');
-    } else if (fragrance.gender_target === 'unisex') {
-      insights.push('This versatile fragrance works beautifully for everyone.');
-    }
-
-    // Scent family insights
-    const matchingAccords = fragrance.accords.filter((accord: string) =>
-      preferences.scent_families.some(
-        (family: string) =>
-          accord.toLowerCase().includes(family.toLowerCase()) ||
-          family.toLowerCase().includes(accord.toLowerCase())
+    // Find specific accord matches
+    const matchingAccords = mainAccords.filter((accord: string) =>
+      userPreferences.some(
+        (pref: string) =>
+          accord.toLowerCase().includes(pref.replace('_', ' ').toLowerCase()) ||
+          pref.replace('_', ' ').toLowerCase().includes(accord.toLowerCase())
       )
     );
 
-    if (matchingAccords.length > 0) {
+    // Create unique insight based on fragrance + user combination
+    const insights = [];
+
+    // Lead with fragrance-specific characteristic
+    if (brand === 'Chanel' && fragranceName.includes('Bleu')) {
       insights.push(
-        `The ${matchingAccords[0]} notes align perfectly with your taste.`
+        `${fragranceName}'s sophisticated citrus-woody composition`
+      );
+    } else if (brand === 'Creed' && fragranceName.includes('Aventus')) {
+      insights.push(`${fragranceName}'s legendary pineapple-birch blend`);
+    } else if (brand === 'Tom Ford') {
+      insights.push(
+        `${fragranceName}'s luxury approach to ${mainAccords[0] || 'fragrance'}`
+      );
+    } else if (brand === 'Dior' && fragranceName.includes('Sauvage')) {
+      insights.push(`${fragranceName}'s fresh-spicy signature`);
+    } else if (mainAccords.length > 0) {
+      insights.push(
+        `${fragranceName} opens with ${mainAccords[0]} that transitions into ${mainAccords[1] || 'rich base notes'}`
+      );
+    } else {
+      insights.push(
+        `${fragranceName} by ${brand} offers a distinctive approach`
       );
     }
 
-    // Personality style insights
-    if (preferences.personality_style === 'classic_timeless') {
-      insights.push('A timeless choice that never goes out of style.');
-    } else if (preferences.personality_style === 'unique_creative') {
-      insights.push('A distinctive choice that expresses your creativity.');
-    } else if (preferences.personality_style === 'bold_confident') {
-      insights.push('Bold and memorable, perfect for making an impression.');
+    // Connect to user's specific preferences
+    if (matchingAccords.length > 0) {
+      if (
+        matchingAccords.includes('citrus') &&
+        userPreferences.includes('fresh_clean')
+      ) {
+        insights.push(`perfectly matching your love for fresh, clean scents`);
+      } else if (
+        matchingAccords.includes('vanilla') &&
+        userPreferences.includes('sweet_fruity')
+      ) {
+        insights.push(`delivering the sweet warmth you're drawn to`);
+      } else if (
+        matchingAccords.includes('woody') &&
+        userPreferences.includes('warm_cozy')
+      ) {
+        insights.push(`providing the warm, grounding presence you seek`);
+      } else {
+        insights.push(
+          `beautifully aligning with your preference for ${matchingAccords[0]} compositions`
+        );
+      }
+    } else {
+      // Fallback to personality-style connection
+      if (preferences.personality_style === 'classic_timeless') {
+        insights.push(
+          `embodies the timeless elegance that suits your classic style`
+        );
+      } else if (preferences.personality_style === 'bold_confident') {
+        insights.push(
+          `makes the confident statement that reflects your bold personality`
+        );
+      } else if (preferences.personality_style === 'unique_creative') {
+        insights.push(
+          `offers the distinctive character that matches your creative spirit`
+        );
+      } else {
+        insights.push(`complements your personal style beautifully`);
+      }
     }
 
+    // Add personality-specific insights with unique variations
+    if (preferences.personality_style === 'classic_timeless') {
+      insights.push(
+        `This timeless composition builds sophistication through its refined note progression.`
+      );
+    } else if (preferences.personality_style === 'bold_confident') {
+      insights.push(
+        `The distinctive character projects confidence with its memorable sillage.`
+      );
+    } else if (preferences.personality_style === 'unique_creative') {
+      insights.push(
+        `Its unconventional accord structure expresses creativity and individuality.`
+      );
+    } else if (preferences.personality_style === 'easy_relaxed') {
+      insights.push(
+        `The effortless wearability offers relaxed elegance for any occasion.`
+      );
+    }
+
+    // Add occasion-specific insight with fragrance terminology
+    if (preferences.occasion_preferences?.includes('everyday')) {
+      insights.push(
+        `The balanced note structure ensures versatile daily performance.`
+      );
+    } else if (preferences.occasion_preferences?.includes('professional')) {
+      insights.push(
+        `Its subtle projection creates an appropriate professional presence.`
+      );
+    } else if (
+      preferences.occasion_preferences?.includes('special_occasions')
+    ) {
+      insights.push(
+        `The complex development makes it perfect for memorable moments.`
+      );
+    }
+
+    // Join with proper flow and ensure uniqueness
+    const finalInsight = insights.join(' ').replace(/\s+/g, ' ').trim();
+
     return (
-      insights.slice(0, 2).join(' ') ||
-      'This fragrance matches your quiz responses beautifully.'
+      finalInsight ||
+      `${fragranceName} offers a carefully crafted composition that complements your fragrance preferences.`
     );
   }
 
@@ -436,106 +545,26 @@ export class WorkingRecommendationEngine {
   }
 
   /**
-   * Clean fragrance data helper method
-   */
-  private cleanFragranceData(rawData: any[]): any[] {
-    return rawData.map(frag => {
-      const cleaned = this.cleanFragranceName(frag.name);
-
-      return {
-        id: frag.id,
-        name: cleaned.name,
-        brand: this.standardizeBrandName(frag.brandName),
-        gender_target: cleaned.gender_target,
-        scent_family: frag.accords?.[0] || 'miscellaneous',
-        sample_available: true, // Assume available for MVP
-        sample_price_usd: this.calculateSamplePrice(frag),
-        popularity_score: frag.score || 0,
-        rating_average: frag.ratingValue || 0,
-        rating_count: frag.ratingCount || 0,
-        accords: frag.accords || [],
-      };
-    });
-  }
-
-  /**
-   * Clean fragrance name helper method
-   */
-  private cleanFragranceName(originalName: string): {
-    name: string;
-    gender_target: string;
-  } {
-    let cleanName = originalName;
-    let gender = 'unisex';
-
-    // Fix spacing issues first
-    cleanName = cleanName.replace(/([a-z])for (women|men)/gi, '$1 for $2');
-
-    // Remove "for Women" suffix
-    if (cleanName.endsWith(' for Women') || cleanName.endsWith(' for women')) {
-      cleanName = cleanName.replace(/ for [Ww]omen$/, '');
-      gender = 'women';
-    }
-
-    // Remove "for Men" suffix
-    if (cleanName.endsWith(' for Men') || cleanName.endsWith(' for men')) {
-      cleanName = cleanName.replace(/ for [Mm]en$/, '');
-      gender = 'men';
-    }
-
-    return {
-      name: cleanName.trim(),
-      gender_target: gender,
-    };
-  }
-
-  /**
-   * Standardize brand name helper method
-   */
-  private standardizeBrandName(originalBrand: string): string {
-    if (!originalBrand) return 'Unknown Brand';
-
-    // Handle special cases
-    const specialCases: { [key: string]: string } = {
-      'tom ford': 'Tom Ford',
-      'le labo': 'Le Labo',
-      'jo malone london': 'Jo Malone London',
-      'yves saint laurent': 'Yves Saint Laurent',
-      'maison francis kurkdjian': 'Maison Francis Kurkdjian',
-      'maison margiela': 'Maison Margiela',
-    };
-
-    const lowerBrand = originalBrand.toLowerCase();
-    if (specialCases[lowerBrand]) {
-      return specialCases[lowerBrand];
-    }
-
-    // Default: title case
-    return originalBrand
-      .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  /**
-   * Calculate sample price helper method
-   */
-  private calculateSamplePrice(fragrance: any): number {
-    // Base sample price on popularity and rating
-    const basePrice = 10;
-    const popularityBonus = fragrance.score > 15 ? 3 : 0;
-    const ratingBonus = fragrance.ratingValue > 4.5 ? 2 : 0;
-
-    return Math.min(basePrice + popularityBonus + ratingBonus, 20);
-  }
-
-  /**
    * Fallback recommendations using popular fragrances
    */
-  private getFallbackRecommendations(): FragranceRecommendation[] {
+  private getFallbackRecommendations(
+    genderPreference?: string
+  ): FragranceRecommendation[] {
     const cleanedData = this.cleanFragranceData(fragranceData);
-    const suitable = cleanedData.filter(frag => frag.sample_available);
+    let suitable = cleanedData.filter(frag => frag.sample_available);
+
+    // Apply gender filtering to fallback recommendations too
+    if (genderPreference === 'men') {
+      suitable = suitable.filter(
+        frag => frag.gender_target === 'men' || frag.gender_target === 'unisex'
+      );
+    } else if (genderPreference === 'women') {
+      suitable = suitable.filter(
+        frag =>
+          frag.gender_target === 'women' || frag.gender_target === 'unisex'
+      );
+    }
+
     const popular = suitable
       .sort((a, b) => b.popularity_score - a.popularity_score)
       .slice(0, 3);

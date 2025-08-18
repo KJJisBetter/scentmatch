@@ -5,10 +5,6 @@
 const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
 const VOYAGE_BASE_URL = 'https://api.voyageai.com/v1';
 
-if (!VOYAGE_API_KEY) {
-  throw new Error('VOYAGE_API_KEY environment variable is required');
-}
-
 export interface VoyageEmbeddingResponse {
   data: Array<{
     embedding: number[];
@@ -21,18 +17,22 @@ export interface VoyageEmbeddingResponse {
 }
 
 export async function generateQueryEmbedding(query: string): Promise<number[]> {
+  if (!VOYAGE_API_KEY) {
+    throw new Error('VOYAGE_API_KEY environment variable is required');
+  }
+
   try {
     const response = await fetch(`${VOYAGE_BASE_URL}/embeddings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VOYAGE_API_KEY}`
+        Authorization: `Bearer ${VOYAGE_API_KEY}`,
       },
       body: JSON.stringify({
         input: [query],
         model: 'voyage-3.5',
-        input_type: 'query' // Optimized for search queries
-      })
+        input_type: 'query', // Optimized for search queries
+      }),
     });
 
     if (!response.ok) {
@@ -41,7 +41,7 @@ export async function generateQueryEmbedding(query: string): Promise<number[]> {
     }
 
     const result: VoyageEmbeddingResponse = await response.json();
-    
+
     if (!result.data || result.data.length === 0) {
       throw new Error('No embedding returned from Voyage AI');
     }
@@ -52,26 +52,31 @@ export async function generateQueryEmbedding(query: string): Promise<number[]> {
     }
 
     return firstResult.embedding;
-
   } catch (error) {
     console.error('Error generating query embedding:', error);
     throw error;
   }
 }
 
-export async function generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
+export async function generateBatchEmbeddings(
+  texts: string[]
+): Promise<number[][]> {
+  if (!VOYAGE_API_KEY) {
+    throw new Error('VOYAGE_API_KEY environment variable is required');
+  }
+
   try {
     const response = await fetch(`${VOYAGE_BASE_URL}/embeddings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VOYAGE_API_KEY}`
+        Authorization: `Bearer ${VOYAGE_API_KEY}`,
       },
       body: JSON.stringify({
         input: texts,
         model: 'voyage-3.5',
-        input_type: 'document'
-      })
+        input_type: 'document',
+      }),
     });
 
     if (!response.ok) {
@@ -81,7 +86,6 @@ export async function generateBatchEmbeddings(texts: string[]): Promise<number[]
 
     const result: VoyageEmbeddingResponse = await response.json();
     return result.data.map(item => item.embedding);
-
   } catch (error) {
     console.error('Error generating batch embeddings:', error);
     throw error;
@@ -96,7 +100,7 @@ export async function generateText(prompt: string): Promise<string> {
   try {
     // For MVP, use OpenAI for text generation since Voyage specializes in embeddings
     const openaiKey = process.env.OPENAI_API_KEY;
-    
+
     if (!openaiKey) {
       throw new Error('OPENAI_API_KEY required for text generation');
     }
@@ -105,23 +109,24 @@ export async function generateText(prompt: string): Promise<string> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`
+        Authorization: `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert fragrance consultant who writes engaging, personality-focused descriptions that help people understand if a fragrance matches their style. Focus on character, mood, and lifestyle rather than technical details.'
+            content:
+              'You are an expert fragrance consultant who writes engaging, personality-focused descriptions that help people understand if a fragrance matches their style. Focus on character, mood, and lifestyle rather than technical details.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         max_tokens: 300,
-        temperature: 0.7
-      })
+        temperature: 0.7,
+      }),
     });
 
     if (!response.ok) {
@@ -130,7 +135,6 @@ export async function generateText(prompt: string): Promise<string> {
 
     const result = await response.json();
     return result.choices[0]?.message?.content || '';
-
   } catch (error) {
     console.error('Error generating text description:', error);
     throw error;

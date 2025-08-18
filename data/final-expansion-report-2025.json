@@ -1,0 +1,87 @@
+{
+  "timestamp": "2025-08-18T10:18:56.315Z",
+  "expansion": {
+    "originalCount": 1467,
+    "intermediateCount": 1655,
+    "finalCount": 2017,
+    "targetCount": 2000,
+    "targetAchieved": true,
+    "totalAdded": 550
+  },
+  "coverage": {
+    "designerBrands": 6,
+    "nicheBrands": 4,
+    "viralBrands": 2,
+    "totalBrands": 76
+  },
+  "marketTrends": {
+    "current2025Trends": true,
+    "socialMediaViral": true,
+    "nicheExpansion": true,
+    "designerComplete": true,
+    "massMarketCoverage": true,
+    "seasonalEditions": true
+  },
+  "topBrands": [
+    {
+      "name": "Paco Rabanne",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Thierry Mugler",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Byredo",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Le Labo",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Bath & Body Works",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Giorgio Armani",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Christian Dior",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Clean Reserve",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Glossier",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Nest Fragrances",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Malin+Goetz",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Herbivore",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Skylar",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Henry Rose",
+      "fragranceCount": 322
+    },
+    {
+      "name": "Commodity",
+      "fragranceCount": 322
+    }
+  ]
+}

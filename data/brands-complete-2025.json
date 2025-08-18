@@ -1,0 +1,434 @@
+[
+  {
+    "id": "azzaro",
+    "name": "Azzaro",
+    "slug": "azzaro",
+    "itemCount": 40
+  },
+  {
+    "id": "burberry",
+    "name": "Burberry",
+    "slug": "burberry",
+    "itemCount": 40
+  },
+  {
+    "id": "bvlgari",
+    "name": "Bvlgari",
+    "slug": "bvlgari",
+    "itemCount": 40
+  },
+  {
+    "id": "calvin-klein",
+    "name": "Calvin Klein",
+    "slug": "calvin-klein",
+    "itemCount": 40
+  },
+  {
+    "id": "carolina-herrera",
+    "name": "Carolina Herrera",
+    "slug": "carolina-herrera",
+    "itemCount": 40
+  },
+  {
+    "id": "chanel",
+    "name": "Chanel",
+    "slug": "chanel",
+    "itemCount": 40
+  },
+  {
+    "id": "chloe",
+    "name": "Chloe",
+    "slug": "chloe",
+    "itemCount": 40
+  },
+  {
+    "id": "creed",
+    "name": "Creed",
+    "slug": "creed",
+    "itemCount": 48
+  },
+  {
+    "id": "dior",
+    "name": "Dior",
+    "slug": "dior",
+    "itemCount": 40
+  },
+  {
+    "id": "givenchy",
+    "name": "Givenchy",
+    "slug": "givenchy",
+    "itemCount": 40
+  },
+  {
+    "id": "gucci",
+    "name": "Gucci",
+    "slug": "gucci",
+    "itemCount": 40
+  },
+  {
+    "id": "guerlain",
+    "name": "Guerlain",
+    "slug": "guerlain",
+    "itemCount": 40
+  },
+  {
+    "id": "hermes",
+    "name": "Hermes",
+    "slug": "hermes",
+    "itemCount": 40
+  },
+  {
+    "id": "hugo-boss",
+    "name": "Hugo Boss",
+    "slug": "hugo-boss",
+    "itemCount": 40
+  },
+  {
+    "id": "issey-miyake",
+    "name": "Issey Miyake",
+    "slug": "issey-miyake",
+    "itemCount": 40
+  },
+  {
+    "id": "jean-paul-gaultier",
+    "name": "Jean Paul Gaultier",
+    "slug": "jean-paul-gaultier",
+    "itemCount": 40
+  },
+  {
+    "id": "jo-malone-london",
+    "name": "Jo Malone London",
+    "slug": "jo-malone-london",
+    "itemCount": 52
+  },
+  {
+    "id": "kilian-paris",
+    "name": "KILIAN Paris",
+    "slug": "kilian-paris",
+    "itemCount": 40
+  },
+  {
+    "id": "lancome",
+    "name": "Lancome",
+    "slug": "lancome",
+    "itemCount": 40
+  },
+  {
+    "id": "marc-jacobs",
+    "name": "Marc Jacobs",
+    "slug": "marc-jacobs",
+    "itemCount": 40
+  },
+  {
+    "id": "mugler",
+    "name": "Mugler",
+    "slug": "mugler",
+    "itemCount": 40
+  },
+  {
+    "id": "narciso-rodriguez",
+    "name": "Narciso Rodriguez",
+    "slug": "narciso-rodriguez",
+    "itemCount": 40
+  },
+  {
+    "id": "prada",
+    "name": "Prada",
+    "slug": "prada",
+    "itemCount": 40
+  },
+  {
+    "id": "rabanne",
+    "name": "Rabanne",
+    "slug": "rabanne",
+    "itemCount": 40
+  },
+  {
+    "id": "ralph-lauren",
+    "name": "Ralph Lauren",
+    "slug": "ralph-lauren",
+    "itemCount": 40
+  },
+  {
+    "id": "salvatore-ferragamo",
+    "name": "Salvatore Ferragamo",
+    "slug": "salvatore-ferragamo",
+    "itemCount": 40
+  },
+  {
+    "id": "tom-ford",
+    "name": "Tom Ford",
+    "slug": "tom-ford",
+    "itemCount": 40
+  },
+  {
+    "id": "valentino",
+    "name": "Valentino",
+    "slug": "valentino",
+    "itemCount": 40
+  },
+  {
+    "id": "versace",
+    "name": "Versace",
+    "slug": "versace",
+    "itemCount": 40
+  },
+  {
+    "id": "yves-saint-laurent",
+    "name": "Yves Saint Laurent",
+    "slug": "yves-saint-laurent",
+    "itemCount": 40
+  },
+  {
+    "id": "parfums-de-marly",
+    "name": "Parfums De Marly",
+    "slug": "parfums-de-marly",
+    "itemCount": 37
+  },
+  {
+    "id": "jimmy-choo",
+    "name": "Jimmy Choo",
+    "slug": "jimmy-choo",
+    "itemCount": 34
+  },
+  {
+    "id": "montblanc",
+    "name": "Montblanc",
+    "slug": "montblanc",
+    "itemCount": 41
+  },
+  {
+    "id": "juliette-has-a-gun",
+    "name": "Juliette Has A Gun",
+    "slug": "juliette-has-a-gun",
+    "itemCount": 33
+  },
+  {
+    "id": "maison-margiela",
+    "name": "Maison Margiela",
+    "slug": "maison-margiela",
+    "itemCount": 35
+  },
+  {
+    "id": "coach",
+    "name": "Coach",
+    "slug": "coach",
+    "itemCount": 25
+  },
+  {
+    "id": "phlur",
+    "name": "Phlur",
+    "slug": "phlur",
+    "itemCount": 24
+  },
+  {
+    "id": "sol-de-janeiro",
+    "name": "Sol De Janeiro",
+    "slug": "sol-de-janeiro",
+    "itemCount": 25
+  },
+  {
+    "id": "ariana-grande",
+    "name": "Ariana Grande",
+    "slug": "ariana-grande",
+    "itemCount": 14
+  },
+  {
+    "id": "the-7-virtues",
+    "name": "The 7 Virtues",
+    "slug": "the-7-virtues",
+    "itemCount": 13
+  },
+  {
+    "id": null,
+    "name": "Paco Rabanne",
+    "slug": "paco-rabanne",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Thierry Mugler",
+    "slug": "thierry-mugler",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Byredo",
+    "slug": "byredo",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Le Labo",
+    "slug": "le-labo",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Bath & Body Works",
+    "slug": "bath-body-works",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Giorgio Armani",
+    "slug": "giorgio-armani",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Christian Dior",
+    "slug": "christian-dior",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Clean Reserve",
+    "slug": "clean-reserve",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Glossier",
+    "slug": "glossier",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Nest Fragrances",
+    "slug": "nest-fragrances",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Malin+Goetz",
+    "slug": "malin-goetz",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Herbivore",
+    "slug": "herbivore",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Skylar",
+    "slug": "skylar",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Henry Rose",
+    "slug": "henry-rose",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Commodity",
+    "slug": "commodity",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Hermès",
+    "slug": "herm-s",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Bottega Veneta",
+    "slug": "bottega-veneta",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Bulgari",
+    "slug": "bulgari",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Kenzo",
+    "slug": "kenzo",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Shiseido",
+    "slug": "shiseido",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Clinique",
+    "slug": "clinique",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Estée Lauder",
+    "slug": "est-e-lauder",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Annick Goutal",
+    "slug": "annick-goutal",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "L'Artisan Parfumeur",
+    "slug": "l-artisan-parfumeur",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Serge Lutens",
+    "slug": "serge-lutens",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Penhaligon's",
+    "slug": "penhaligon-s",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Amouage",
+    "slug": "amouage",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Xerjoff",
+    "slug": "xerjoff",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Nasomatto",
+    "slug": "nasomatto",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Diptyque",
+    "slug": "diptyque",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Frederic Malle",
+    "slug": "frederic-malle",
+    "itemCount": 0
+  },
+  {
+    "id": null,
+    "name": "Atelier Cologne",
+    "slug": "atelier-cologne",
+    "itemCount": 0
+  }
+]

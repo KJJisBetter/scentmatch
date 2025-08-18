@@ -1,0 +1,216 @@
+{
+  "timestamp": "2025-08-18T10:20:05.396Z",
+  "databaseInfo": {
+    "version": "2025.1",
+    "totalFragrances": 2002,
+    "totalBrands": 76,
+    "researchPeriod": "August 2025",
+    "coverageTarget": "Top 2000+ fragrances based on 2025 market trends"
+  },
+  "expansion": {
+    "originalCount": 1467,
+    "finalCount": 2002,
+    "addedFragrances": 535,
+    "targetAchieved": true
+  },
+  "marketAnalysis": {
+    "overview": {
+      "totalFragrances": 2002,
+      "totalBrands": 76,
+      "averageRating": "4.03",
+      "totalReviews": 8354743
+    },
+    "genderDistribution": {
+      "feminine": 129,
+      "masculine": 25,
+      "unisex": 381
+    },
+    "topAccords": [
+      {
+        "accord": "woody",
+        "count": 1262
+      },
+      {
+        "accord": "citrus",
+        "count": 930
+      },
+      {
+        "accord": "floral",
+        "count": 821
+      },
+      {
+        "accord": "sweet",
+        "count": 818
+      },
+      {
+        "accord": "powdery",
+        "count": 812
+      },
+      {
+        "accord": "aromatic",
+        "count": 708
+      },
+      {
+        "accord": "warm spicy",
+        "count": 615
+      },
+      {
+        "accord": "amber",
+        "count": 605
+      },
+      {
+        "accord": "fruity",
+        "count": 604
+      },
+      {
+        "accord": "fresh",
+        "count": 603
+      },
+      {
+        "accord": "fresh spicy",
+        "count": 549
+      },
+      {
+        "accord": "vanilla",
+        "count": 548
+      },
+      {
+        "accord": "white floral",
+        "count": 518
+      },
+      {
+        "accord": "musky",
+        "count": 484
+      },
+      {
+        "accord": "green",
+        "count": 416
+      }
+    ],
+    "topBrands": [
+      {
+        "name": "Burberry",
+        "fragranceCount": 57
+      },
+      {
+        "name": "Hugo Boss",
+        "fragranceCount": 57
+      },
+      {
+        "name": "Ralph Lauren",
+        "fragranceCount": 57
+      },
+      {
+        "name": "Calvin Klein",
+        "fragranceCount": 55
+      },
+      {
+        "name": "Issey Miyake",
+        "fragranceCount": 55
+      },
+      {
+        "name": "Jean Paul Gaultier",
+        "fragranceCount": 55
+      },
+      {
+        "name": "Bath & Body Works",
+        "fragranceCount": 49
+      },
+      {
+        "name": "Jo Malone London",
+        "fragranceCount": 48
+      },
+      {
+        "name": "Chanel",
+        "fragranceCount": 45
+      },
+      {
+        "name": "Creed",
+        "fragranceCount": 45
+      },
+      {
+        "name": "Dior",
+        "fragranceCount": 45
+      },
+      {
+        "name": "Gucci",
+        "fragranceCount": 45
+      },
+      {
+        "name": "Tom Ford",
+        "fragranceCount": 45
+      },
+      {
+        "name": "Versace",
+        "fragranceCount": 45
+      },
+      {
+        "name": "Maison Margiela",
+        "fragranceCount": 43
+      },
+      {
+        "name": "Azzaro",
+        "fragranceCount": 40
+      },
+      {
+        "name": "Bvlgari",
+        "fragranceCount": 40
+      },
+      {
+        "name": "Carolina Herrera",
+        "fragranceCount": 40
+      },
+      {
+        "name": "Chloe",
+        "fragranceCount": 40
+      },
+      {
+        "name": "Givenchy",
+        "fragranceCount": 40
+      }
+    ],
+    "yearDistribution": {
+      "1990s": 150,
+      "2000s": 143,
+      "2010s": 158,
+      "2020s": 1551
+    },
+    "marketTrends": {
+      "Popular": 1926,
+      "Cult": 46,
+      "Seasonal": 30
+    },
+    "ratingDistribution": {
+      "high": 1161,
+      "medium": 821,
+      "low": 20
+    }
+  },
+  "coverage2025": {
+    "viralTikTokFragrances": true,
+    "emergingNicheBrands": true,
+    "designerBestsellers": true,
+    "cleanBeautyTrend": true,
+    "gourmandTrend": true,
+    "genderNeutralFragrances": true,
+    "sustainableBrands": true,
+    "socialMediaInfluenced": true
+  },
+  "dataQuality": {
+    "duplicatesRemoved": true,
+    "dataValidated": true,
+    "urlsGenerated": true,
+    "ratingsNormalized": true,
+    "accordsStandardized": true,
+    "perfumersVerified": true
+  },
+  "nextSteps": {
+    "recommendedActions": [
+      "Import database into production environment",
+      "Update recommendation engine with new entries",
+      "Test quiz system with expanded dataset",
+      "Validate search functionality with new brands",
+      "Update AI embeddings for new fragrances"
+    ]
+  }
+}
