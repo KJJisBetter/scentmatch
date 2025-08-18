@@ -143,13 +143,16 @@ async function getFragranceData(id: string) {
     }
 
     const fragrance = fragranceResults[0];
+    if (!fragrance) {
+      return null;
+    }
 
     // For MVP, mock similar fragrances since the function might not exist
     const similarFragrances: any[] = [];
 
     // Transform search result to match expected interface
     const transformedFragrance = {
-      id: fragrance.fragrance_id,
+      id: fragrance.fragrance_id || fragrance.id,
       name: fragrance.name,
       brand_id: fragrance.brand || '',
       scent_family: fragrance.scent_family,

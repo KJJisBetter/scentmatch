@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, Sparkles, Heart, ShoppingCart } from 'lucide-react';
-import { MVPPersonalityEngine } from '@/lib/quiz/mvp-personality-engine';
+import { DirectRecommendationEngine } from '@/lib/quiz/direct-recommendation-engine';
 import { ConversionFlow } from './conversion-flow';
 
 /**
@@ -189,33 +189,39 @@ export function QuizInterface() {
     setIsAnalyzing(true);
 
     try {
-      // Analyze with MVP engine
-      const engine = new MVPPersonalityEngine();
-      const analysis = await engine.analyzeQuizResponses(allResponses);
+      // Generate direct recommendations (no personality profiling)
+      const engine = new DirectRecommendationEngine();
+      const result = await engine.generateRecommendations(
+        allResponses,
+        quizSessionToken
+      );
 
-      if (analysis.can_generate_recommendations) {
-        const recs = await engine.getFragranceRecommendations(
-          analysis.personality_type
-        );
-
-        // Prepare data for conversion flow
+      if (result.success && result.recommendations.length >= 3) {
+        // Prepare simplified data for conversion flow (exactly 3 recommendations)
         setPersonalityResults({
-          personality_type: analysis.personality_type,
-          confidence: analysis.confidence,
           quiz_session_token: quizSessionToken,
-          recommendations: recs.slice(0, 8), // Get 8 for conversion flow (show 3, unlock 5 more)
+          recommendations: result.recommendations, // Exactly 3 recommendations with AI insights
+          processing_time_ms: result.total_processing_time_ms,
+          recommendation_method: 'direct_matching',
+        });
+      } else {
+        // Fallback if direct recommendations fail
+        setPersonalityResults({
+          quiz_session_token: quizSessionToken,
+          recommendations: result.recommendations, // Fallback recommendations
+          processing_time_ms: result.total_processing_time_ms,
+          recommendation_method: 'fallback',
         });
       }
 
       setShowResults(true);
     } catch (error) {
-      console.error('Quiz analysis error:', error);
-      // Fallback for MVP
+      console.error('Direct recommendation error:', error);
+      // Ultimate fallback
       setPersonalityResults({
-        personality_type: 'classic',
-        confidence: 0.6,
         quiz_session_token: quizSessionToken,
         recommendations: [],
+        error: 'Unable to generate recommendations',
       });
       setShowResults(true);
     } finally {
@@ -244,15 +250,15 @@ export function QuizInterface() {
             <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
           </div>
           <h3 className='text-xl font-semibold mb-2'>
-            Analyzing Your Fragrance Personality...
+            Finding Your Perfect Matches...
           </h3>
           <p className='text-muted-foreground mb-4'>
-            Finding your perfect fragrance matches
+            Selecting 3 ideal fragrances for you
           </p>
           <div className='text-sm text-muted-foreground space-y-1'>
-            <p>✨ Processing your style preferences</p>
-            <p>🧠 AI matching against 1,467 fragrances</p>
-            <p>🎯 Personalizing recommendations just for you</p>
+            <p>✨ Analyzing your preferences</p>
+            <p>🧪 Matching against 1,467 fragrances</p>
+            <p>🎯 Selecting your top 3 matches</p>
           </div>
         </CardContent>
       </Card>
