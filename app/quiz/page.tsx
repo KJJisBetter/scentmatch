@@ -1,11 +1,13 @@
 import { Metadata } from 'next';
-import { AdvancedQuizInterface } from '@/components/quiz/advanced-quiz-interface';
+import { ExperienceLevelAdaptiveQuiz } from '@/components/quiz/experience-level-adaptive-quiz';
 
 /**
- * Advanced Fragrance Personality Quiz Page
+ * Experience-Level Adaptive Fragrance Quiz Page
  *
- * Multi-dimensional personality profiling with enhanced matching
- * using the Advanced Quiz Profile System for precise recommendations
+ * Adapts quiz complexity and vocabulary based on user experience level:
+ * - Beginner (65%): Simplified language, basic concepts, visual aids
+ * - Enthusiast (25%): Moderate complexity, some favorites input
+ * - Collector (10%): Advanced terminology, collection management
  */
 
 export const metadata: Metadata = {
@@ -61,7 +63,7 @@ export default function QuizPage() {
         </div>
 
         {/* Main Quiz Interface */}
-        <AdvancedQuizInterface />
+        <ExperienceLevelAdaptiveQuiz />
 
         {/* Trust Signals */}
         <div className='mt-12 text-center'>

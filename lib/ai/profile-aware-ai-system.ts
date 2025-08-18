@@ -793,8 +793,21 @@ export class ProfileAwareAISystem {
     reason: string
   ): ProfileAwareDescription {
     const template = this.findBestTemplate(profile.primary_traits);
-    const templateData =
-      this.templates.get(template) || this.templates.values().next().value;
+    const templateData = this.templates.get(template) ||
+      this.templates.values().next().value || {
+        id: 'default',
+        trait_combination: ['sophisticated'],
+        base_template:
+          'This fragrance matches your sophisticated taste profile.',
+        dynamic_slots: [],
+        performance_metrics: {
+          conversion_rate: 0.8,
+          engagement_score: 0.75,
+          usage_count: 1,
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
     const staticContent = this.getStaticDynamicContent(fragrance, profile);
     const finalDescription = this.combineTemplateAndDynamic(
@@ -866,7 +879,7 @@ export class ProfileAwareAISystem {
     }
 
     const userTraits = profile.primary_traits.concat(profile.secondary_traits);
-    const matchingTraits = fragrance.personality_tags.filter(tag =>
+    const matchingTraits = fragrance.personality_tags.filter((tag: string) =>
       userTraits.includes(tag)
     );
 
