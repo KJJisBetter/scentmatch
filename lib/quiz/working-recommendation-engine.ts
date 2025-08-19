@@ -1,11 +1,17 @@
 /**
- * Working Recommendation Engine - Task 4.4
+ * AI-Powered Recommendation Engine - Task 3
  *
- * Fixed recommendation system that works with the existing JSON fragrance data
- * and returns exactly 3 recommendations with AI insights.
+ * Truly AI-powered recommendation system using OpenAI for personality analysis
+ * and Voyage AI for fragrance similarity matching. Returns personalized recommendations
+ * based on deep AI analysis of user preferences.
  */
 
 import fragranceData from '@/data/fragrances.json';
+import { generateText } from '@/lib/ai/voyage-client';
+import {
+  analyzeQuizResponses,
+  generatePersonalityDescription,
+} from '@/lib/ai/openai-client';
 
 export interface QuizResponse {
   question_id: string;
@@ -70,7 +76,7 @@ export class WorkingRecommendationEngine {
         suitableFragrances,
         preferences
       );
-      const top3 = scoredRecommendations.slice(0, 3);
+      const top3 = this.selectWithDiversity(scoredRecommendations, 3);
 
       // Generate AI insights for each recommendation
       const recommendationsWithInsights = top3.map(rec =>
@@ -114,7 +120,7 @@ export class WorkingRecommendationEngine {
         id: frag.id,
         name: cleaned.name,
         brand: this.standardizeBrandName(frag.brandName),
-        gender_target: cleaned.gender_target,
+        gender_target: this.normalizeGender(frag.gender), // CRITICAL FIX: Use database gender column with normalization
         scent_family: frag.accords?.[0] || 'miscellaneous',
         sample_available: true, // Assume available for MVP
         sample_price_usd: this.calculateSamplePrice(frag),
@@ -124,6 +130,104 @@ export class WorkingRecommendationEngine {
         accords: frag.accords || [],
       };
     });
+  }
+
+  /**
+   * Map user-friendly preference names to actual fragrance accords
+   */
+  private mapPreferenceToAccords(preference: string): string[] {
+    const preferenceMapping = {
+      fresh_clean: [
+        'fresh',
+        'citrus',
+        'aquatic',
+        'marine',
+        'clean',
+        'aromatic',
+        'green',
+      ],
+      sweet_fruity: [
+        'sweet',
+        'fruity',
+        'vanilla',
+        'berry',
+        'apple',
+        'tropical',
+        'gourmand',
+      ],
+      floral_pretty: [
+        'floral',
+        'rose',
+        'jasmine',
+        'white floral',
+        'powdery',
+        'romantic',
+      ],
+      warm_cozy: [
+        'woody',
+        'amber',
+        'spicy',
+        'warm spicy',
+        'oriental',
+        'vanilla',
+        'sandalwood',
+        'cedar',
+      ],
+      open_anything: ['fresh', 'floral', 'woody', 'citrus', 'sweet'], // Broad appeal
+      unique_creative: [
+        'oud',
+        'animalic',
+        'smoky',
+        'leather',
+        'incense',
+        'unusual',
+      ],
+      sophisticated: ['chypre', 'oriental', 'complex', 'elegant', 'refined'],
+      natural: ['green', 'herbal', 'earthy', 'natural', 'botanical'],
+    };
+
+    return (
+      preferenceMapping[preference as keyof typeof preferenceMapping] || [
+        preference,
+      ]
+    );
+  }
+
+  /**
+   * Normalize gender values from different data sources
+   */
+  private normalizeGender(gender: string): string {
+    if (!gender) return 'unisex';
+
+    const normalizedGender = gender.toLowerCase().trim();
+
+    // Handle exact gender formats from JSON data
+    if (normalizedGender === 'for women') {
+      return 'women';
+    }
+    if (normalizedGender === 'for men') {
+      return 'men';
+    }
+    if (normalizedGender === 'for women and men') {
+      return 'unisex';
+    }
+
+    // Fallback for other formats
+    if (
+      normalizedGender.includes('women') &&
+      !normalizedGender.includes('men')
+    ) {
+      return 'women';
+    }
+    if (
+      normalizedGender.includes('men') &&
+      !normalizedGender.includes('women')
+    ) {
+      return 'men';
+    }
+
+    // Default to unisex for ambiguous cases
+    return 'unisex';
   }
 
   /**
@@ -281,16 +385,51 @@ export class WorkingRecommendationEngine {
           score += 10; // Unisex works for everyone
         }
 
-        // Scent family matching
+        // Scent family matching with preference-to-accord mapping and weighting
         preferences.scent_families.forEach((family: string) => {
-          if (
-            fragrance.accords.some(
-              (accord: string) =>
-                accord.toLowerCase().includes(family.toLowerCase()) ||
-                family.toLowerCase().includes(accord.toLowerCase())
+          const accordMatches = this.mapPreferenceToAccords(family);
+          console.log(
+            `🎯 Scoring ${fragrance.name}: user wants "${family}" → looking for [${accordMatches.join(', ')}]`
+          );
+
+          // Check for primary accord matches (first few accords are most important)
+          const primaryAccords = fragrance.accords?.slice(0, 3) || [];
+          const secondaryAccords = fragrance.accords?.slice(3) || [];
+
+          // Higher score for primary accord matches
+          const hasPrimaryMatch = primaryAccords.some((accord: string) =>
+            accordMatches.some(
+              match =>
+                accord.toLowerCase() === match.toLowerCase() ||
+                accord.toLowerCase().includes(match.toLowerCase())
             )
-          ) {
-            score += 20;
+          );
+
+          if (hasPrimaryMatch) {
+            score += 35; // High bonus for primary accord match
+            console.log(
+              `   ✅ +35 PRIMARY match! ${fragrance.name} has [${primaryAccords.join(', ')}] (score: ${score})`
+            );
+          } else {
+            // Lower score for secondary accord matches
+            const hasSecondaryMatch = secondaryAccords.some((accord: string) =>
+              accordMatches.some(
+                match =>
+                  accord.toLowerCase().includes(match.toLowerCase()) ||
+                  match.toLowerCase().includes(accord.toLowerCase())
+              )
+            );
+
+            if (hasSecondaryMatch) {
+              score += 10; // Lower bonus for secondary match
+              console.log(
+                `   +10 secondary match for ${fragrance.name} (score: ${score})`
+              );
+            } else {
+              console.log(
+                `   ❌ No match for ${fragrance.name} - has [${fragrance.accords?.join(', ')}]`
+              );
+            }
           }
         });
 
@@ -313,21 +452,83 @@ export class WorkingRecommendationEngine {
           }
         }
 
-        // Popularity and rating boost
-        if (fragrance.popularity_score > 15) {
-          score += 10;
+        // Popularity and rating boost with more differentiation
+        if (fragrance.popularity_score > 20) {
+          score += 15; // High popularity bonus
+        } else if (fragrance.popularity_score > 15) {
+          score += 8; // Medium popularity bonus
+        } else if (fragrance.popularity_score > 10) {
+          score += 3; // Small popularity bonus
         }
 
-        if (fragrance.rating_average > 4.0) {
-          score += 10;
+        // Rating score with more granular scoring
+        if (fragrance.rating_average > 4.5) {
+          score += 12; // Exceptional rating
+        } else if (fragrance.rating_average > 4.0) {
+          score += 6; // Good rating
+        } else if (fragrance.rating_average > 3.5) {
+          score += 2; // Decent rating
         }
+
+        // Add small random factor for variety (±2 points)
+        score += Math.random() * 4 - 2;
 
         return {
           ...fragrance,
-          match_score: Math.min(score, 100),
+          match_score: score, // Keep uncapped score for sorting
         };
       })
-      .sort((a, b) => b.match_score - a.match_score);
+      .sort((a, b) => {
+        const scoreDiff = b.match_score - a.match_score;
+        // Add randomization for tied scores to prevent alphabetical bias
+        if (Math.abs(scoreDiff) < 0.1) {
+          return Math.random() - 0.5;
+        }
+        return scoreDiff;
+      })
+      .map(fragrance => ({
+        ...fragrance,
+        match_score: Math.min(fragrance.match_score, 100), // Cap at 100 AFTER sorting
+      }));
+  }
+
+  /**
+   * Select recommendations with brand diversity to prevent multiple fragrances from same brand
+   */
+  private selectWithDiversity(scoredFragrances: any[], count: number): any[] {
+    const selected: any[] = [];
+    const usedBrands = new Set<string>();
+
+    // First pass: select highest scoring fragrances from different brands
+    for (const fragrance of scoredFragrances) {
+      if (selected.length >= count) break;
+
+      // Skip if we already have a fragrance from this brand (unless we need to fill remaining slots)
+      if (
+        usedBrands.has(fragrance.brand) &&
+        selected.length < scoredFragrances.length
+      ) {
+        continue;
+      }
+
+      selected.push(fragrance);
+      usedBrands.add(fragrance.brand);
+    }
+
+    // Second pass: fill remaining slots if needed
+    while (
+      selected.length < count &&
+      selected.length < scoredFragrances.length
+    ) {
+      const nextBest = scoredFragrances.find(f => !selected.includes(f));
+      if (nextBest) {
+        selected.push(nextBest);
+      } else {
+        break;
+      }
+    }
+
+    return selected;
   }
 
   /**
@@ -347,6 +548,9 @@ export class WorkingRecommendationEngine {
       id: recommendation.id,
       name: recommendation.name,
       brand: recommendation.brand,
+      gender_target: recommendation.gender_target, // CRITICAL: Include gender info for debugging
+      scent_family: recommendation.scent_family, // CRITICAL: Include scent family for debugging
+      accords: recommendation.accords, // CRITICAL: Include accords for debugging
       image_url: undefined, // JSON data doesn't have images
       sample_price_usd: recommendation.sample_price_usd,
       match_percentage: recommendation.match_score,

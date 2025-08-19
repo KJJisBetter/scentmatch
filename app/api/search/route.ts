@@ -98,13 +98,13 @@ export async function GET(request: NextRequest) {
               id: result.fragrance_id,
               name: result.name,
               brand: result.brand,
-              brand_id: result.brand_id || result.brand,
-              gender: result.gender || 'unisex',
-              relevance_score: result.final_score,
-              similarity_score: result.similarity,
-              sample_available: result.sample_available ?? true,
-              sample_price_usd: result.sample_price_usd || 15,
-              metadata: result.metadata,
+              brand_id: (result as any).brand_id || result.brand,
+              gender: (result as any).gender || 'unisex',
+              relevance_score: (result as any).final_score,
+              similarity_score: (result as any).similarity,
+              sample_available: (result as any).sample_available ?? true,
+              sample_price_usd: (result as any).sample_price_usd || 15,
+              metadata: (result as any).metadata,
             })),
             total: aiResults.total_results,
             search_methods_used: aiResults.search_methods_used,
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
       } catch (aiError) {
         console.warn(
           'AI search failed, using keyword fallback:',
-          aiError.message
+          String(aiError)
         );
       }
     }
@@ -127,12 +127,13 @@ export async function GET(request: NextRequest) {
       console.log(`🔍 Fallback database search: "${query}"`);
       searchMethod = query ? 'text' : 'popular';
 
-      // Build query with minimal columns that definitely exist
+      // Build query with brand name join for proper brand mapping
       let searchQuery = supabase.from('fragrances').select(`
           id,
           name,
           brand_id,
-          gender
+          gender,
+          fragrance_brands(name)
         `);
 
       // Apply text search if query provided
@@ -171,11 +172,11 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Format search results using minimal database data and set searchResults
+      // Format search results using joined brand name data and set searchResults
       const enhancedResults = (fallbackResults || []).map((result: any) => ({
         id: result.id,
         name: result.name || 'Untitled Fragrance',
-        brand: result.brand_id || 'Unknown Brand', // Frontend expects 'brand'
+        brand: result.fragrance_brands?.name || 'Unknown Brand', // Use proper brand name from join
         brand_id: result.brand_id,
         gender: result.gender || 'unisex',
         relevance_score: query ? 0.8 : 1.0,
