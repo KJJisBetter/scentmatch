@@ -1,9 +1,21 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable TypeScript and strict mode
   typescript: {
-    // Build will fail on TypeScript errors
+    // Build will fail on TypeScript errors except for non-critical analytics
     ignoreBuildErrors: false,
+  },
+
+
+  // ESLint configuration for MVP build
+  eslint: {
+    // Allow production builds to complete with specific rule warnings
+    ignoreDuringBuilds: false,
+    dirs: ['app', 'components', 'lib'],
   },
 
   // Enable experimental features for Next.js 15
@@ -63,4 +75,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

@@ -3,30 +3,50 @@
 import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+// import { AffiliateLinksModal } from '@/components/browse/affiliate-links-modal';
+import { getDisplayBrandName, getDisplayFragranceName, extractConcentration } from '@/lib/brand-utils';
 import { 
   Search, 
   Star, 
-  ShoppingCart, 
+  Plus, 
+  Bookmark,
   Heart,
   AlertCircle,
   RefreshCw,
-  Package
+  Package,
+  ExternalLink,
+  CheckCircle
 } from 'lucide-react';
 
 interface FragranceResult {
-  fragrance_id: number;
+  // API Response format - matches actual search API
+  id: string;
   name: string;
-  brand: string;
-  scent_family: string;
+  brand_id: string;
+  gender?: string;
   relevance_score: number;
-  description?: string;
-  sample_price_usd?: number;
+  similarity_score?: number;
   sample_available?: boolean;
+  sample_price_usd?: number;
+  image_url?: string | null;
+  metadata?: any;
+  
+  // Legacy fields for backwards compatibility
+  fragrance_id?: number | string;
+  brand?: string;
+  scent_family?: string;
+  description?: string;
   popularity_score?: number;
+
+  // Collection status fields
+  collection_status?: string[];
+  in_collection?: boolean;
+  in_wishlist?: boolean;
 }
 
 interface SearchResponse {
@@ -248,8 +268,8 @@ export function FragranceBrowseClient({
         {/* Fragrance Grid */}
         {hasResults && !isLoading && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="fragrance-grid">
-            {fragrances.fragrances.map((fragrance) => (
-              <FragranceCard key={fragrance.fragrance_id} fragrance={fragrance} />
+            {fragrances.fragrances.map((fragrance, index) => (
+              <FragranceCard key={fragrance.id || fragrance.fragrance_id || index} fragrance={fragrance} />
             ))}
           </div>
         )}
@@ -272,65 +292,142 @@ export function FragranceBrowseClient({
 // Individual Fragrance Card Component
 function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
   const [imageError, setImageError] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const [collectionLoading, setCollectionLoading] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   // Create a placeholder image URL based on fragrance ID for consistent placeholders
   const placeholderImage = `https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop&q=80`;
   
-  // Mock some additional data for better display
-  const mockRating = Math.max(3.5, Math.min(5.0, 4.0 + (fragrance.relevance_score * 0.8)));
-  const mockReviews = Math.floor(100 + (fragrance.fragrance_id * 23) % 900);
-  const mockPrice = fragrance.sample_price_usd || (5 + (fragrance.fragrance_id % 15));
+  // Safe data extraction with proper fallbacks
+  const fragranceId = fragrance.id || fragrance.fragrance_id || 'unknown';
+  const rawFragranceName = fragrance.name || 'Untitled Fragrance';
+  const rawBrandName = fragrance.brand || fragrance.brand_id || 'Unknown Brand';
+  const brandName = getDisplayBrandName(rawBrandName, rawFragranceName); // Apply brand intelligence with RAW fragrance name
+  
+  // Extract name and concentration separately (following major platform patterns)
+  const { name: fragranceName, concentration, abbreviation } = extractConcentration(rawFragranceName);
+  
+  const scentFamily = fragrance.scent_family || fragrance.gender || 'Fragrance';
+  const relevanceScore = typeof fragrance.relevance_score === 'number' ? fragrance.relevance_score : 0.5;
+  
+  // Collection status
+  const inCollection = fragrance.in_collection || false;
+  const inWishlist = fragrance.in_wishlist || false;
+  
+  // Safe mock data calculation with null checks
+  const mockRating = Math.max(3.5, Math.min(5.0, 4.0 + (relevanceScore * 0.8)));
+  const mockReviews = Math.floor(100 + (typeof fragranceId === 'string' ? fragranceId.length * 23 : 123) % 900);
+
+  // Collection management functions
+  const handleCollectionAction = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCollectionLoading(true);
+    try {
+      const action = inCollection ? 'remove' : 'add';
+      const response = await fetch('/api/collection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fragrance_id: fragranceId, action })
+      });
+
+      if (response.ok) {
+        // Optimistically update UI - would be better to refresh data
+        fragrance.in_collection = !inCollection;
+      } else {
+        console.error('Failed to update collection');
+      }
+    } catch (error) {
+      console.error('Collection update error:', error);
+    } finally {
+      setCollectionLoading(false);
+    }
+  };
+
+  const handleWishlistAction = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlistLoading(true);
+    try {
+      const action = inWishlist ? 'remove' : 'add';
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fragrance_id: fragranceId, action })
+      });
+
+      if (response.ok) {
+        // Optimistically update UI - would be better to refresh data
+        fragrance.in_wishlist = !inWishlist;
+      } else {
+        console.error('Failed to update wishlist');
+      }
+    } catch (error) {
+      console.error('Wishlist update error:', error);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   return (
-    <Card className="group hover:shadow-medium transition-all duration-300 overflow-hidden">
-      <CardContent className="p-0">
+    <Link href={`/fragrance/${fragranceId}`} className="block">
+      <Card className="group hover:shadow-medium transition-all duration-300 overflow-hidden cursor-pointer">
+        <CardContent className="p-0">
         {/* Image */}
         <div className="relative aspect-square overflow-hidden bg-muted">
           <Image
             src={imageError ? placeholderImage : placeholderImage}
-            alt={`${fragrance.name} fragrance`}
+            alt={`${fragranceName} fragrance`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={() => setImageError(true)}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
           
-          {/* Like button */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              setIsLiked(!isLiked);
-            }}
-            className="absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur hover:bg-white transition-colors"
-          >
-            <Heart 
-              className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} 
-            />
-          </button>
-
-          {/* Sample available badge */}
-          {fragrance.sample_available && (
-            <Badge 
-              className="absolute top-3 left-3 bg-green-600 text-white"
-            >
-              Sample Available
-            </Badge>
-          )}
+          {/* Collection Status Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {fragrance.sample_available && (
+              <Badge className="bg-green-600 text-white text-xs">
+                Sample Available
+              </Badge>
+            )}
+            {inCollection && (
+              <Badge className="bg-blue-600 text-white text-xs">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Owned
+              </Badge>
+            )}
+            {inWishlist && (
+              <Badge className="bg-purple-600 text-white text-xs">
+                <Bookmark className="h-3 w-3 mr-1" />
+                Wishlist
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Content */}
         <div className="p-4">
-          <div className="space-y-2">
-            {/* Brand and Name */}
+          <div className="space-y-3">
+            {/* Brand, Name, and Concentration - Following major platform patterns */}
             <div>
-              <p className="text-sm text-muted-foreground font-medium">{fragrance.brand}</p>
-              <h3 className="font-medium text-foreground line-clamp-1">{fragrance.name}</h3>
+              <p className="text-sm text-muted-foreground font-medium">{brandName}</p>
+              <h3 className="font-medium text-foreground leading-tight">{fragranceName}</h3>
+              {concentration && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-muted-foreground">{concentration}</span>
+                  {abbreviation && (
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">
+                      {abbreviation}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Family and Rating */}
             <div className="flex items-center justify-between text-sm">
-              <Badge variant="secondary">{fragrance.scent_family}</Badge>
+              <Badge variant="secondary">{scentFamily}</Badge>
               <div className="flex items-center space-x-1">
                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                 <span className="text-muted-foreground">{mockRating.toFixed(1)}</span>
@@ -338,27 +435,86 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
               </div>
             </div>
 
-            {/* Price and Action */}
-            <div className="flex items-center justify-between pt-2">
-              <div className="text-sm">
-                {fragrance.sample_available ? (
-                  <span className="font-medium text-foreground">
-                    ${mockPrice} sample
-                  </span>
+            {/* Primary Actions - Collection Management */}
+            <div className="flex gap-2 pt-1">
+              <Button 
+                size="sm" 
+                variant={inCollection ? "default" : "outline"}
+                onClick={(e) => handleCollectionAction(e)}
+                disabled={collectionLoading}
+                className="flex-1"
+              >
+                {collectionLoading ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : inCollection ? (
+                  <>
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    In Collection
+                  </>
                 ) : (
-                  <span className="text-muted-foreground">
-                    View details
-                  </span>
+                  <>
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add to Collection
+                  </>
                 )}
-              </div>
-              <Button size="sm" className="shrink-0">
-                <ShoppingCart className="h-3 w-3 mr-1" />
-                {fragrance.sample_available ? 'Try Sample' : 'Learn More'}
               </Button>
+              
+              <Button 
+                size="sm" 
+                variant={inWishlist ? "secondary" : "outline"}
+                onClick={(e) => handleWishlistAction(e)}
+                disabled={wishlistLoading}
+                className="flex-1"
+              >
+                {wishlistLoading ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : inWishlist ? (
+                  <>
+                    <Bookmark className="h-3 w-3 mr-1 fill-current" />
+                    Wishlisted
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="h-3 w-3 mr-1" />
+                    Add to Wishlist
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Secondary Actions - Discrete Purchase Assistance */}
+            <div className="flex gap-4 text-xs text-muted-foreground pt-1">
+              <button 
+                className="flex items-center gap-1 hover:text-foreground transition-colors"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Direct to sample search with clean names
+                  const searchQuery = encodeURIComponent(`${brandName} ${fragranceName} sample`);
+                  window.open(`https://theperfumedcourt.com/search?q=${searchQuery}&ref=scentmatch`, '_blank');
+                }}
+              >
+                <ExternalLink className="h-3 w-3" />
+                Find Samples
+              </button>
+              <button 
+                className="flex items-center gap-1 hover:text-foreground transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Direct to purchase search with clean names
+                  const searchQuery = encodeURIComponent(`${brandName} ${fragranceName}`);
+                  window.open(`https://www.fragrancex.com/search?search_text=${searchQuery}&ref=scentmatch`, '_blank');
+                }}
+              >
+                <ExternalLink className="h-3 w-3" />
+                Where to Buy
+              </button>
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
+    </Link>
   );
 }

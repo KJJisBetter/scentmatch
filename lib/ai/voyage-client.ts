@@ -1,10 +1,13 @@
 /**
  * Voyage AI client for generating embeddings
+ * 
+ * UPDATED: Now uses the new multi-provider AI infrastructure with fallback support
+ * while maintaining backward compatibility with existing code.
  */
 
-const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
-const VOYAGE_BASE_URL = 'https://api.voyageai.com/v1';
+import { getAIService, generateQueryEmbedding as newGenerateQueryEmbedding, generateBatchFragranceEmbeddings, isAIFeatureEnabled } from './index';
 
+// Maintain backward compatibility interface
 export interface VoyageEmbeddingResponse {
   data: Array<{
     embedding: number[];
@@ -16,80 +19,110 @@ export interface VoyageEmbeddingResponse {
   };
 }
 
+/**
+ * Generate query embedding using the new AI infrastructure
+ * Maintains backward compatibility while using multi-provider system
+ */
 export async function generateQueryEmbedding(query: string): Promise<number[]> {
-  if (!VOYAGE_API_KEY) {
-    throw new Error('VOYAGE_API_KEY environment variable is required');
-  }
-
   try {
-    const response = await fetch(`${VOYAGE_BASE_URL}/embeddings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${VOYAGE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        input: [query],
-        model: 'voyage-3.5',
-        input_type: 'query', // Optimized for search queries
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Voyage AI API error: ${response.status} ${errorText}`);
-    }
-
-    const result: VoyageEmbeddingResponse = await response.json();
-
-    if (!result.data || result.data.length === 0) {
-      throw new Error('No embedding returned from Voyage AI');
-    }
-
-    const firstResult = result.data[0];
-    if (!firstResult) {
-      throw new Error('Invalid embedding data structure from Voyage AI');
-    }
-
-    return firstResult.embedding;
+    // Use new AI infrastructure with fallback support
+    const result = await newGenerateQueryEmbedding(query);
+    return result.embedding;
+    
   } catch (error) {
-    console.error('Error generating query embedding:', error);
-    throw error;
+    // Fallback to direct Voyage API if new system fails (backward compatibility)
+    if (isAIFeatureEnabled('debug_logging')) {
+      console.warn('New AI system failed, attempting direct Voyage fallback:', error);
+    }
+    
+    return await directVoyageCall(query, 'query');
   }
 }
 
-export async function generateBatchEmbeddings(
-  texts: string[]
-): Promise<number[][]> {
+/**
+ * Generate batch embeddings using the new AI infrastructure
+ * Maintains backward compatibility while using multi-provider system
+ */
+export async function generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
+  try {
+    // Use new AI infrastructure with fallback support
+    const results = await generateBatchFragranceEmbeddings(texts);
+    return results.map(result => result.embedding);
+    
+  } catch (error) {
+    // Fallback to direct Voyage API if new system fails
+    if (isAIFeatureEnabled('debug_logging')) {
+      console.warn('New AI system batch failed, attempting direct Voyage fallback:', error);
+    }
+    
+    return await directVoyageBatchCall(texts);
+  }
+}
+
+// Direct Voyage API calls for fallback compatibility
+async function directVoyageCall(text: string, inputType: 'query' | 'document'): Promise<number[]> {
+  const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
+  const VOYAGE_BASE_URL = 'https://api.voyageai.com/v1';
+  
   if (!VOYAGE_API_KEY) {
     throw new Error('VOYAGE_API_KEY environment variable is required');
   }
 
-  try {
-    const response = await fetch(`${VOYAGE_BASE_URL}/embeddings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${VOYAGE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        input: texts,
-        model: 'voyage-3.5',
-        input_type: 'document',
-      }),
-    });
+  const response = await fetch(`${VOYAGE_BASE_URL}/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${VOYAGE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      input: [text],
+      model: 'voyage-3.5', // Use fallback model for compatibility
+      input_type: inputType,
+    }),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Voyage AI API error: ${response.status} ${errorText}`);
-    }
-
-    const result: VoyageEmbeddingResponse = await response.json();
-    return result.data.map(item => item.embedding);
-  } catch (error) {
-    console.error('Error generating batch embeddings:', error);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Voyage AI API error: ${response.status} ${errorText}`);
   }
+
+  const result = await response.json();
+  
+  if (!result.data || result.data.length === 0) {
+    throw new Error('No embedding returned from Voyage AI');
+  }
+
+  return result.data[0].embedding;
+}
+
+async function directVoyageBatchCall(texts: string[]): Promise<number[][]> {
+  const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
+  const VOYAGE_BASE_URL = 'https://api.voyageai.com/v1';
+  
+  if (!VOYAGE_API_KEY) {
+    throw new Error('VOYAGE_API_KEY environment variable is required');
+  }
+
+  const response = await fetch(`${VOYAGE_BASE_URL}/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${VOYAGE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      input: texts,
+      model: 'voyage-3.5',
+      input_type: 'document',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Voyage AI API error: ${response.status} ${errorText}`);
+  }
+
+  const result = await response.json();
+  return result.data.map(item => item.embedding);
 }
 
 /**

@@ -1,0 +1,19 @@
+Date: Tue, 19 Aug 2025 14:20:06 GMT
+Content-Type: text/html; charset=UTF-8
+Server: cloudflare
+Vary: Accept-Encoding
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Link: <https://assets.parfumo.de/css/_style_defer10640.css>; rel=preload; as=style; type="text/css"
+Link: <https://assets.parfumo.de/fonts/fontawesome/fontawesome-webfont.woff2>; rel=preload; as=font; type="font/woff2"; crossorigin
+Link: <https://assets.parfumo.de/fonts/opensans/open-sans-v34-latin-ext_latin-600.woff2>; rel=preload; as=font; type="font/woff2"; crossorigin
+Link: <https://www.parfumo.com/js/plugins/jquery-3.7.1.min.js>; rel=preload; as=script; type="application/javascript"
+Link: <https://assets.parfumo.de/js/_js_main10640.js>; rel=preload; as=script; type="application/javascript"
+Link: <https://assets.parfumo.de/js/main10640.js>; rel=preload; as=script; type="application/javascript"
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=5anBlqSw%2FSwgraArQNUHGJGNHkSVofs7l9V3xyR7SIKA7eJA5l01Zt5Zy6OaGT196pbHk5eV8J8MLAO5obi%2BiGdNE8e9j4dwuZz7QrKm"}]}
+Cf-Cache-Status: DYNAMIC
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Content-Encoding: br
+Cf-Ray: 971a4a2b4ef8d1fd-LHR
+Alt-Svc: h3=":443"; ma=86400

@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Remove massive technical debt blocking development by systematically eliminating 89% unused AI files (32/36), consolidating 56+ scripts, and removing conflicting systems. This cleanup creates a clean foundation for future redesign work by reducing file count from 223 to ~150 TypeScript files, keeping only 4 essential AI systems, and achieving measurable bundle size reduction.

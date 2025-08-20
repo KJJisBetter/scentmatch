@@ -1,0 +1,40 @@
+Date: Tue, 19 Aug 2025 14:21:54 GMT
+Content-Type: text/html; charset=utf-8
+Content-Encoding: br
+X-Sorting-Hat-Podid: 244
+X-Sorting-Hat-Shopid: 62791647477
+X-Storefront-Renderer-Rendered: 1
+Set-Cookie: keep_alive=377404ea-4e9a-4415-bc1f-3580e1a320a9; path=/; expires=Tue, 19 Aug 2025 14:51:54 GMT; SameSite=Strict
+Set-Cookie: localization=US; path=/; expires=Wed, 19 Aug 2026 14:21:54 GMT; SameSite=Lax
+Set-Cookie: cart_currency=USD; path=/; expires=Tue, 02 Sep 2025 14:21:54 GMT; SameSite=Lax
+Set-Cookie: _shopify_y=424fe450-ba90-4e70-a0a8-315e95272c88; domain=glossier.com; path=/; expires=Wed, 19 Aug 2026 20:21:54 GMT; SameSite=Lax
+Set-Cookie: _shopify_s=d27423e8-8f16-4b29-993d-7b36c68397e1; domain=glossier.com; path=/; expires=Tue, 19 Aug 2025 14:51:54 GMT; SameSite=Lax
+Set-Cookie: _tracking_consent=3.AMPS_USNY_f_f_nMKyeeDzTTuPa6DeAD8S7Q; domain=glossier.com; path=/; expires=Wed, 19 Aug 2026 14:21:54 GMT; SameSite=Lax
+Set-Cookie: _orig_referrer=https%3A%2F%2Fwww.google.com%2F; domain=glossier.com; path=/; expires=Tue, 02 Sep 2025 14:21:54 GMT; HttpOnly; SameSite=Lax
+Set-Cookie: _landing_page=%2F; domain=glossier.com; path=/; expires=Tue, 02 Sep 2025 14:21:54 GMT; HttpOnly; SameSite=Lax
+Set-Cookie: _shopify_essential=:AZjCtTvIAAEAsXEA3sBXiXLxpdpSPPleUyZ1GInMINWgBdX1wvZXIIYLUfTxgFNh9Lte_UBb001Aqs6cCr8tw7fCUmz098WtjpsyUTKZ:; Max-Age=31536000; Path=/; HttpOnly; Secure; Priority=High; SameSite=Lax
+Link: <https://cdn.shopify.com>; rel="preconnect", <https://cdn.shopify.com>; rel="preconnect"; crossorigin
+Speculation-Rules: "/cdn/shopifycloud/storefront/assets/storefront/storefronts.specrules-dd5621a1.json"
+Shopify-Complexity-Score: 3940
+X-Frame-Options: DENY
+Content-Security-Policy: block-all-mixed-content; frame-ancestors 'none'; upgrade-insecure-requests;
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Shopid: 62791647477
+X-Shardid: 244
+Vary: Accept
+Vary: accept-encoding
+Content-Language: en-US
+Powered-By: Shopify
+Server-Timing: processing;dur=398;desc="gc:33", db;dur=46, db_async;dur=1.358, render;dur=226, asn;desc="6128", edge;desc="EWR", country;desc="US", theme;desc="151818633461", pageType;desc="index", servedBy;desc="9vxb", requestID;desc="f04e82f6-ef00-4197-af51-f86c5eae9c87-1755613313", _y;desc="424fe450-ba90-4e70-a0a8-315e95272c88", _s;desc="d27423e8-8f16-4b29-993d-7b36c68397e1"
+Server-Timing: cfRequestDuration;dur=457.999945
+X-Dc: gcp-us-east1,gcp-us-east1,gcp-us-east1
+X-Request-Id: f04e82f6-ef00-4197-af51-f86c5eae9c87-1755613313
+Cf-Cache-Status: DYNAMIC
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=5CiHSOOPuNjaaUm6iAmskfd%2FYNPBSk%2FiqBoJ2q0z3VU6MBnnP33zq01cPsUuzJ0q5OAozZC7%2BlxcJDE0AT8pe7HY%2FCQe0oC9JxTQv0MoHnm82IaZ57Y7m1t2a1fSaoQNnOQ%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0.01,"report_to":"cf-nel","max_age":604800}
+X-Xss-Protection: 1; mode=block
+X-Content-Type-Options: nosniff
+X-Permitted-Cross-Domain-Policies: none
+X-Download-Options: noopen
+Server: cloudflare
+Cf-Ray: 971a4ccbe9188ce0-EWR

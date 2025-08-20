@@ -1,248 +1,307 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase';
-import { generateQueryEmbedding } from '@/lib/ai/voyage-client';
-import {
-  SemanticSearchEngine,
-  QueryProcessor,
-  IntentClassifier,
-  HybridSearchEngine,
-  SearchPersonalizer,
-} from '@/lib/ai/ai-search';
+import { getBrandFamilyVariations, normalizeBrandName } from '@/lib/brand-utils';
+import { FragranceNormalizer } from '@/lib/data-quality/fragrance-normalizer';
+import { MissingProductDetector } from '@/lib/data-quality/missing-product-detector';
 
 /**
  * GET /api/search
- *
- * AI-powered search endpoint with semantic understanding, intent classification,
- * and personalized ranking. Maintains backward compatibility with MVP.
+ * 
+ * Enhanced database-integrated search with canonical fragrance system
+ * Handles malformed names and missing products intelligently
+ * Maintains backward compatibility with existing UI
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
   try {
     const { searchParams } = new URL(request.url);
-
-    // Parse search parameters
     const query = searchParams.get('q')?.trim() || '';
-    const userId = searchParams.get('user_id'); // For personalization
-    const scentFamilies =
-      searchParams.get('scent_families')?.split(',').filter(Boolean) || [];
-    const occasions =
-      searchParams.get('occasions')?.split(',').filter(Boolean) || [];
-    const seasons =
-      searchParams.get('seasons')?.split(',').filter(Boolean) || [];
-    const brands = searchParams.get('brands')?.split(',').filter(Boolean) || [];
+    const scentFamilies = searchParams.get('scent_families')?.split(',').filter(Boolean) || [];
+    const occasions = searchParams.get('occasions')?.split(',').filter(Boolean) || [];
+    const seasons = searchParams.get('seasons')?.split(',').filter(Boolean) || [];
     const sampleOnly = searchParams.get('sample_only') === 'true';
-    const enableAI = searchParams.get('ai') === 'true'; // AI temporarily disabled (mock data issue)
-
-    // Numeric filters
-    const intensityMin = Math.max(
-      0,
-      Math.min(10, parseFloat(searchParams.get('intensity_min') || '0'))
-    );
-    const intensityMax = Math.max(
-      intensityMin,
-      Math.min(10, parseFloat(searchParams.get('intensity_max') || '10'))
-    );
-
-    // Result limit
-    const limit = Math.max(
-      1,
-      Math.min(50, parseInt(searchParams.get('limit') || '20'))
-    );
+    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '20')));
+    const enhanced = searchParams.get('enhanced') !== 'false'; // Enable by default
 
     const supabase = await createServerSupabase();
+    const normalizer = new FragranceNormalizer();
+    const detector = new MissingProductDetector();
 
-    // Prepare filters object
-    const filters = {
-      scent_families: scentFamilies,
-      occasions,
-      seasons,
-      brands,
-      sample_only: sampleOnly,
-      intensity_range:
-        intensityMin !== 0 || intensityMax !== 10
-          ? { min: intensityMin, max: intensityMax }
-          : undefined,
-    };
+    let searchResults = null;
+    let searchMethod = 'database_function';
+    let normalizedQuery: any = null;
 
-    let searchResults;
-    let searchMethod = 'keyword'; // Default fallback
-    let aiPowered = false;
-    let embeddingCost = 0;
-    const personalizationApplied = false;
-
-    // Try AI-powered search first if enabled and query provided
-    if (enableAI && query && query.length >= 2) {
+    // Step 1: Enhanced search with canonical system (if enabled)
+    if (enhanced && query && query.length > 0) {
       try {
-        console.log(`🤖 AI Search: "${query}"`);
+        normalizedQuery = normalizer.normalizeFragranceName(query);
+        
+        // Try canonical smart search first
+        const { data: canonicalResults, error: canonicalError } = await supabase
+          .rpc('search_fragrances_smart', {
+            query_text: normalizedQuery.canonicalName,
+            limit_count: limit
+          });
 
-        // Initialize hybrid search engine
-        const hybridSearch = new HybridSearchEngine({
-          supabase,
-          vectorWeight: 0.6,
-          keywordWeight: 0.3,
-          popularityWeight: 0.1,
-          enablePersonalization: !!userId,
-          maxResults: limit,
-        });
-
-        const aiResults = await hybridSearch.search(query, {
-          filters,
-          page: 1,
-          pageSize: limit,
-        });
-
-        if (aiResults.success && aiResults.results.length > 0) {
+        if (!canonicalError && canonicalResults && canonicalResults.length > 0) {
           searchResults = {
-            fragrances: aiResults.results.map(result => ({
+            fragrances: canonicalResults.map((result: any) => ({
               id: result.fragrance_id,
-              name: result.name,
-              brand: result.brand,
-              brand_id: (result as any).brand_id || result.brand,
-              gender: (result as any).gender || 'unisex',
-              relevance_score: (result as any).final_score,
-              similarity_score: (result as any).similarity,
-              sample_available: (result as any).sample_available ?? true,
-              sample_price_usd: (result as any).sample_price_usd || 15,
-              metadata: (result as any).metadata,
+              name: result.canonical_name,
+              brand: result.brand_name,
+              brand_id: result.fragrance_id, // Compatibility
+              gender: 'unisex', // Default for canonical
+              relevance_score: result.similarity_score,
+              sample_available: true,
+              sample_price_usd: 15,
+              match_type: result.match_type,
+              source: 'canonical'
             })),
-            total: aiResults.total_results,
-            search_methods_used: aiResults.search_methods_used,
+            total: canonicalResults.length,
+            query,
+            search_method: 'enhanced_canonical',
+            enhanced_features: {
+              normalization_applied: normalizedQuery.needsNormalization,
+              normalization_changes: normalizedQuery.changes,
+              match_types: canonicalResults.map((r: any) => r.match_type)
+            }
           };
-
-          searchMethod = aiResults.search_methods_used.join('+');
-          aiPowered = true;
-          embeddingCost = 0.000027; // Estimated embedding cost
+          
+          searchMethod = 'enhanced_canonical';
+          console.log(`✅ Enhanced canonical search found ${canonicalResults.length} results`);
         }
-      } catch (aiError) {
-        console.warn(
-          'AI search failed, using keyword fallback:',
-          String(aiError)
-        );
+      } catch (error) {
+        console.warn('Enhanced canonical search failed, falling back:', error);
       }
     }
 
-    // Fallback to original implementation if AI search didn't work
+    // Step 2: Try database function if canonical didn't work
+    if (!searchResults && query && query.length > 0) {
+      console.log(`🔍 Database function search: "${query}"`);
+      
+      const { data: functionResults, error: functionError } = await supabase.rpc('advanced_fragrance_search', {
+        query_text: query,
+        scent_families: scentFamilies.length > 0 ? scentFamilies : null,
+        occasions: occasions.length > 0 ? occasions : null,
+        seasons: seasons.length > 0 ? seasons : null,
+        sample_available_only: sampleOnly,
+        max_results: limit
+      });
+
+      if (!functionError && functionResults?.length > 0) {
+        searchResults = {
+          fragrances: functionResults.map((result: any) => {
+            const normalizedBrand = normalizeBrandName(result.brand || 'Unknown Brand');
+            
+            return {
+              id: result.fragrance_id,
+              name: result.name,
+              brand: normalizedBrand.canonical_name,
+              brand_id: result.fragrance_id,
+              gender: 'unisex',
+              relevance_score: result.relevance_score,
+              sample_available: true,
+              sample_price_usd: 15,
+              scent_family: result.scent_family
+            };
+          }),
+          total: functionResults.length,
+          query,
+          search_method: 'database_function',
+          filters_applied: {
+            scent_families: scentFamilies,
+            sample_only: sampleOnly,
+            occasions,
+            seasons
+          }
+        };
+      }
+    }
+
+    // Fallback to simple database query if function search didn't work
     if (!searchResults) {
       console.log(`🔍 Fallback database search: "${query}"`);
-      searchMethod = query ? 'text' : 'popular';
+      searchMethod = 'fallback_database';
 
-      // Build query with brand name join for proper brand mapping
-      let searchQuery = supabase.from('fragrances').select(`
+      let fallbackQuery = supabase
+        .from('fragrances')
+        .select(`
           id,
           name,
           brand_id,
           gender,
-          fragrance_brands(name)
+          sample_available,
+          sample_price_usd,
+          popularity_score,
+          rating_value,
+          rating_count,
+          fragrance_brands!inner(name)
         `);
 
-      // Apply text search if query provided
-      if (query && query.trim().length > 0) {
-        searchQuery = searchQuery.or(`name.ilike.%${query}%`);
+      // Search in fragrance names first, then try brand names
+      if (query && query.length > 0) {
+        // Try fragrance name search first
+        fallbackQuery = fallbackQuery.ilike('name', `%${query}%`);
       }
 
-      // Apply gender filter if provided
-      const gender = searchParams.get('gender');
-      if (gender) {
-        searchQuery = searchQuery.eq('gender', gender);
+      // Apply filters
+      if (sampleOnly) {
+        fallbackQuery = fallbackQuery.eq('sample_available', true);
       }
 
-      // Apply brand filter if provided
-      const brand = searchParams.get('brand');
-      if (brand) {
-        searchQuery = searchQuery.eq('brand_id', brand);
+      const { data: fallbackResults, error: fallbackError } = await fallbackQuery
+        .order('popularity_score', { ascending: false, nullsLast: true })
+        .order('name', { ascending: true })  // Secondary sort for ties
+        .limit(limit);
+
+      if (fallbackError) {
+        console.error('Fallback search error:', fallbackError);
+        return NextResponse.json({
+          error: 'Search temporarily unavailable',
+          details: process.env.NODE_ENV === 'development' ? fallbackError.message : undefined
+        }, { status: 503 });
       }
 
-      // Order by name for now (since score column doesn't exist) and limit results
-      searchQuery = searchQuery.order('name', { ascending: true }).limit(limit);
-
-      const { data: fallbackResults, error } = await searchQuery;
-
-      if (error) {
-        console.error('Search query error:', error);
-        return NextResponse.json(
-          {
-            error: 'Search temporarily unavailable',
-            details:
-              process.env.NODE_ENV === 'development'
-                ? error.message
-                : undefined,
-          },
-          { status: 503 }
-        );
+      // If no results from fragrance name search, try intelligent brand search
+      let brandResults: any[] = [];
+      if ((!fallbackResults || fallbackResults.length === 0) && query && query.length > 0) {
+        // Use brand intelligence to get brand family variations
+        const brandVariations = getBrandFamilyVariations(query);
+        console.log(`🧠 Brand intelligence: "${query}" → [${brandVariations.join(', ')}]`);
+        
+        // Search for any brand in the family
+        const { data: brandSearchResults } = await supabase
+          .from('fragrances')
+          .select(`
+            id,
+            name,
+            brand_id,
+            gender,
+            sample_available,
+            sample_price_usd,
+            popularity_score,
+            fragrance_brands!inner(name)
+          `)
+          .filter('fragrance_brands.name', 'in', `(${brandVariations.map(b => `"${b}"`).join(',')})`)
+          .order('popularity_score', { ascending: false })
+          .order('name', { ascending: true })  // Secondary sort
+          .limit(limit);
+        
+        brandResults = brandSearchResults || [];
       }
 
-      // Format search results using joined brand name data and set searchResults
-      const enhancedResults = (fallbackResults || []).map((result: any) => ({
-        id: result.id,
-        name: result.name || 'Untitled Fragrance',
-        brand: result.fragrance_brands?.name || 'Unknown Brand', // Use proper brand name from join
-        brand_id: result.brand_id,
-        gender: result.gender || 'unisex',
-        relevance_score: query ? 0.8 : 1.0,
-        // MVP defaults for missing enhanced features
-        sample_available: true,
-        sample_price_usd: 15,
-        image_url: null,
-      }));
-
-      // Set searchResults to the proper format for consistent handling
+      // Combine fragrance name results and brand name results
+      const allResults = [...(fallbackResults || []), ...brandResults];
+      
       searchResults = {
-        fragrances: enhancedResults,
-        total: enhancedResults.length,
-      };
-    }
-
-    // Format final results (searchResults is now guaranteed to be defined)
-    const finalResults = searchResults;
-
-    // Return structured response with AI metadata
-    return NextResponse.json(
-      {
-        fragrances: finalResults.fragrances,
-        total: finalResults.total,
-        query: query,
+        fragrances: allResults.map((result: any) => {
+          const rawBrandName = result.fragrance_brands?.name || 'Unknown Brand';
+          const normalizedBrand = normalizeBrandName(rawBrandName);
+          
+          return {
+            id: result.id,
+            name: result.name,
+            brand: normalizedBrand.canonical_name,
+            brand_id: result.brand_id,
+            gender: result.gender || 'unisex',
+            popularity_score: result.popularity_score || 0,
+            rating_value: result.rating_value || 0,
+            rating_count: result.rating_count || 0,
+            relevance_score: 0.8,
+            sample_available: result.sample_available ?? true,
+            sample_price_usd: result.sample_price_usd || 15
+          };
+        }),
+        total: allResults.length,
+        query,
         search_method: searchMethod,
         filters_applied: {
           scent_families: scentFamilies,
           sample_only: sampleOnly,
-          occasions: occasions,
-          seasons: seasons,
-          brands: brands,
-          intensity_range:
-            intensityMin !== 0 || intensityMax !== 10
-              ? [intensityMin, intensityMax]
-              : null,
-        },
-        metadata: {
-          limit_used: limit,
-          has_more: finalResults.fragrances.length === limit,
-          ai_powered: aiPowered,
-          search_methods_used: finalResults.search_methods_used || [
-            searchMethod,
-          ],
-          processing_time_ms: Date.now() - startTime,
-          embedding_cost: embeddingCost,
-          personalization_applied: personalizationApplied,
-          cost_estimate: embeddingCost || 0,
-        },
-      },
-      {
-        headers: {
-          'Cache-Control': aiPowered
-            ? 'public, s-maxage=300, stale-while-revalidate=900' // 5 min cache for AI results
-            : 'public, s-maxage=600, stale-while-revalidate=1800', // 10 min cache for text results
-          'X-AI-Powered': aiPowered.toString(),
-          'X-Search-Method': searchMethod,
-          'X-Processing-Time': (Date.now() - startTime).toString(),
-        },
+          occasions,
+          seasons
+        }
+      };
+    }
+
+    // Step 3: Handle missing product scenario with intelligence
+    if (enhanced && (!searchResults || searchResults.fragrances.length === 0) && query && query.length > 2) {
+      try {
+        console.log(`🔍 No results found for "${query}" - checking missing product intelligence`);
+        
+        const missingProductResponse = await detector.handleProductNotFound(
+          query,
+          undefined, // No user ID from search request
+          request.ip || request.headers.get('x-forwarded-for'),
+          request.headers.get('user-agent')
+        );
+
+        // If we have good alternatives, format them as search results
+        if (missingProductResponse.alternatives.length > 0) {
+          searchResults = {
+            fragrances: missingProductResponse.alternatives.map((alt: any) => ({
+              id: alt.fragrance_id,
+              name: alt.name,
+              brand: alt.brand,
+              brand_id: alt.fragrance_id,
+              gender: 'unisex', // Default
+              relevance_score: alt.similarity_score,
+              sample_available: true,
+              sample_price_usd: 15,
+              match_type: 'alternative',
+              source: 'missing_product_intelligence',
+              match_reason: alt.match_reason
+            })),
+            total: missingProductResponse.alternatives.length,
+            query,
+            search_method: 'missing_product_alternatives',
+            missing_product_info: {
+              message: missingProductResponse.message,
+              actions: missingProductResponse.actions,
+              alternatives_provided: true
+            }
+          };
+          
+          searchMethod = 'missing_product_alternatives';
+          console.log(`✅ Missing product intelligence provided ${missingProductResponse.alternatives.length} alternatives`);
+        }
+      } catch (error) {
+        console.warn('Missing product intelligence failed:', error);
       }
-    );
+    }
+
+    // Return results with enhanced metadata
+    const response = searchResults || {
+      fragrances: [],
+      total: 0,
+      query,
+      search_method: 'no_results'
+    };
+
+    return NextResponse.json({
+      ...response,
+      metadata: {
+        processing_time_ms: Date.now() - startTime,
+        ai_powered: false,
+        database_integrated: true,
+        enhanced_features_enabled: enhanced,
+        normalization_applied: normalizedQuery?.needsNormalization || false,
+        normalization_changes: normalizedQuery?.changes || [],
+        performance_target_met: (Date.now() - startTime) < 300
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Search-Method': searchMethod,
+        'X-Enhanced': enhanced.toString()
+      }
+    });
+
   } catch (error) {
-    console.error('Unexpected error in search API:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Search API error:', error);
+    return NextResponse.json({
+      error: 'Internal server error'
+    }, { status: 500 });
   }
 }

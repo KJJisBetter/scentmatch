@@ -18,7 +18,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Validate fragrance ID
     if (!id || id.trim() === '') {
@@ -30,36 +30,17 @@ export async function GET(
 
     const supabase = await createServerSupabase();
 
-    // Fetch fragrance with brand information
+    // Fetch fragrance with brand information using actual database columns
     const { data: fragrance, error } = await supabase
       .from('fragrances')
       .select(`
         id,
         name,
         brand_id,
-        description,
-        notes,
-        image_url,
-        intensity_score,
-        longevity_hours,
-        sillage_rating,
-        recommended_occasions,
-        recommended_seasons,
-        mood_tags,
-        sample_available,
-        sample_price_usd,
-        travel_size_available,
-        travel_size_ml,
-        travel_size_price_usd,
-        scent_family,
-        popularity_score,
-        created_at,
-        updated_at,
+        gender,
         fragrance_brands:brand_id (
           id,
-          name,
-          website_url,
-          popularity_score
+          name
         )
       `)
       .eq('id', id)

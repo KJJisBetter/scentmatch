@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Transform the browse page from a store-like shopping interface to a personal fragrance discovery platform focused on collection management while maintaining subtle affiliate revenue opportunities. Implement smart sorting that shows popular fragrances to new users but AI-personalized recommendations to users with established collections. Replace primary commerce UI elements with collection actions ("Add to Collection", "Add to Wishlist") while keeping discrete purchase assistance ("Find Samples", "Where to Buy"). Fix truncated fragrance names and implement intelligent brand matching for variations like "Emporio Armani" vs "Giorgio Armani".

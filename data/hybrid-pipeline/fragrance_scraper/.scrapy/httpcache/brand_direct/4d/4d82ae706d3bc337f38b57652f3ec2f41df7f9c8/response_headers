@@ -1,0 +1,42 @@
+Date: Tue, 19 Aug 2025 14:22:19 GMT
+Content-Type: text/html; charset=utf-8
+Cf-Ray: 971a4d680bb7e55d-EWR
+X-Sorting-Hat-Podid: 101
+X-Sorting-Hat-Shopid: 28262250
+X-Storefront-Renderer-Rendered: 1
+Set-Cookie: keep_alive=3c959dd2-25f6-4cde-809f-5e6c5d60601b; path=/; expires=Tue, 19 Aug 2025 14:52:18 GMT; SameSite=Strict
+Set-Cookie: localization=US; path=/; expires=Wed, 19 Aug 2026 14:22:19 GMT; SameSite=Lax
+Set-Cookie: cart_currency=USD; path=/; expires=Tue, 02 Sep 2025 14:22:19 GMT; SameSite=Lax
+Set-Cookie: _shopify_y=184bcbc9-b29c-4ff5-8585-6ca6fe34c99b; domain=soldejaneiro.com; path=/; expires=Wed, 19 Aug 2026 20:22:19 GMT; SameSite=Lax
+Set-Cookie: _shopify_s=b85cff63-5b71-4f6d-aaeb-6fd24e741e69; domain=soldejaneiro.com; path=/; expires=Tue, 19 Aug 2025 14:52:19 GMT; SameSite=Lax
+Set-Cookie: _tracking_consent=3.AMPS_USNY_f_f_-FAjZu3YRPqdL7hEM0cpVQ; domain=soldejaneiro.com; path=/; expires=Wed, 19 Aug 2026 14:22:19 GMT; SameSite=Lax
+Set-Cookie: _orig_referrer=https%3A%2F%2Fwww.google.com%2F; domain=soldejaneiro.com; path=/; expires=Tue, 02 Sep 2025 14:22:19 GMT; HttpOnly; SameSite=Lax
+Set-Cookie: _landing_page=%2F; domain=soldejaneiro.com; path=/; expires=Tue, 02 Sep 2025 14:22:19 GMT; HttpOnly; SameSite=Lax
+Set-Cookie: _shopify_essential=:AZjCtZ01AAEAghniYsgDSEy9E0hkfaFU4o9yk_wcc0HjBPyT8prVNzKjcQSiuI5_cvNVa4DyrjeDQTuazlZlYJ7QEKFubQOSxynJNa4E:; Max-Age=31536000; Path=/; HttpOnly; Secure; Priority=High; SameSite=Lax
+Link: <https://cdn.shopify.com>; rel="preconnect", <https://cdn.shopify.com>; rel="preconnect"; crossorigin, <//soldejaneiro.com/cdn/shop/t/167/assets/base.css?v=130389548244514391931752120940>; as="style"; rel="preload", <//soldejaneiro.com/cdn/shop/t/167/assets/component-flags.css?v=178287082399776105681710352786>; as="style"; rel="preload", <//soldejaneiro.com/cdn/shop/t/167/assets/component-card.css?v=45152684963438375771734470948>; as="style"; rel="preload", <//soldejaneiro.com/cdn/shop/t/167/assets/component-help.css?v=19528480047604354081744134831>; as="style"; rel="preload"
+Speculation-Rules: "/cdn/shopifycloud/storefront/assets/storefront/storefronts.specrules-dd5621a1.json"
+Etag: "cacheable:0c635747d813ea4060216f788dcc1659"
+Content-Encoding: br
+Shopify-Complexity-Score: 3040
+X-Frame-Options: DENY
+Content-Security-Policy: block-all-mixed-content; frame-ancestors 'none'; upgrade-insecure-requests;
+Strict-Transport-Security: max-age=7889238
+X-Shopid: 28262250
+X-Shardid: 101
+Vary: Accept
+Vary: accept-encoding
+Content-Language: en-US
+Powered-By: Shopify
+Server-Timing: processing;dur=310;desc="gc:87", db;dur=74, db_async;dur=1.713, render;dur=102, asn;desc="6128", edge;desc="EWR", country;desc="US", theme;desc="126202609766", pageType;desc="index", servedBy;desc="scpm", requestID;desc="aa4fc85c-a8d1-42a0-a92b-b4d65a8f5169-1755613338", _y;desc="184bcbc9-b29c-4ff5-8585-6ca6fe34c99b", _s;desc="b85cff63-5b71-4f6d-aaeb-6fd24e741e69"
+Server-Timing: cfRequestDuration;dur=359.999895
+X-Dc: gcp-us-east1,gcp-us-east1,gcp-us-east1
+X-Request-Id: aa4fc85c-a8d1-42a0-a92b-b4d65a8f5169-1755613338
+Alt-Svc: h3=":443"; ma=86400
+Cf-Cache-Status: DYNAMIC
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=yk5bceawPbQFScZsgEvkr%2FiRLt%2B3EBzuQGvDw2s5WVwF6aFpgDHj7qsiWAivbansSmkteemnq%2BI9%2BpLW7MMYKjqsnETz2K4WdXQ2dZbnyG3SyUA3Nq59Nnrly10Z7B%2FE%2BeU%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0.01,"report_to":"cf-nel","max_age":604800}
+X-Xss-Protection: 1; mode=block
+X-Content-Type-Options: nosniff
+X-Permitted-Cross-Domain-Policies: none
+X-Download-Options: noopen
+Server: cloudflare

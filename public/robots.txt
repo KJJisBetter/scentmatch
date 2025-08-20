@@ -9,6 +9,8 @@ Disallow: /collection/
 Disallow: /auth/
 Disallow: /_next/
 Disallow: /404
+Disallow: /ai-demo/
+Disallow: /test-browse/
 
 # Sitemap location
 Sitemap: https://scentmatch.vercel.app/sitemap.xml

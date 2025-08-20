@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { FragranceBrowseClient } from '@/components/browse/fragrance-browse-client';
 import { createServerSupabase } from '@/lib/supabase';
+import { normalizeBrandName } from '@/lib/brand-utils';
 
 export const metadata: Metadata = {
   title: 'Browse Fragrances | ScentMatch',
@@ -23,15 +24,21 @@ interface BrowsePageProps {
 }
 
 interface FragranceResult {
-  fragrance_id: number;
+  id: string;
+  fragrance_id?: number | string;
   name: string;
   brand: string;
+  brand_id: string;
   scent_family: string;
   relevance_score: number;
   description?: string;
   sample_price_usd?: number;
   sample_available?: boolean;
   popularity_score?: number;
+  gender?: string;
+  collection_status?: string[];
+  in_collection?: boolean;
+  in_wishlist?: boolean;
 }
 
 interface SearchResponse {
@@ -46,6 +53,13 @@ interface SearchResponse {
   };
   fallback?: boolean;
   message?: string;
+  sorting_strategy?: 'popularity' | 'personalized';
+  user_collection_size?: number;
+  metadata?: {
+    processing_time_ms: number;
+    authenticated: boolean;
+    personalized: boolean;
+  };
 }
 
 async function getFragrances(params: {
@@ -58,37 +72,181 @@ async function getFragrances(params: {
   page?: string;
 }): Promise<SearchResponse> {
   try {
-    const searchParams = new URLSearchParams();
-
-    if (params.q) searchParams.set('q', params.q);
-    if (params.brand) searchParams.set('brand', params.brand);
-    if (params.family) searchParams.set('scent_families', params.family);
-    if (params.sample_only) searchParams.set('sample_only', params.sample_only);
-    if (params.price_min) searchParams.set('price_min', params.price_min);
-    if (params.price_max) searchParams.set('price_max', params.price_max);
-
-    // Default to 20 items per page for MVP
-    searchParams.set('limit', '20');
-
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3001'
+        ? 'http://localhost:3000'
         : 'http://localhost:3000';
 
-    const response = await fetch(
-      `${baseUrl}/api/search?${searchParams.toString()}`,
-      {
-        next: { revalidate: 300 }, // Cache for 5 minutes
-      }
-    );
+    // If user is searching or filtering, use search API
+    if (params.q || params.brand || params.family || params.sample_only) {
+      const searchParams = new URLSearchParams();
 
-    if (!response.ok) {
-      throw new Error(`Search API error: ${response.status}`);
+      if (params.q) searchParams.set('q', params.q);
+      if (params.brand) searchParams.set('brand', params.brand);
+      if (params.family) searchParams.set('scent_families', params.family);
+      if (params.sample_only) searchParams.set('sample_only', params.sample_only);
+      if (params.price_min) searchParams.set('price_min', params.price_min);
+      if (params.price_max) searchParams.set('price_max', params.price_max);
+
+      // Default to 20 items per page for MVP
+      searchParams.set('limit', '20');
+
+      const response = await fetch(
+        `${baseUrl}/api/search?${searchParams.toString()}`,
+        {
+          next: { revalidate: 300 }, // Cache for 5 minutes
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Search API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
     }
 
-    const data = await response.json();
-    return data;
+    // For general browsing (no search query), get popular fragrances directly
+    // Avoid server-side fetch issues by calling database directly
+    const supabase = await createServerSupabase();
+    
+    try {
+      // Get balanced representation across genders instead of pure popularity
+      const [menResults, womenResults, unisexResults] = await Promise.all([
+        // Get top men's fragrances
+        supabase
+          .from('fragrances')
+          .select(`
+            id,
+            name,
+            brand_id,
+            gender,
+            popularity_score,
+            rating_value,
+            rating_count,
+            sample_available,
+            sample_price_usd,
+            fragrance_brands!inner(name)
+          `)
+          .eq('gender', 'men')
+          .order('popularity_score', { ascending: false })
+          .order('rating_value', { ascending: false })
+          .limit(10),
+        
+        // Get top women's fragrances
+        supabase
+          .from('fragrances')
+          .select(`
+            id,
+            name,
+            brand_id,
+            gender,
+            popularity_score,
+            rating_value,
+            rating_count,
+            sample_available,
+            sample_price_usd,
+            fragrance_brands!inner(name)
+          `)
+          .eq('gender', 'women')
+          .order('popularity_score', { ascending: false })
+          .order('rating_value', { ascending: false })
+          .limit(6),
+        
+        // Get top unisex fragrances
+        supabase
+          .from('fragrances')
+          .select(`
+            id,
+            name,
+            brand_id,
+            gender,
+            popularity_score,
+            rating_value,
+            rating_count,
+            sample_available,
+            sample_price_usd,
+            fragrance_brands!inner(name)
+          `)
+          .eq('gender', 'unisex')
+          .order('popularity_score', { ascending: false })
+          .order('rating_value', { ascending: false })
+          .limit(4)
+      ]);
+
+      // Check for errors
+      if (menResults.error || womenResults.error || unisexResults.error) {
+        throw new Error(`Database error: ${menResults.error?.message || womenResults.error?.message || unisexResults.error?.message}`);
+      }
+
+      // Combine and shuffle for balanced representation
+      const popular = [
+        ...(menResults.data || []),
+        ...(womenResults.data || []),
+        ...(unisexResults.data || [])
+      ]
+      // Re-sort by popularity to maintain quality while ensuring gender balance
+      .sort((a, b) => (b.popularity_score || 0) - (a.popularity_score || 0));
+
+      console.log('🔥 Direct database query - got', popular?.length || 0, 'popular fragrances');
+
+      const fragrances = popular?.map((result: any) => {
+        const rawBrandName = result.fragrance_brands?.name || 'Unknown Brand';
+        const fragranceName = result.name || '';
+        
+        // Apply intelligent brand detection using both brand and fragrance name
+        const fragLower = fragranceName.toLowerCase();
+        let displayBrand = rawBrandName;
+        
+        // Emporio detection from fragrance name
+        if (fragLower.includes('emporio')) {
+          displayBrand = 'Emporio Armani';
+        } else {
+          // Use existing brand normalization
+          displayBrand = rawBrandName; // Use raw brand name for now
+        }
+        
+        return {
+          id: result.id,
+          name: result.name,
+          brand: displayBrand,
+          brand_id: result.brand_id,
+          gender: result.gender || 'unisex',
+          scent_family: result.gender || 'Fragrance',
+          popularity_score: result.popularity_score || 0,
+          rating_value: result.rating_value || 0,
+          rating_count: result.rating_count || 0,
+          relevance_score: 0.7,
+          sample_available: result.sample_available ?? true,
+          sample_price_usd: result.sample_price_usd || 15
+        };
+      }) || [];
+
+      return {
+        fragrances,
+        total: fragrances.length,
+        query: '',
+        filters_applied: {
+          scent_families: [],
+          sample_only: false,
+          occasions: [],
+          seasons: [],
+        },
+        sorting_strategy: 'popularity',
+        user_collection_size: 0,
+        metadata: {
+          processing_time_ms: 0,
+          authenticated: false,
+          personalized: false
+        }
+      };
+
+    } catch (dbError) {
+      console.error('🔥 Direct database error:', dbError);
+      throw dbError;
+    }
+
   } catch (error) {
     console.error('Error fetching fragrances:', error);
 
@@ -104,7 +262,7 @@ async function getFragrances(params: {
         seasons: [],
       },
       fallback: true,
-      message: 'Search temporarily unavailable',
+      message: 'Browse temporarily unavailable',
     };
   }
 }
@@ -114,7 +272,7 @@ async function getFilterOptions() {
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3001'
+        ? 'http://localhost:3000'
         : 'http://localhost:3000';
 
     const response = await fetch(`${baseUrl}/api/search/filters`, {
@@ -163,12 +321,16 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div className='container mx-auto px-4 py-6'>
           <div className='text-center'>
             <h1 className='text-2xl font-bold text-foreground mb-2'>
-              Discover Your Perfect Fragrance
+              {fragranceData.sorting_strategy === 'personalized'
+                ? 'Your Personal Fragrance Recommendations'
+                : 'Discover Your Perfect Fragrance'}
             </h1>
             <p className='text-muted-foreground'>
-              {filterOptions.metadata.total_fragrances > 0
-                ? `Browse ${filterOptions.metadata.total_fragrances.toLocaleString()} real fragrances`
-                : 'Loading fragrance collection...'}
+              {fragranceData.sorting_strategy === 'personalized' 
+                ? `Based on your collection of ${fragranceData.user_collection_size} fragrances`
+                : filterOptions.metadata.total_fragrances > 0
+                  ? `Browse ${filterOptions.metadata.total_fragrances.toLocaleString()} real fragrances`
+                  : 'Build your collection to get personalized recommendations'}
             </p>
           </div>
         </div>

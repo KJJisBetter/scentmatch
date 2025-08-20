@@ -61,5 +61,65 @@ no-longer-used.md
 *.sh
 CLAUDE-OLD.md
 
+# Data Pipeline & Processing
+/data/kaggle/
+/data/archive/
+/data/research-2025/
+/data/production/
+/data/hybrid-pipeline/logs/
+/data/hybrid-pipeline/output/
+/data/hybrid-pipeline/cache/
+*.csv
+*.xlsx
+*.parquet
+
+# Large JSON data files
+/data/**/fra_*.json
+/data/**/*-final-*.json
+/data/**/*-complete-*.json
+/data/**/*bestsellers*.json
+/data/**/*analysis*.json
+/data/**/*generation*.json
+/data/**/*expansion*.json
+
+# AI & ML artifacts
+embeddings/
+models/
+weights/
+*.pkl
+*.h5
+*.safetensors
+
+# Script outputs and logs
+/scripts/logs/
+/scripts/output/
+/scripts/temp/
+*.log.json
+migration-*.log
+embedding-*.log
+
+# Supabase local development
+/supabase/.temp/
+/supabase/functions/_shared/
+.supabase/
+
+# TypeScript build info
+*.tsbuildinfo
+
 # Refactoring plans
 refactors/
+
+# Working files and drafts
+*-backup.md
+*-draft.md
+*-temp.*
+*-old.*
+DEPRECATED-*
+EXPERIMENTAL-*
+
+# Agent OS working files (keep structure, ignore temp files)
+.agent-os/specs/*/temp/
+.agent-os/specs/*/output/
+.claude/docs/archive/
+.claude/docs/temp/
+.claude/handoffs/backup-*.md

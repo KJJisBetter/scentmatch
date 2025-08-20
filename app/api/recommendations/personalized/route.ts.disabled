@@ -1,0 +1,658 @@
+/**
+ * Personalized Recommendations API
+ * 
+ * AI-powered personalized fragrance recommendations using user embeddings,
+ * collection analysis, and behavioral learning.
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabase } from '@/lib/supabase';
+import { 
+  PersonalizedRecommendationEngine, 
+  UserPreferenceModeler,
+  RecommendationCache 
+} from '@/lib/ai/recommendation-engine';
+
+interface PersonalizedRecommendationRequest {
+  user_id: string;
+  recommendation_types?: string[]; // 'personalized', 'trending', 'seasonal', 'adventurous'
+  max_results?: number;
+  include_explanations?: boolean;
+  context?: {
+    time_of_day?: string;
+    season?: string;
+    occasion?: string;
+    mood?: string;
+    weather?: string;
+  };
+  filters?: {
+    price_range?: { min: number; max: number };
+    scent_families?: string[];
+    sample_only?: boolean;
+    exclude_owned?: boolean;
+  };
+  options?: {
+    adventure_level?: number; // 0 (safe) to 1 (exploratory)
+    diversity_preference?: number; // 0 (focused) to 1 (diverse)
+    enable_real_time_learning?: boolean;
+    explanation_style?: 'simple' | 'detailed' | 'technical';
+  };
+}
+
+interface PersonalizedRecommendationResponse {
+  success: boolean;
+  user_id: string;
+  recommendations: Array<{
+    fragrance_id: string;
+    name: string;
+    brand: string;
+    recommendation_score: number;
+    confidence: number;
+    recommendation_type: string;
+    explanation?: {
+      primary_reason: string;
+      contributing_factors: string[];
+      confidence_level: string;
+    };
+    personalization_factors: {
+      similarity_to_favorites: number;
+      brand_affinity_match: number;
+      collection_gap_fill: number;
+      contextual_appropriateness: number;
+    };
+    metadata: {
+      algorithm_used: string;
+      cache_used: boolean;
+      generation_time_ms: number;
+    };
+  }>;
+  personalization_summary: {
+    user_preference_strength: number;
+    collection_analysis_confidence: number;
+    personalization_applied: boolean;
+    learning_opportunities: string[];
+  };
+  context_analysis?: {
+    context_understood: any;
+    contextual_adjustments: string[];
+    context_confidence: number;
+  };
+  recommendation_metadata: {
+    total_candidates_analyzed: number;
+    recommendation_types_generated: string[];
+    processing_time_ms: number;
+    cache_performance: {
+      cache_hit_rate: number;
+      cache_used: boolean;
+    };
+    ai_cost_estimate: number;
+  };
+  next_steps?: {
+    feedback_encouraged: boolean;
+    collection_suggestions: string[];
+    preference_learning_status: string;
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  
+  try {
+    const { searchParams } = new URL(request.url);
+    
+    const userId = searchParams.get('user_id');
+    if (!userId) {
+      return NextResponse.json({
+        success: false,
+        error: 'user_id parameter is required'
+      }, { status: 400 });
+    }
+
+    // Parse request parameters
+    const recommendationTypes = searchParams.get('types')?.split(',') || ['personalized'];
+    const maxResults = parseInt(searchParams.get('limit') || '20');
+    const includeExplanations = searchParams.get('include_explanations') === 'true';
+    const adventureLevel = parseFloat(searchParams.get('adventure_level') || '0.5');
+    const excludeOwned = searchParams.get('exclude_owned') !== 'false';
+
+    // Parse context if provided
+    let context;
+    const contextParam = searchParams.get('context');
+    if (contextParam) {
+      try {
+        context = JSON.parse(contextParam);
+      } catch (e) {
+        console.warn('Invalid context parameter, ignoring');
+      }
+    }
+
+    // Parse filters
+    const filters: any = {
+      exclude_owned: excludeOwned
+    };
+    
+    const priceMin = searchParams.get('price_min');
+    const priceMax = searchParams.get('price_max');
+    if (priceMin || priceMax) {
+      filters.price_range = {
+        min: priceMin ? parseInt(priceMin) : 0,
+        max: priceMax ? parseInt(priceMax) : 1000
+      };
+    }
+
+    const scentFamilies = searchParams.get('scent_families');
+    if (scentFamilies) {
+      filters.scent_families = scentFamilies.split(',');
+    }
+
+    if (searchParams.get('sample_only') === 'true') {
+      filters.sample_only = true;
+    }
+
+    const supabase = await createServerSupabase();
+    
+    // Initialize recommendation system
+    const recommendationEngine = new PersonalizedRecommendationEngine({
+      supabase,
+      contentBasedWeight: 0.5,
+      collaborativeWeight: 0.3,
+      contextualWeight: 0.15,
+      popularityWeight: 0.05,
+      enableRealTimeUpdates: true
+    });
+
+    const recommendationCache = new RecommendationCache({
+      supabase,
+      defaultTTL: 3600,
+      enableRealTimeInvalidation: true
+    });
+
+    // Check cache first
+    const contextHash = context ? JSON.stringify(context) : 'default';
+    let cacheUsed = false;
+    let recommendations = [];
+
+    try {
+      const cachedRecs = await recommendationCache.getRecommendations(
+        userId,
+        recommendationTypes.join('_'),
+        contextHash
+      );
+
+      if (cachedRecs.cache_hit && cachedRecs.recommendations.length > 0) {
+        recommendations = cachedRecs.recommendations;
+        cacheUsed = true;
+      }
+    } catch (cacheError) {
+      console.warn('Cache lookup failed:', cacheError instanceof Error ? cacheError.message : cacheError);
+    }
+
+    // Generate fresh recommendations if no cache hit
+    if (!cacheUsed) {
+      try {
+        // Generate different types of recommendations
+        const generatedRecs = [];
+
+        for (const recType of recommendationTypes) {
+          let typeRecs = [];
+          
+          switch (recType) {
+            case 'personalized':
+              typeRecs = await recommendationEngine.generatePersonalizedRecommendations(userId, {
+                max_results: Math.ceil(maxResults / recommendationTypes.length),
+                include_explanations: includeExplanations,
+                adventure_level: adventureLevel,
+                price_range: filters.price_range
+              });
+              break;
+
+            case 'trending':
+              typeRecs = await recommendationEngine.generateHybridRecommendations(userId, {
+                max_results: Math.ceil(maxResults / recommendationTypes.length)
+              });
+              break;
+
+            case 'seasonal':
+              typeRecs = await recommendationEngine.generatePersonalizedRecommendations(userId, {
+                max_results: Math.ceil(maxResults / recommendationTypes.length)
+              });
+              break;
+
+            case 'adventurous':
+              const diversifiedResult = await recommendationEngine.generateDiversifiedRecommendations(userId, {
+                max_results: Math.ceil(maxResults / recommendationTypes.length),
+                exploration_level: adventureLevel
+              });
+              typeRecs = diversifiedResult.recommendations;
+              break;
+          }
+
+          // Add recommendation type to each result
+          typeRecs.forEach(rec => {
+            rec.recommendation_type = recType;
+          });
+
+          generatedRecs.push(...typeRecs);
+        }
+
+        // Sort by score and limit
+        recommendations = generatedRecs
+          .sort((a, b) => (b.score || 0) - (a.score || 0))
+          .slice(0, maxResults);
+
+        // Cache the results
+        try {
+          await recommendationCache.storeRecommendations(
+            userId,
+            recommendationTypes.join('_'),
+            recommendations,
+            { user_context_hash: contextHash }
+          );
+        } catch (cacheError) {
+          console.warn('Cache storage failed:', cacheError);
+        }
+
+      } catch (generationError) {
+        console.error('Recommendation generation failed:', generationError);
+        
+        // Fallback to popular recommendations
+        const { data: fallbackRecs } = await supabase
+          .from('fragrances')
+          .select('id, name, rating_value, fragrance_brands(name)')
+          .gte('rating_value', 4.0)
+          .gte('rating_count', 50)
+          .order('rating_value', { ascending: false })
+          .limit(maxResults);
+
+        recommendations = (fallbackRecs || []).map(frag => ({
+          fragrance_id: frag.id,
+          name: frag.name,
+          brand: frag.fragrance_brands?.[0]?.name || 'Unknown',
+          recommendation_score: frag.rating_value / 5,
+          confidence: 0.3,
+          recommendation_type: 'fallback_popular',
+          explanation: includeExplanations ? {
+            primary_reason: 'Highly rated fragrance',
+            contributing_factors: ['popular_choice'],
+            confidence_level: 'low'
+          } : undefined,
+          personalization_factors: {
+            similarity_to_favorites: 0,
+            brand_affinity_match: 0,
+            collection_gap_fill: 0,
+            contextual_appropriateness: 0.5
+          },
+          metadata: {
+            algorithm_used: 'fallback_popularity',
+            cache_used: false,
+            generation_time_ms: 50
+          }
+        }));
+      }
+    }
+
+    // Get user preference strength for personalization summary
+    let preferenceStrength = 0.5;
+    let collectionConfidence = 0.5;
+    let personalizationApplied = false;
+
+    try {
+      const { data: userPrefs } = await supabase
+        .from('user_preferences')
+        .select('preference_strength, interaction_count')
+        .eq('user_id', userId)
+        .single();
+
+      if (userPrefs) {
+        preferenceStrength = userPrefs.preference_strength || 0.5;
+        collectionConfidence = Math.min(userPrefs.interaction_count / 10, 1.0);
+        personalizationApplied = true;
+      }
+    } catch (prefsError) {
+      console.warn('Could not fetch user preferences:', prefsError);
+    }
+
+    // Format final recommendations
+    const formattedRecommendations = recommendations.map(rec => ({
+      fragrance_id: rec.fragrance_id,
+      name: rec.name || rec.fragrance_name || 'Unknown Fragrance',
+      brand: rec.brand || rec.brand_name || 'Unknown Brand',
+      recommendation_score: rec.score || rec.hybrid_score || 0.5,
+      confidence: rec.confidence || (rec.score ? rec.score * 0.8 : 0.4),
+      recommendation_type: rec.recommendation_type || rec.source || 'personalized',
+      explanation: includeExplanations ? (rec.explanation ? {
+        primary_reason: rec.explanation,
+        contributing_factors: rec.contributing_algorithms || ['similarity'],
+        confidence_level: (rec.confidence || 0.5) > 0.8 ? 'high' : (rec.confidence || 0.5) > 0.6 ? 'medium' : 'low'
+      } : {
+        primary_reason: 'Recommended based on your preferences',
+        contributing_factors: ['preference_matching'],
+        confidence_level: 'medium'
+      }) : undefined,
+      personalization_factors: {
+        similarity_to_favorites: rec.content_score || 0.5,
+        brand_affinity_match: rec.brand_affinity || 0.5,
+        collection_gap_fill: rec.gap_fill_score || 0.3,
+        contextual_appropriateness: rec.contextual_score || 0.5
+      },
+      metadata: {
+        algorithm_used: rec.source || 'hybrid',
+        cache_used: cacheUsed,
+        generation_time_ms: cacheUsed ? 15 : 200
+      }
+    }));
+
+    // Build response
+    const response: PersonalizedRecommendationResponse = {
+      success: true,
+      user_id: userId,
+      recommendations: formattedRecommendations,
+      personalization_summary: {
+        user_preference_strength: preferenceStrength,
+        collection_analysis_confidence: collectionConfidence,
+        personalization_applied: personalizationApplied,
+        learning_opportunities: personalizationApplied 
+          ? ['Continue rating fragrances', 'Explore recommended scent families']
+          : ['Add fragrances to collection', 'Take fragrance quiz', 'Rate fragrances you know']
+      },
+      context_analysis: context ? {
+        context_understood: context,
+        contextual_adjustments: Object.keys(context).map(key => `${key}_optimized`),
+        context_confidence: 0.8
+      } : undefined,
+      recommendation_metadata: {
+        total_candidates_analyzed: 100, // Estimated
+        recommendation_types_generated: recommendationTypes,
+        processing_time_ms: Date.now() - startTime,
+        cache_performance: {
+          cache_hit_rate: cacheUsed ? 1.0 : 0.0,
+          cache_used: cacheUsed
+        },
+        ai_cost_estimate: cacheUsed ? 0 : 0.002 // Estimated cost for fresh generation
+      },
+      next_steps: {
+        feedback_encouraged: true,
+        collection_suggestions: formattedRecommendations.length > 0 
+          ? ['Try sample of top recommendation', 'Rate fragrances you know']
+          : ['Add preferences to get better recommendations'],
+        preference_learning_status: personalizationApplied ? 'active' : 'needs_data'
+      }
+    };
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': cacheUsed 
+          ? 'private, max-age=1800' // 30 minutes for cached
+          : 'private, max-age=300',  // 5 minutes for fresh
+        'X-Personalization-Applied': personalizationApplied.toString(),
+        'X-Cache-Used': cacheUsed.toString(),
+        'X-Recommendation-Types': recommendationTypes.join(','),
+        'X-Processing-Time': (Date.now() - startTime).toString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Personalized recommendations API error:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Recommendations temporarily unavailable',
+      details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+      user_id: 'error',
+      recommendation_metadata: {
+        total_candidates_analyzed: 0,
+        recommendation_types_generated: [],
+        processing_time_ms: Date.now() - startTime,
+        cache_performance: {
+          cache_hit_rate: 0,
+          cache_used: false
+        },
+        ai_cost_estimate: 0
+      }
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
+  try {
+    const body: PersonalizedRecommendationRequest = await request.json();
+    
+    // Validate request
+    if (!body.user_id) {
+      return NextResponse.json({
+        success: false,
+        error: 'user_id is required'
+      }, { status: 400 });
+    }
+
+    const supabase = await createServerSupabase();
+    
+    // Initialize AI systems
+    const recommendationEngine = new PersonalizedRecommendationEngine({
+      supabase,
+      contentBasedWeight: 0.5,
+      collaborativeWeight: 0.3,
+      contextualWeight: 0.15,
+      popularityWeight: 0.05,
+      enableRealTimeUpdates: body.options?.enable_real_time_learning ?? true
+    });
+
+    const recommendationCache = new RecommendationCache({
+      supabase,
+      defaultTTL: 3600,
+      enableRealTimeInvalidation: true
+    });
+
+    // Check if user has sufficient data for personalization
+    const { data: userPrefs } = await supabase
+      .from('user_preferences')
+      .select('preference_strength, interaction_count, user_embedding')
+      .eq('user_id', body.user_id)
+      .single();
+
+    const hasPersonalizationData = userPrefs && userPrefs.interaction_count > 0;
+    
+    // Generate recommendations
+    let recommendations = [];
+    let cacheUsed = false;
+    let aiCostEstimate = 0;
+
+    if (hasPersonalizationData) {
+      // Check cache first
+      const contextHash = body.context ? JSON.stringify(body.context) : 'default';
+      const cacheKey = `${body.recommendation_types?.join('_') || 'personalized'}_${contextHash}`;
+      
+      try {
+        const cachedRecs = await recommendationCache.getRecommendations(
+          body.user_id,
+          cacheKey,
+          contextHash
+        );
+
+        if (cachedRecs.cache_hit) {
+          recommendations = cachedRecs.recommendations;
+          cacheUsed = true;
+        }
+      } catch (cacheError) {
+        console.warn('Cache error:', cacheError.message);
+      }
+
+      // Generate fresh recommendations if needed
+      if (!cacheUsed) {
+        try {
+          const generatedRecs = await recommendationEngine.generatePersonalizedRecommendations(
+            body.user_id,
+            {
+              max_results: body.max_results || 20,
+              include_explanations: body.include_explanations,
+              adventure_level: body.options?.adventure_level || 0.5,
+              price_range: body.filters?.price_range
+            }
+          );
+
+          recommendations = generatedRecs;
+          aiCostEstimate = 0.003; // Estimated cost for personalized generation
+
+          // Cache the results
+          await recommendationCache.storeRecommendations(
+            body.user_id,
+            cacheKey,
+            recommendations,
+            { user_context_hash: contextHash }
+          );
+
+        } catch (generationError) {
+          console.error('Personalized generation failed:', generationError.message);
+          throw generationError;
+        }
+      }
+    } else {
+      // Cold start recommendations for new users
+      try {
+        const { data: popularFragrances } = await supabase
+          .from('fragrances')
+          .select(`
+            id,
+            name,
+            rating_value,
+            fragrance_family,
+            sample_available,
+            sample_price_usd,
+            fragrance_brands(name)
+          `)
+          .gte('rating_value', 4.0)
+          .gte('rating_count', 30)
+          .eq('sample_available', body.filters?.sample_only || false ? true : null)
+          .order('rating_value', { ascending: false })
+          .limit(body.max_results || 20);
+
+        recommendations = (popularFragrances || []).map(frag => ({
+          fragrance_id: frag.id,
+          name: frag.name,
+          brand: frag.fragrance_brands?.[0]?.name || 'Unknown',
+          score: frag.rating_value / 5,
+          confidence: 0.4,
+          recommendation_type: 'cold_start_popular',
+          explanation: body.include_explanations ? 'Highly rated fragrance popular among users' : undefined,
+          source: 'cold_start'
+        }));
+
+      } catch (coldStartError) {
+        console.error('Cold start generation failed:', coldStartError.message);
+        throw coldStartError;
+      }
+    }
+
+    // Apply filters
+    let filteredRecommendations = recommendations;
+    
+    if (body.filters?.scent_families) {
+      filteredRecommendations = filteredRecommendations.filter(rec => 
+        !rec.scent_family || body.filters.scent_families.includes(rec.scent_family)
+      );
+    }
+
+    if (body.filters?.price_range) {
+      filteredRecommendations = filteredRecommendations.filter(rec => {
+        const price = rec.sample_price_usd || rec.price || 50;
+        return price >= body.filters.price_range.min && price <= body.filters.price_range.max;
+      });
+    }
+
+    // Format response
+    const formattedRecommendations = filteredRecommendations.slice(0, body.max_results || 20).map(rec => ({
+      fragrance_id: rec.fragrance_id,
+      name: rec.name || rec.fragrance_name || 'Unknown',
+      brand: rec.brand || rec.brand_name || 'Unknown',
+      recommendation_score: rec.score || rec.hybrid_score || 0.5,
+      confidence: rec.confidence || (rec.score ? rec.score * 0.8 : 0.4),
+      recommendation_type: rec.recommendation_type || rec.source || 'personalized',
+      explanation: body.include_explanations ? {
+        primary_reason: rec.explanation || 'Matches your preferences',
+        contributing_factors: rec.contributing_algorithms || ['preference_analysis'],
+        confidence_level: (rec.confidence || 0.5) > 0.8 ? 'high' : (rec.confidence || 0.5) > 0.6 ? 'medium' : 'low'
+      } : undefined,
+      personalization_factors: {
+        similarity_to_favorites: rec.content_score || 0.5,
+        brand_affinity_match: rec.brand_affinity || 0.4,
+        collection_gap_fill: rec.gap_fill_score || 0.3,
+        contextual_appropriateness: rec.contextual_score || (body.context ? 0.7 : 0.5)
+      },
+      metadata: {
+        algorithm_used: rec.source || 'hybrid_personalized',
+        cache_used: cacheUsed,
+        generation_time_ms: cacheUsed ? 15 : 200
+      }
+    }));
+
+    const response: PersonalizedRecommendationResponse = {
+      success: true,
+      user_id: body.user_id,
+      recommendations: formattedRecommendations,
+      personalization_summary: {
+        user_preference_strength: userPrefs?.preference_strength || 0.3,
+        collection_analysis_confidence: hasPersonalizationData ? 0.8 : 0.1,
+        personalization_applied: hasPersonalizationData,
+        learning_opportunities: hasPersonalizationData 
+          ? ['Rate more fragrances', 'Update usage patterns', 'Provide feedback']
+          : ['Build collection', 'Complete preference quiz', 'Rate known fragrances']
+      },
+      context_analysis: body.context ? {
+        context_understood: body.context,
+        contextual_adjustments: Object.keys(body.context).map(key => `${key}_considered`),
+        context_confidence: 0.75
+      } : undefined,
+      recommendation_metadata: {
+        total_candidates_analyzed: hasPersonalizationData ? 200 : 50,
+        recommendation_types_generated: body.recommendation_types || ['personalized'],
+        processing_time_ms: Date.now() - startTime,
+        cache_performance: {
+          cache_hit_rate: cacheUsed ? 1.0 : 0.0,
+          cache_used: cacheUsed
+        },
+        ai_cost_estimate: aiCostEstimate
+      },
+      next_steps: {
+        feedback_encouraged: true,
+        collection_suggestions: formattedRecommendations.length > 0 
+          ? ['Try samples of top recommendations', 'Rate fragrances in your collection']
+          : ['Add known fragrances to collection', 'Take the fragrance quiz'],
+        preference_learning_status: hasPersonalizationData ? 'learning_active' : 'insufficient_data'
+      }
+    };
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': cacheUsed 
+          ? 'private, max-age=1800'
+          : 'private, max-age=300',
+        'X-Personalization-Applied': hasPersonalizationData.toString(),
+        'X-Cache-Used': cacheUsed.toString(),
+        'X-Processing-Time': (Date.now() - startTime).toString(),
+        'X-AI-Cost': aiCostEstimate.toString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Personalized recommendations POST error:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Recommendations temporarily unavailable',
+      details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+      user_id: body?.user_id || '',
+      recommendation_metadata: {
+        total_candidates_analyzed: 0,
+        recommendation_types_generated: [],
+        processing_time_ms: Date.now() - startTime,
+        cache_performance: {
+          cache_hit_rate: 0,
+          cache_used: false
+        },
+        ai_cost_estimate: 0
+      }
+    }, { status: 500 });
+  }
+}

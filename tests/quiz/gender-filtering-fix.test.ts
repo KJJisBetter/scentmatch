@@ -258,27 +258,33 @@ describe('Gender Filtering System - Critical Fix', () => {
 // These will need to be implemented to access fragrance gender data
 
 function getFragranceGenderTarget(fragranceId: string): string {
-  // This helper would extract gender_target from our fragrance data
-  // For now, we'll simulate this based on fragrance data patterns
-
   // Import the raw fragrance data to check
   const fragranceData = require('../../data/fragrances.json');
   const fragrance = fragranceData.find((f: any) => f.id === fragranceId);
 
   if (!fragrance) return 'unisex';
 
-  // Use the same logic as the engine to determine gender
-  const name = fragrance.name.toLowerCase();
-  if (name.includes('for women') || name.includes('for men')) {
-    return name.includes('for women') ? 'women' : 'men';
-  }
+  // Use the same normalization logic as the engine
+  return normalizeGender(fragrance.gender);
+}
 
-  // Check brand patterns for known gendered brands
-  const brand = fragrance.brandName.toLowerCase();
-  if (brand.includes('ariana') || brand.includes('taylor swift')) {
+function normalizeGender(gender: string): string {
+  if (!gender) return 'unisex';
+  
+  const normalizedGender = gender.toLowerCase().trim();
+  
+  // Handle various gender formats from JSON/database
+  if (normalizedGender.includes('women') || normalizedGender === 'feminine') {
     return 'women';
   }
-
+  if (normalizedGender.includes('men') || normalizedGender === 'masculine') {
+    return 'men';
+  }
+  if (normalizedGender === 'unisex' || normalizedGender === 'for women and men') {
+    return 'unisex';
+  }
+  
+  // Default to unisex for unknown formats
   return 'unisex';
 }
 

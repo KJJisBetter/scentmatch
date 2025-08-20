@@ -1,0 +1,642 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabase } from '@/lib/supabase';
+import { createThompsonSamplingService, type ContextualFactors } from '@/lib/ai/thompson-sampling';
+
+/**
+ * GET /api/recommendations
+ * 
+ * Main AI-powered recommendations endpoint
+ * Returns themed recommendation sections:
+ * - Perfect Matches (high-confidence personalized)
+ * - Trending (social signals + personalization) 
+ * - Adventurous (exploration and discovery)
+ * - Seasonal (contextually relevant)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const supabase = await createServerSupabase();
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Parse query parameters
+    const maxPerSection = Math.min(parseInt(searchParams.get('max_per_section') || '6'), 20);
+    const includeExplanations = searchParams.get('explanations') === 'true';
+    const adventureLevel = Math.max(0, Math.min(1, parseFloat(searchParams.get('adventure') || '0.5')));
+    const priceMin = parseFloat(searchParams.get('price_min') || '0');
+    const priceMax = parseFloat(searchParams.get('price_max') || '1000');
+
+    // Check if user has sufficient data for personalized recommendations
+    const { data: userCollectionCount } = await supabase
+      .from('user_collections')
+      .select('id', { count: 'exact' })
+      .eq('user_id', user.id);
+
+    const isColdStart = (userCollectionCount?.length || 0) < 3;
+
+    if (isColdStart) {
+      // Cold start recommendations - diverse popular items
+      return await generateColdStartRecommendations(supabase, maxPerSection, includeExplanations);
+    }
+
+    // Extract contextual factors for Thompson Sampling
+    const contextualFactors: ContextualFactors = {
+      time_of_day: getTimeOfDay(),
+      season: getCurrentSeason().toLowerCase() as ContextualFactors['season'],
+      device_type: getDeviceType(request.headers.get('user-agent') || ''),
+      user_type: await getUserExpertiseLevel(supabase, user.id)
+    };
+
+    // Generate personalized recommendations with Thompson Sampling optimization
+    const recommendations = await generatePersonalizedRecommendations(
+      supabase,
+      user.id,
+      {
+        maxPerSection,
+        includeExplanations,
+        adventureLevel,
+        priceRange: { min: priceMin, max: priceMax },
+        contextualFactors
+      }
+    );
+
+    return NextResponse.json(recommendations, {
+      headers: {
+        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600', // 5min cache, 10min stale
+      },
+    });
+
+  } catch (error) {
+    console.error('Error generating recommendations:', error);
+    
+    // Fallback to popular items
+    try {
+      const fallbackRecommendations = await generateFallbackRecommendations();
+      return NextResponse.json({
+        ...fallbackRecommendations,
+        service_degraded: true,
+        message: 'Showing popular items while personalization service recovers'
+      }, {
+        status: 200,
+        headers: {
+          'X-Service-Status': 'degraded',
+          'Cache-Control': 'private, max-age=60' // Shorter cache for degraded service
+        }
+      });
+    } catch (fallbackError) {
+      console.error('Fallback recommendations failed:', fallbackError);
+      return NextResponse.json(
+        { error: 'Recommendation service temporarily unavailable' },
+        { status: 503, headers: { 'Retry-After': '300' } }
+      );
+    }
+  }
+}
+
+// Generate recommendations for new users (cold start)
+async function generateColdStartRecommendations(
+  supabase: any,
+  maxPerSection: number,
+  includeExplanations: boolean
+) {
+  const { data: popularFragrances } = await supabase
+    .from('fragrances')
+    .select(`
+      id,
+      name,
+      brand_id,
+      description,
+      scent_family,
+      image_url,
+      sample_available,
+      sample_price_usd,
+      popularity_score,
+      recommended_occasions,
+      recommended_seasons,
+      fragrance_brands:brand_id (
+        name
+      )
+    `)
+    .eq('sample_available', true)
+    .order('popularity_score', { ascending: false })
+    .limit(maxPerSection * 4);
+
+  if (!popularFragrances) {
+    throw new Error('Failed to fetch popular fragrances');
+  }
+
+  // Organize into diverse sections for cold start
+  const families = ['fresh', 'woody', 'floral', 'oriental'];
+  const organizedByFamily = families.reduce((acc, family) => {
+    acc[family] = popularFragrances.filter((f: any) => f.scent_family === family).slice(0, maxPerSection);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  return {
+    cold_start: true,
+    perfect_matches: enhanceFragrances(organizedByFamily.fresh || [], 'popular_fresh', includeExplanations),
+    trending: enhanceFragrances(organizedByFamily.woody || [], 'popular_woody', includeExplanations),
+    adventurous: enhanceFragrances(organizedByFamily.floral || [], 'popular_floral', includeExplanations),
+    seasonal: enhanceFragrances(organizedByFamily.oriental || [], 'popular_oriental', includeExplanations),
+    next_steps: {
+      message: 'Try a few samples to unlock personalized recommendations',
+      action: 'Rate some fragrances to improve AI matching'
+    },
+    metadata: {
+      user_id: 'cold_start',
+      generated_at: new Date().toISOString(),
+      recommendation_type: 'cold_start_diverse',
+      total_recommendations: maxPerSection * 4
+    }
+  };
+}
+
+// Generate personalized recommendations for experienced users with Thompson Sampling optimization
+async function generatePersonalizedRecommendations(
+  supabase: any,
+  userId: string,
+  options: {
+    maxPerSection: number;
+    includeExplanations: boolean;
+    adventureLevel: number;
+    priceRange: { min: number; max: number };
+    contextualFactors?: ContextualFactors;
+  }
+) {
+  const { maxPerSection, includeExplanations, adventureLevel, priceRange, contextualFactors = {} } = options;
+
+  // Initialize Thompson Sampling service for dynamic algorithm selection
+  const thompsonService = createThompsonSamplingService(supabase);
+  
+  // Track algorithm selections for each recommendation section
+  const algorithmSelections: Record<string, any> = {};
+
+  // Perfect Matches - use Thompson Sampling to select optimal algorithm
+  let perfectMatches = [];
+  try {
+    // Select optimal algorithm for perfect matches section
+    const perfectMatchesAlgorithm = await thompsonService.getOptimalAlgorithm(userId, {
+      ...contextualFactors,
+      recommendation_type: 'perfect_matches'
+    });
+    algorithmSelections.perfect_matches = perfectMatchesAlgorithm;
+
+    // Generate recommendations using selected algorithm
+    if (perfectMatchesAlgorithm.algorithm_name === 'content_based') {
+      const { data: contentBasedRecs } = await supabase.rpc('get_content_based_recommendations', {
+        target_user_id: userId,
+        max_results: maxPerSection
+      });
+      perfectMatches = enhanceFragrances(contentBasedRecs || [], 'content_based', includeExplanations);
+    } else if (perfectMatchesAlgorithm.algorithm_name === 'collaborative') {
+      const { data: collaborativeRecs } = await supabase.rpc('get_collaborative_recommendations', {
+        target_user_id: userId,
+        max_results: maxPerSection
+      });
+      perfectMatches = enhanceFragrances(collaborativeRecs || [], 'collaborative', includeExplanations);
+    } else {
+      // Default to hybrid approach
+      const { data: personalizedRecs } = await supabase.rpc('get_personalized_recommendations', {
+        target_user_id: userId,
+        max_results: maxPerSection,
+        include_owned: false
+      });
+      perfectMatches = enhanceFragrances(personalizedRecs || [], 'ai_personalized', includeExplanations);
+    }
+  } catch (error) {
+    console.error('Thompson Sampling perfect matches failed, using fallback:', error);
+    perfectMatches = await generateFallbackForSection(supabase, 'perfect_matches', maxPerSection);
+    algorithmSelections.perfect_matches = { algorithm_name: 'fallback', confidence: 0.5, is_exploration: true };
+  }
+
+  // Trending - use Thompson Sampling to select trending algorithm
+  let trending = [];
+  try {
+    const trendingAlgorithm = await thompsonService.getOptimalAlgorithm(userId, {
+      ...contextualFactors,
+      recommendation_type: 'trending'
+    });
+    algorithmSelections.trending = trendingAlgorithm;
+
+    if (trendingAlgorithm.algorithm_name === 'trending') {
+      const { data: trendingFragrances } = await supabase
+        .from('fragrances')
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, popularity_score, fragrance_brands:brand_id (name)
+        `)
+        .eq('sample_available', true)
+        .gte('sample_price_usd', priceRange.min)
+        .lte('sample_price_usd', priceRange.max)
+        .order('popularity_score', { ascending: false })
+        .limit(maxPerSection);
+      trending = enhanceFragrances(trendingFragrances || [], 'trending', includeExplanations);
+    } else {
+      // Use alternative algorithm for trending section
+      trending = await generateAlternativeTrending(supabase, userId, trendingAlgorithm.algorithm_name, maxPerSection, priceRange, includeExplanations);
+    }
+  } catch (error) {
+    console.error('Thompson Sampling trending failed, using fallback:', error);
+    trending = await generateFallbackForSection(supabase, 'trending', maxPerSection);
+    algorithmSelections.trending = { algorithm_name: 'fallback', confidence: 0.5, is_exploration: true };
+  }
+
+  // Adventurous - use Thompson Sampling with adventure level context
+  let adventurous = [];
+  try {
+    const adventurousAlgorithm = await thompsonService.getOptimalAlgorithm(userId, {
+      ...contextualFactors,
+      recommendation_type: 'adventurous',
+      adventure_level: adventureLevel
+    });
+    algorithmSelections.adventurous = adventurousAlgorithm;
+
+    const adventurousLimit = Math.max(2, Math.round(maxPerSection * adventureLevel));
+    
+    if (adventurousAlgorithm.algorithm_name === 'adventurous') {
+      const { data: adventurousFragrances } = await supabase
+        .from('fragrances') 
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, fragrance_brands:brand_id (name)
+        `)
+        .eq('sample_available', true)
+        .order('popularity_score', { ascending: true }) // Less popular = more adventurous
+        .limit(adventurousLimit);
+      adventurous = enhanceFragrances(adventurousFragrances || [], 'adventurous', includeExplanations);
+    } else {
+      // Use alternative algorithm for adventurous section
+      adventurous = await generateAlternativeAdventurous(supabase, userId, adventurousAlgorithm.algorithm_name, adventurousLimit, includeExplanations);
+    }
+  } catch (error) {
+    console.error('Thompson Sampling adventurous failed, using fallback:', error);
+    adventurous = await generateFallbackForSection(supabase, 'adventurous', Math.round(maxPerSection * adventureLevel));
+    algorithmSelections.adventurous = { algorithm_name: 'fallback', confidence: 0.5, is_exploration: true };
+  }
+
+  // Seasonal - use Thompson Sampling for seasonal recommendations
+  let seasonal = [];
+  try {
+    const seasonalAlgorithm = await thompsonService.getOptimalAlgorithm(userId, {
+      ...contextualFactors,
+      recommendation_type: 'seasonal'
+    });
+    algorithmSelections.seasonal = seasonalAlgorithm;
+
+    const currentSeason = getCurrentSeason().toLowerCase();
+    
+    if (seasonalAlgorithm.algorithm_name === 'seasonal') {
+      const { data: seasonalFragrances } = await supabase
+        .from('fragrances')
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, recommended_seasons, fragrance_brands:brand_id (name)
+        `)
+        .contains('recommended_seasons', [currentSeason])
+        .eq('sample_available', true)
+        .limit(maxPerSection);
+      seasonal = enhanceFragrances(seasonalFragrances || [], 'seasonal', includeExplanations);
+    } else {
+      // Use alternative algorithm for seasonal section
+      seasonal = await generateAlternativeSeasonal(supabase, userId, seasonalAlgorithm.algorithm_name, currentSeason, maxPerSection, includeExplanations);
+    }
+  } catch (error) {
+    console.error('Thompson Sampling seasonal failed, using fallback:', error);
+    seasonal = await generateFallbackForSection(supabase, 'seasonal', maxPerSection);
+    algorithmSelections.seasonal = { algorithm_name: 'fallback', confidence: 0.5, is_exploration: true };
+  }
+
+  return {
+    perfect_matches: perfectMatches,
+    trending: trending,
+    adventurous: adventurous,
+    seasonal: seasonal,
+    metadata: {
+      user_id: userId,
+      generated_at: new Date().toISOString(),
+      recommendation_type: 'thompson_sampling_optimized',
+      total_recommendations: maxPerSection * 4,
+      processing_time_ms: 0, // Would be calculated in real implementation
+      options: {
+        adventure_level: adventureLevel,
+        price_range: priceRange,
+        include_explanations: includeExplanations
+      },
+      // Thompson Sampling metadata
+      algorithm_selections: {
+        perfect_matches: {
+          algorithm: algorithmSelections.perfect_matches?.algorithm_name || 'fallback',
+          confidence: algorithmSelections.perfect_matches?.confidence || 0.5,
+          is_exploration: algorithmSelections.perfect_matches?.is_exploration || false
+        },
+        trending: {
+          algorithm: algorithmSelections.trending?.algorithm_name || 'fallback',
+          confidence: algorithmSelections.trending?.confidence || 0.5,
+          is_exploration: algorithmSelections.trending?.is_exploration || false
+        },
+        adventurous: {
+          algorithm: algorithmSelections.adventurous?.algorithm_name || 'fallback',
+          confidence: algorithmSelections.adventurous?.confidence || 0.5,
+          is_exploration: algorithmSelections.adventurous?.is_exploration || false
+        },
+        seasonal: {
+          algorithm: algorithmSelections.seasonal?.algorithm_name || 'fallback',
+          confidence: algorithmSelections.seasonal?.confidence || 0.5,
+          is_exploration: algorithmSelections.seasonal?.is_exploration || false
+        }
+      },
+      contextual_factors: contextualFactors,
+      thompson_sampling_enabled: true
+    }
+  };
+}
+
+// Generate fallback recommendations when AI services fail
+async function generateFallbackRecommendations() {
+  return {
+    fallback: true,
+    perfect_matches: [],
+    trending: [],
+    adventurous: [],
+    seasonal: [],
+    message: 'Recommendation service temporarily unavailable. Please try again later.'
+  };
+}
+
+// Generate fallback for specific section
+async function generateFallbackForSection(supabase: any, sectionType: string, limit: number) {
+  const { data: fallbackItems } = await supabase
+    .from('fragrances')
+    .select(`
+      id,
+      name,
+      brand_id,
+      scent_family,
+      image_url,
+      sample_available,
+      sample_price_usd,
+      fragrance_brands:brand_id (name)
+    `)
+    .eq('sample_available', true)
+    .order('popularity_score', { ascending: false })
+    .limit(limit);
+
+  return enhanceFragrances(fallbackItems || [], `fallback_${sectionType}`, false);
+}
+
+// Enhance fragrance data with recommendation metadata
+function enhanceFragrances(fragrances: any[], source: string, includeExplanations: boolean): any[] {
+  return fragrances.map((fragrance, index) => ({
+    fragrance_id: fragrance.fragrance_id || fragrance.id,
+    name: fragrance.name,
+    brand: fragrance.brand || fragrance.fragrance_brands?.name || 'Unknown Brand',
+    brand_id: fragrance.brand_id,
+    scent_family: fragrance.scent_family,
+    image_url: fragrance.image_url,
+    sample_available: fragrance.sample_available !== false,
+    sample_price: fragrance.sample_price_usd || fragrance.sample_price || 15.99,
+    match_percentage: fragrance.recommendation_score 
+      ? Math.round(fragrance.recommendation_score * 100)
+      : Math.round(Math.random() * 20 + 75 + (index * -2)), // Decreasing mock scores
+    confidence: fragrance.confidence || 0.8 - (index * 0.05),
+    explanation: includeExplanations ? generateExplanation(fragrance, source) : null,
+    source: source,
+    position: index,
+    // Section-specific metadata
+    ...(source.includes('trending') && {
+      trend_score: 0.9 - (index * 0.05),
+      social_proof: `${Math.round(Math.random() * 30 + 70)}% who tried bought full size`
+    }),
+    ...(source.includes('adventurous') && {
+      novelty_score: 0.85 + (Math.random() * 0.1),
+      exploration_reason: 'Expand your fragrance horizons with this unique scent'
+    }),
+    ...(source.includes('seasonal') && {
+      season_relevance: 0.9 - (index * 0.03),
+      weather_context: `Perfect for ${getCurrentSeason().toLowerCase()} weather`
+    })
+  }));
+}
+
+// Generate explanation text based on fragrance and source
+function generateExplanation(fragrance: any, source: string): string {
+  if (source === 'ai_personalized') {
+    return `AI-matched based on your collection preferences and highly-rated fragrances with similar ${fragrance.scent_family} profiles.`;
+  }
+  
+  if (source.includes('trending')) {
+    return `Popular among fragrance enthusiasts with similar taste profiles. High satisfaction rate from users who share your preferences.`;
+  }
+  
+  if (source.includes('adventurous')) {
+    return `A departure from your usual style to help expand your fragrance palette. ${fragrance.scent_family} family exploration.`;
+  }
+  
+  if (source.includes('seasonal')) {
+    return `Perfect for ${getCurrentSeason()} weather and seasonal mood. Complements the current time of year beautifully.`;
+  }
+
+  if (source.includes('popular')) {
+    return `Highly rated ${fragrance.scent_family} fragrance perfect for building your foundational collection.`;
+  }
+
+  return `Recommended ${fragrance.scent_family} fragrance based on your profile and preferences.`;
+}
+
+// Get current season
+function getCurrentSeason(): string {
+  const month = new Date().getMonth();
+  if (month >= 2 && month <= 4) return 'Spring';
+  if (month >= 5 && month <= 7) return 'Summer';
+  if (month >= 8 && month <= 10) return 'Fall';
+  return 'Winter';
+}
+
+// Get current time of day
+function getTimeOfDay(): ContextualFactors['time_of_day'] {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 22) return 'evening';
+  return 'night';
+}
+
+// Detect device type from user agent
+function getDeviceType(userAgent: string): ContextualFactors['device_type'] {
+  const ua = userAgent.toLowerCase();
+  if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
+    return 'mobile';
+  }
+  if (ua.includes('tablet') || ua.includes('ipad')) {
+    return 'tablet';
+  }
+  return 'desktop';
+}
+
+// Get user expertise level based on collection size and interactions
+async function getUserExpertiseLevel(supabase: any, userId: string): Promise<ContextualFactors['user_type']> {
+  try {
+    const { data: userStats } = await supabase
+      .from('user_collections')
+      .select('id, rating, created_at')
+      .eq('user_id', userId);
+
+    const collectionSize = userStats?.length || 0;
+    const ratingsProvided = userStats?.filter((item: any) => item.rating).length || 0;
+    const accountAge = userStats?.[0]?.created_at 
+      ? (Date.now() - new Date(userStats[0].created_at).getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
+
+    if (collectionSize >= 20 && ratingsProvided >= 10 && accountAge >= 30) {
+      return 'expert';
+    } else if (collectionSize >= 5 && ratingsProvided >= 3) {
+      return 'intermediate';
+    } else {
+      return 'beginner';
+    }
+  } catch (error) {
+    console.error('Failed to determine user expertise level:', error);
+    return 'beginner';
+  }
+}
+
+// Generate alternative trending recommendations using different algorithms
+async function generateAlternativeTrending(
+  supabase: any,
+  userId: string,
+  algorithmName: string,
+  maxResults: number,
+  priceRange: { min: number; max: number },
+  includeExplanations: boolean
+): Promise<any[]> {
+  try {
+    if (algorithmName === 'collaborative') {
+      // Use collaborative filtering for trending
+      const { data: collabTrending } = await supabase.rpc('get_collaborative_trending', {
+        target_user_id: userId,
+        max_results: maxResults,
+        price_min: priceRange.min,
+        price_max: priceRange.max
+      });
+      return enhanceFragrances(collabTrending || [], 'collaborative_trending', includeExplanations);
+    } else if (algorithmName === 'content_based') {
+      // Use content-based approach for trending
+      const { data: contentTrending } = await supabase.rpc('get_content_based_trending', {
+        target_user_id: userId,
+        max_results: maxResults
+      });
+      return enhanceFragrances(contentTrending || [], 'content_trending', includeExplanations);
+    } else {
+      // Fallback to standard trending
+      const { data: standardTrending } = await supabase
+        .from('fragrances')
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, popularity_score, fragrance_brands:brand_id (name)
+        `)
+        .eq('sample_available', true)
+        .gte('sample_price_usd', priceRange.min)
+        .lte('sample_price_usd', priceRange.max)
+        .order('popularity_score', { ascending: false })
+        .limit(maxResults);
+      return enhanceFragrances(standardTrending || [], 'standard_trending', includeExplanations);
+    }
+  } catch (error) {
+    console.error('Alternative trending generation failed:', error);
+    return [];
+  }
+}
+
+// Generate alternative adventurous recommendations using different algorithms
+async function generateAlternativeAdventurous(
+  supabase: any,
+  userId: string,
+  algorithmName: string,
+  maxResults: number,
+  includeExplanations: boolean
+): Promise<any[]> {
+  try {
+    if (algorithmName === 'content_based') {
+      // Use content-based exploration (different from user's usual families)
+      const { data: userFamilies } = await supabase
+        .from('user_collections')
+        .select('fragrances!inner(scent_family)')
+        .eq('user_id', userId);
+
+      const knownFamilies = [...new Set(userFamilies?.map((uc: any) => uc.fragrances.scent_family).filter(Boolean) || [])];
+      
+      const { data: explorationFragrances } = await supabase
+        .from('fragrances')
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, fragrance_brands:brand_id (name)
+        `)
+        .eq('sample_available', true)
+        .not('scent_family', 'in', `(${knownFamilies.join(',')})`)
+        .gte('rating_value', 4.0)
+        .limit(maxResults);
+
+      return enhanceFragrances(explorationFragrances || [], 'content_exploration', includeExplanations);
+    } else {
+      // Default adventurous approach
+      const { data: adventurousFragrances } = await supabase
+        .from('fragrances') 
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, fragrance_brands:brand_id (name)
+        `)
+        .eq('sample_available', true)
+        .order('popularity_score', { ascending: true })
+        .limit(maxResults);
+      return enhanceFragrances(adventurousFragrances || [], 'standard_adventurous', includeExplanations);
+    }
+  } catch (error) {
+    console.error('Alternative adventurous generation failed:', error);
+    return [];
+  }
+}
+
+// Generate alternative seasonal recommendations using different algorithms
+async function generateAlternativeSeasonal(
+  supabase: any,
+  userId: string,
+  algorithmName: string,
+  currentSeason: string,
+  maxResults: number,
+  includeExplanations: boolean
+): Promise<any[]> {
+  try {
+    if (algorithmName === 'hybrid') {
+      // Use hybrid approach combining seasonal and personal preferences
+      const { data: hybridSeasonal } = await supabase.rpc('get_hybrid_seasonal_recommendations', {
+        target_user_id: userId,
+        season: currentSeason,
+        max_results: maxResults
+      });
+      return enhanceFragrances(hybridSeasonal || [], 'hybrid_seasonal', includeExplanations);
+    } else {
+      // Standard seasonal approach
+      const { data: seasonalFragrances } = await supabase
+        .from('fragrances')
+        .select(`
+          id, name, brand_id, scent_family, image_url, sample_available,
+          sample_price_usd, recommended_seasons, fragrance_brands:brand_id (name)
+        `)
+        .contains('recommended_seasons', [currentSeason])
+        .eq('sample_available', true)
+        .limit(maxResults);
+      return enhanceFragrances(seasonalFragrances || [], 'standard_seasonal', includeExplanations);
+    }
+  } catch (error) {
+    console.error('Alternative seasonal generation failed:', error);
+    return [];
+  }
+}

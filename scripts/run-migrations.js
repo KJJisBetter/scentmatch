@@ -29,7 +29,11 @@ const MIGRATION_FILES = [
   '20250815000001_security_fixes_and_schema_foundation.sql',
   '20250815000002_database_functions.sql',
   '20250815000003_quiz_system_foundation.sql',
-  '20250815000004_quiz_content_and_logic.sql'
+  '20250815000004_quiz_content_and_logic.sql',
+  '20250818000001_kaggle_dataset_schema_enhancements.sql',
+  '20250818000010_complete_database_rebuild.sql',
+  '20250818000020_ai_enhancement_system.sql',
+  '20250820000010_fragrance_data_quality_system.sql'
 ];
 
 async function executeMigration(filename) {

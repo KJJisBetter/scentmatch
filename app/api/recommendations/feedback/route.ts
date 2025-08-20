@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase';
+import { 
+  FeedbackProcessor, 
+  RecommendationCache,
+  type FeedbackEvent 
+} from '@/lib/ai/recommendation-engine';
+import { createThompsonSamplingService, type FeedbackEvent as BanditFeedbackEvent } from '@/lib/ai/thompson-sampling';
 
 /**
  * POST /api/recommendations/feedback
  * 
- * Processes user feedback on recommendations for AI learning
- * Handles both explicit feedback (likes, dislikes, ratings) and implicit signals
- * Updates user preferences in real-time for improved future recommendations
+ * AI-enhanced feedback processing with real-time preference learning,
+ * embedding updates, and recommendation cache invalidation.
  */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const supabase = await createServerSupabase();
 
@@ -34,8 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Validate feedback type
     const validFeedbackTypes = [
-      'like', 'dislike', 'love', 'maybe', 'dismiss', 'sample_request',
-      'detailed_rating', 'implicit_signals'
+      'like', 'dislike', 'rating', 'purchase_intent', 'love', 'maybe', 'dismiss'
     ];
     
     if (!validFeedbackTypes.includes(body.feedback_type)) {
@@ -45,63 +51,167 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sanitize input data
-    const sanitizedData = {
-      fragrance_id: body.fragrance_id.toString().trim(),
+    // Initialize AI feedback processor
+    const feedbackProcessor = new FeedbackProcessor({
+      supabase,
+      enableImplicitFeedback: true,
+      enableExplicitFeedback: true,
+      learningRate: 0.1,
+      feedbackDecayDays: 90
+    });
+
+    const recommendationCache = new RecommendationCache({
+      supabase,
+      defaultTTL: 3600,
+      enableRealTimeInvalidation: true
+    });
+
+    // Create feedback event
+    const feedbackEvent: FeedbackEvent = {
+      user_id: user.id,
+      fragrance_id: body.fragrance_id,
       feedback_type: body.feedback_type,
-      value: body.value,
-      context: body.context || {},
-      implicit_signals: body.implicit_signals || {},
-      timestamp: new Date().toISOString()
+      rating_value: body.rating_value,
+      confidence: body.confidence || 0.8,
+      reason: body.reason,
+      context: {
+        recommendation_id: body.recommendation_id,
+        recommendation_source: body.source || 'unknown',
+        recommendation_position: body.position,
+        ...body.context
+      }
     };
 
-    // Store the interaction in user_fragrance_interactions table
+    // Process explicit feedback through AI system
+    const processingResult = await feedbackProcessor.processExplicitFeedback(feedbackEvent);
+
+    // Process Thompson Sampling bandit feedback
+    let banditProcessingResult = null;
+    try {
+      const thompsonService = createThompsonSamplingService(supabase);
+      
+      // Convert to bandit feedback format
+      const banditFeedback: BanditFeedbackEvent = {
+        user_id: user.id,
+        fragrance_id: body.fragrance_id,
+        algorithm_used: body.algorithm_used || 'hybrid', // Should be provided by frontend
+        action: mapFeedbackTypeToAction(body.feedback_type),
+        action_value: body.rating_value,
+        immediate_reward: 0, // Will be calculated by processor
+        contextual_factors: extractContextualFactors(body.context || {}),
+        session_id: body.session_id || `session_${Date.now()}`,
+        time_to_action_seconds: body.time_to_action_seconds
+      };
+
+      banditProcessingResult = await thompsonService.processFeedback(banditFeedback);
+    } catch (banditError) {
+      console.warn('Thompson Sampling feedback processing failed:', banditError);
+    }
+
+    // Invalidate recommendation cache if significant feedback
+    let cacheInvalidated = false;
+    if (processingResult.learning_impact > 0.1) {
+      try {
+        const invalidationResult = await recommendationCache.invalidateUserCache(user.id, {
+          type: 'feedback_received',
+          fragrance_id: body.fragrance_id,
+          rating: body.rating_value,
+          impact_level: processingResult.learning_impact > 0.2 ? 'high' : 'medium'
+        });
+        
+        cacheInvalidated = invalidationResult.invalidated;
+      } catch (cacheError) {
+        console.warn('Cache invalidation failed:', cacheError instanceof Error ? cacheError.message : cacheError);
+      }
+    }
+
+    // Store interaction in new AI system format
     const { error: interactionError } = await supabase
-      .from('user_fragrance_interactions')
+      .from('user_interactions')
       .insert({
         user_id: user.id,
-        fragrance_id: sanitizedData.fragrance_id,
-        interaction_type: sanitizedData.feedback_type,
-        interaction_context: 'recommendation_feedback',
-        interaction_metadata: {
-          recommendation_context: sanitizedData.context,
-          implicit_signals: sanitizedData.implicit_signals,
-          feedback_value: sanitizedData.value
+        fragrance_id: body.fragrance_id,
+        interaction_type: body.feedback_type,
+        interaction_value: body.rating_value || (body.feedback_type === 'like' ? 1 : body.feedback_type === 'dislike' ? 0 : 0.5),
+        interaction_context: {
+          recommendation_context: body.context || {},
+          feedback_source: 'explicit',
+          recommendation_id: body.recommendation_id,
+          processing_result: processingResult
         }
       });
 
     if (interactionError) {
-      console.error('Error storing interaction:', interactionError);
+      console.warn('Error storing interaction:', interactionError.message);
     }
 
-    // Process feedback for preference learning
-    const learningResult = await processPreferenceLearning(
-      supabase,
-      user.id,
-      sanitizedData
-    );
+    // Assess feedback quality for learning weight
+    const feedbackQuality = await feedbackProcessor.assessFeedbackQuality({
+      user_id: user.id,
+      fragrance_id: body.fragrance_id,
+      feedback_type: body.feedback_type,
+      rating_value: body.rating_value,
+      time_spent_before_rating: body.time_spent_before_rating || 30,
+      previous_interactions: body.previous_interactions || 0
+    });
 
-    // Determine if recommendations need refreshing
-    const shouldRefreshRecommendations = 
-      ['like', 'dislike', 'love'].includes(sanitizedData.feedback_type) ||
-      (learningResult.confidence_change && Math.abs(learningResult.confidence_change) > 0.1);
-
-    return NextResponse.json({
-      processed: true,
+    const response = {
+      success: true,
+      feedback_processed: true,
       feedback_id: `feedback_${Date.now()}`,
-      preference_update: learningResult,
-      next_recommendations_affected: shouldRefreshRecommendations,
-      processing_time_ms: 23, // Would be actual processing time
-      message: getFeedbackMessage(sanitizedData.feedback_type)
+      learning_impact: processingResult.learning_impact,
+      preference_update: {
+        preferences_updated: processingResult.preference_update_applied,
+        embedding_updated: processingResult.updated_embedding,
+        confidence_change: processingResult.learning_impact * 0.05,
+        learning_weight: feedbackQuality.learning_weight
+      },
+      recommendation_refresh: {
+        cache_invalidated: cacheInvalidated,
+        new_recommendations_available: cacheInvalidated,
+        refresh_recommended: processingResult.learning_impact > 0.15
+      },
+      feedback_quality: {
+        reliability_score: feedbackQuality.reliability_score,
+        quality_level: feedbackQuality.quality_level,
+        trust_factors: feedbackQuality.trust_factors
+      },
+      // Thompson Sampling bandit results
+      bandit_optimization: banditProcessingResult ? {
+        algorithm_updated: banditProcessingResult.algorithm_updated,
+        new_success_rate: banditProcessingResult.new_success_rate,
+        bandit_learning_impact: banditProcessingResult.learning_impact,
+        processing_time_ms: banditProcessingResult.processing_time_ms
+      } : null,
+      user_message: getFeedbackMessage(body.feedback_type),
+      metadata: {
+        processing_time_ms: Date.now() - startTime,
+        ai_learning_applied: true,
+        bandit_learning_applied: banditProcessingResult?.processed || false,
+        preference_adjustment_type: processingResult.preference_adjustment
+      }
+    };
+
+    return NextResponse.json(response, {
+      headers: {
+        'X-Learning-Impact': processingResult.learning_impact.toString(),
+        'X-Cache-Invalidated': cacheInvalidated.toString(),
+        'X-Processing-Time': (Date.now() - startTime).toString()
+      }
     });
 
   } catch (error) {
     console.error('Error processing feedback:', error);
     
-    return NextResponse.json(
-      { error: 'Failed to process feedback' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to process feedback',
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined,
+      metadata: {
+        processing_time_ms: Date.now() - startTime,
+        ai_learning_applied: false
+      }
+    }, { status: 500 });
   }
 }
 
@@ -226,4 +336,42 @@ function getCurrentSeason(): string {
   if (month >= 5 && month <= 7) return 'Summer';
   if (month >= 8 && month <= 10) return 'Fall';
   return 'Winter';
+}
+
+// Map feedback types to bandit actions
+function mapFeedbackTypeToAction(feedbackType: string): BanditFeedbackEvent['action'] {
+  const actionMap: Record<string, BanditFeedbackEvent['action']> = {
+    'like': 'click',
+    'dislike': 'ignore',
+    'love': 'add_to_collection',
+    'maybe': 'view',
+    'dismiss': 'ignore',
+    'sample_request': 'purchase_intent',
+    'detailed_rating': 'rating'
+  };
+
+  return actionMap[feedbackType] || 'view';
+}
+
+// Extract contextual factors from request context
+function extractContextualFactors(context: any): any {
+  return {
+    time_of_day: context.time_of_day || getTimeOfDay(),
+    season: context.season || getCurrentSeason().toLowerCase(),
+    device_type: context.device_type || 'desktop',
+    user_type: context.user_type || 'intermediate',
+    session_duration: context.session_duration,
+    interaction_velocity: context.interaction_velocity,
+    occasion: context.occasion,
+    location_type: context.location_type
+  };
+}
+
+// Get current time of day
+function getTimeOfDay(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 22) return 'evening';
+  return 'night';
 }

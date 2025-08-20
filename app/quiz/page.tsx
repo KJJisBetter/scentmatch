@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { EnhancedQuizFlow } from '@/components/quiz/enhanced-quiz-flow';
 import { ConversionFlow } from '@/components/quiz/conversion-flow';
 
@@ -17,6 +17,19 @@ import { ConversionFlow } from '@/components/quiz/conversion-flow';
 export default function QuizPage() {
   const [showConversion, setShowConversion] = useState(false);
   const [conversionData, setConversionData] = useState<any>(null);
+  const [storedGender, setStoredGender] = useState<string | null>(null);
+
+  // Check for stored gender preference from redirect
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('quiz-gender-preference');
+      if (stored) {
+        setStoredGender(stored);
+        // Clear the stored preference
+        localStorage.removeItem('quiz-gender-preference');
+      }
+    }
+  }, []);
 
   const handleConversionReady = (results: any) => {
     setConversionData(results);
@@ -77,7 +90,10 @@ export default function QuizPage() {
         </div>
 
         {/* Enhanced Quiz Flow */}
-        <EnhancedQuizFlow onConversionReady={handleConversionReady} />
+        <EnhancedQuizFlow 
+          onConversionReady={handleConversionReady} 
+          initialGender={storedGender as any}
+        />
 
         {/* Trust Signals */}
         <div className='mt-12 text-center'>

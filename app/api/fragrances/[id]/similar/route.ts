@@ -18,7 +18,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
 
     // Validate fragrance ID
@@ -66,7 +66,7 @@ export async function GET(
       console.error('Error fetching similar fragrances:', error);
       
       // If the function doesn't exist yet, fall back to a basic approach
-      if (error.code === '42883') {
+      if (error.code === '42883' || error.code === 'PGRST202') {
         // Function not found - return mock data or try alternative approach
         const { data: allFragrances } = await supabase
           .from('fragrances')

@@ -1,0 +1,64 @@
+{
+  "research_sources": {
+    "2025_bestsellers_research": {
+      "file": "../../archive/2025-bestsellers-research.json",
+      "key_insights": {
+        "true_bestsellers": [
+          {"name": "Sauvage Eau De Parfum", "brand": "Christian Dior", "amazon_sales": 3007, "rank": 1},
+          {"name": "Aventus", "brand": "Creed", "rank": 2},
+          {"name": "Gucci Bloom", "brand": "Gucci", "amazon_sales": 2212, "rank": 3},
+          {"name": "Baccarat Rouge 540", "brand": "Maison Francis Kurkdjian", "amazon_sales": 1915, "rank": 6},
+          {"name": "Tobacco Vanille", "brand": "Tom Ford", "rank": 14},
+          {"name": "Good Girl", "brand": "Carolina Herrera", "rank": 15},
+          {"name": "Delina", "brand": "Parfums de Marly", "rank": 16}
+        ],
+        "viral_trends_2025": [
+          {"name": "Missing Person", "brand": "Phlur", "rank": 7},
+          {"name": "Cloud", "brand": "Ariana Grande", "rank": 8},
+          {"name": "Glossier You", "brand": "Glossier", "rank": 17},
+          {"name": "Another 13", "brand": "Le Labo", "rank": 18}
+        ]
+      }
+    },
+    "2025_market_analysis": {
+      "file": "../../archive/2025-market-analysis-report.json", 
+      "key_insights": {
+        "total_reviewed": 2002,
+        "average_rating": 4.03,
+        "total_reviews": 8354743,
+        "top_accords": ["woody", "citrus", "floral"],
+        "gender_distribution": {"feminine": 129, "masculine": 25, "unisex": 381}
+      }
+    }
+  },
+  "integration_strategy": {
+    "bestseller_validation": {
+      "purpose": "Cross-reference Kaggle data with research-validated bestsellers",
+      "method": "Ensure all research-identified bestsellers get maximum priority boost",
+      "boost_multiplier": 3.0,
+      "validation": "Check that Sauvage EDP, Aventus, etc. appear in top 20 of filtered dataset"
+    },
+    "trend_integration": {
+      "purpose": "Include viral/trending fragrances identified in research",
+      "method": "Add manual priority for Phlur, Glossier, DedCool, etc.",
+      "boost_multiplier": 2.5,
+      "note": "Balance luxury classics with modern viral fragrances"
+    },
+    "market_accord_weighting": {
+      "purpose": "Use market analysis accord popularity in filtering",
+      "top_accords": ["woody", "citrus", "floral", "fresh spicy", "sweet"],
+      "boost_factor": 1.2,
+      "method": "Slight preference for fragrances with popular accord combinations"
+    }
+  },
+  "quality_assurance": {
+    "research_validation_checks": [
+      "Sauvage Eau de Parfum must be in top 5",
+      "Aventus must be in top 10", 
+      "All research bestsellers must be in top 50",
+      "Viral trends (Cloud, Missing Person) must be in top 100",
+      "Tom Ford Tobacco Vanille must be in top 50"
+    ],
+    "cross_reference_method": "Compare filtered results against research rankings"
+  }
+}

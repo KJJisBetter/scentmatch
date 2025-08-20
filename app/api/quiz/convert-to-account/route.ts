@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase';
 
 /**
  * POST /api/quiz/convert-to-account
@@ -9,26 +9,32 @@ import { createServerSupabase } from '@/lib/supabase';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabase();
     const body = await request.json();
+    
+    // Use service role client for guest session transfers
+    // Guest sessions are token-based, not cookie-based, so createServerSupabase() fails
+    const supabase = createServiceSupabase();
 
     // Validate required fields
-    if (!body.session_token || !body.user_data?.email) {
+    if (!body.session_token || !body.user_data?.email || !body.user_data?.user_id) {
       return NextResponse.json(
-        { error: 'Session token and user email are required' },
+        { error: 'Session token, user email, and user_id are required' },
         { status: 400 }
       );
     }
 
-    // Get authenticated user (should be just created)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Verify user exists (more reliable than session-based auth for this conversion flow)
+    const { data: existingUser, error: userCheckError } = await supabase.auth.admin.getUserById(body.user_data.user_id);
     
-    if (authError || !user) {
+    if (userCheckError || !existingUser.user) {
+      console.error('User verification failed:', userCheckError);
       return NextResponse.json(
-        { error: 'User authentication required' },
+        { error: 'Invalid user - account verification failed' },
         { status: 401 }
       );
     }
+
+    const user = existingUser.user;
 
     // Find guest session
     const { data: guestSession, error: sessionError } = await supabase
@@ -51,8 +57,9 @@ export async function POST(request: NextRequest) {
       target_user_id: user.id
     });
 
-    if (transferError || !transferResult.transfer_successful) {
+    if (transferError || !transferResult?.transfer_successful) {
       console.error('Transfer failed:', transferError);
+      console.error('Transfer result:', transferResult);
       return NextResponse.json(
         { error: 'Failed to transfer quiz data' },
         { status: 500 }

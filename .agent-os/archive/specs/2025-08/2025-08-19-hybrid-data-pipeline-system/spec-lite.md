@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement a 3-phase hybrid data pipeline that processes Kaggle's 24K fragrance dataset down to 2K curated entries using priority scoring, fills gaps through ethical Fragrantica scraping, and maintains ongoing intelligence gathering for new releases. System includes automated filtering, respectful web scraping with proper rate limiting, and seamless Supabase integration with continuous monitoring for trending fragrances.

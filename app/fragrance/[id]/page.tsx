@@ -9,7 +9,7 @@ interface FragrancePageProps {
   }>;
 }
 
-// Simple fragrance page without complex components
+// Simple fragrance page using working API route
 export default async function SimpleFragrancePage({ params }: FragrancePageProps) {
   const { id } = await params;
 
@@ -17,62 +17,35 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
     notFound();
   }
 
-  // Use basic database query that we know works (same pattern as search API fallback)
-  const supabase = await createServerSupabase();
-
+  // Use the working API route instead of direct database access
   let fragrance = null;
   try {
-    const { data: fragranceResults, error } = await supabase
-      .from('fragrances')
-      .select(`
-        id,
-        name,
-        scent_family,
-        sample_available,
-        sample_price_usd,
-        popularity_score,
-        fragrance_brands:brand_id (
-          name
-        )
-      `)
-      .eq('id', id)
-      .limit(1);
+    const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+      : 'http://localhost:3000';
+      
+    const response = await fetch(`${baseUrl}/api/fragrances/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (error || !fragranceResults || fragranceResults.length === 0) {
-      console.error('Fragrance query failed, trying search API approach');
-
-      // Fallback: use the search results that we know work
-      const { data: searchResults } = await supabase.rpc('simple_fragrance_search', {
-        query_text: '',
-        limit_count: 100
-      });
-
-      if (searchResults) {
-        const found = searchResults.find((f: any) => f.fragrance_id === id);
-        if (found) {
-          fragrance = {
-            id: found.fragrance_id,
-            name: found.name,
-            brand: found.brand,
-            scent_family: found.scent_family,
-            sample_available: found.sample_available,
-            sample_price_usd: found.sample_price_usd,
-          };
-        }
-      }
-    } else {
-      const result = fragranceResults[0];
+    if (response.ok) {
+      const fragranceData = await response.json();
       fragrance = {
-        id: result.id,
-        name: result.name,
-        brand: (result.fragrance_brands as any)?.[0]?.name || 'Unknown Brand',
-        scent_family: result.scent_family,
-        sample_available: result.sample_available,
-        sample_price_usd: result.sample_price_usd,
+        id: fragranceData.id,
+        name: fragranceData.name,
+        brand: fragranceData.fragrance_brands?.name || 'Unknown Brand',
+        scent_family: fragranceData.fragrance_family || 'Unknown',
+        sample_available: fragranceData.sample_available || false,
+        sample_price_usd: fragranceData.sample_price_usd || 15.99,
       };
+    } else {
+      console.error('Fragrance API failed:', response.status, response.statusText);
     }
   } catch (error) {
-    console.error('All fragrance fetching failed:', error);
+    console.error('Fragrance fetching failed:', error);
   }
 
   if (!fragrance) {

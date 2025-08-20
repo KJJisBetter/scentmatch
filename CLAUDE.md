@@ -44,6 +44,23 @@ RESEARCH SAVES TO:
 - .claude/docs/internal/solutions/ - Implementation patterns
 ```
 
+### Date Verification Protocol - REQUIRED
+
+**ALWAYS use date-checker agent to verify current date:**
+
+```
+BEFORE any date-dependent operations:
+USE: date-checker agent to get accurate current date
+NEVER: Assume or guess current date
+ALWAYS: Use verified date for file naming, timestamps, and date calculations
+
+REQUIRED FOR:
+- Spec folder creation (YYYY-MM-DD format)
+- Solution documentation dating
+- Linear issue creation
+- Any time-sensitive operations
+```
+
 ### Implementation Protocol
 
 ```
@@ -270,6 +287,53 @@ COMPLETION WORKFLOW:
 - Create tickets for out-of-scope ideas during work
 ```
 
+## Task Verification Protocol - MANDATORY
+
+### Task Completion Rules
+
+**NEVER mark tasks complete without verification:**
+
+```
+BEFORE checking off ANY task or subtask:
+1. VERIFY: Code actually works as intended
+2. TEST: Functionality in browser (if UI-related)
+3. CONFIRM: No errors or console warnings
+4. VALIDATE: Meets acceptance criteria
+
+VERIFICATION METHODS:
+- Browser testing (Playwright MCP for UI)
+- API endpoint testing (curl/fetch)
+- Manual verification in development server
+- Unit/integration test passes
+
+ABSOLUTE RULE:
+❌ NO BLIND CHECKOFFS - Must test and confirm working
+✅ Only check off after successful verification
+```
+
+### Task Status Protocol
+
+```
+SMART GROUPED COMPLETION:
+1. Mark parent task as "in_progress" when starting
+2. Implement ALL related subtasks together as a family
+3. Test the complete feature end-to-end (not piece by piece)
+4. ONLY THEN: Check off all subtasks together once verified working
+5. Document any issues or edge cases found
+
+EXAMPLE - GOOD:
+- ✅ Task 1: Authentication System - VERIFIED complete flow in browser
+  - ✅ 1.1: Login form - Part of working auth system
+  - ✅ 1.2: Session handling - Part of working auth system  
+  - ✅ 1.3: Protected routes - Part of working auth system
+  - ✅ 1.4: Logout flow - Part of working auth system
+
+EXAMPLE - BAD (inefficient):
+❌ Checking off subtasks one by one without testing full feature
+❌ Testing login form alone without session/logout integration
+❌ Fragmenting related functionality verification
+```
+
 ## Critical Reminders
 
 1. **Uncertainty = STOP**: Never proceed when unsure
@@ -278,6 +342,7 @@ COMPLETION WORKFLOW:
 4. **Team Activity = Current Only**: Archive old completed work
 5. **Verify Before Claiming**: Test that fixes actually work NOW
 6. **Main is Sacred**: Never push directly, always PR
+7. **NO BLIND CHECKOFFS**: Every task must be tested and verified before completion
 
 ---
 

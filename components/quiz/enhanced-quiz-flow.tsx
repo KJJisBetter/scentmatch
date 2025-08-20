@@ -20,6 +20,7 @@ type QuizStep = 'gender' | 'experience' | 'quiz' | 'results';
 
 interface EnhancedQuizFlowProps {
   onConversionReady?: (results: any) => void;
+  initialGender?: GenderPreference;
 }
 
 /**
@@ -31,9 +32,9 @@ interface EnhancedQuizFlowProps {
  * 3. Adaptive quiz based on experience level
  * 4. Direct 3-recommendation results with AI insights
  */
-export function EnhancedQuizFlow({ onConversionReady }: EnhancedQuizFlowProps) {
-  const [currentStep, setCurrentStep] = useState<QuizStep>('gender');
-  const [genderPreference, setGenderPreference] = useState<GenderPreference>();
+export function EnhancedQuizFlow({ onConversionReady, initialGender }: EnhancedQuizFlowProps) {
+  const [currentStep, setCurrentStep] = useState<QuizStep>(initialGender ? 'experience' : 'gender');
+  const [genderPreference, setGenderPreference] = useState<GenderPreference>(initialGender);
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>();
   const [quizResponses, setQuizResponses] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);

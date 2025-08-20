@@ -116,6 +116,7 @@ export function ConversionFlow({
           body: JSON.stringify({
             session_token: quizResults.quiz_session_token,
             user_data: {
+              user_id: authData.user.id, // Add user_id for server verification
               email: accountData.email,
               first_name: accountData.firstName,
             },

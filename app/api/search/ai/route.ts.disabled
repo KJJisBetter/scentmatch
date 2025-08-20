@@ -1,0 +1,479 @@
+/**
+ * AI-Powered Search API
+ * 
+ * Advanced semantic search combining vector similarity, keyword matching,
+ * natural language processing, and personalized ranking.
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabase } from '@/lib/supabase';
+import { 
+  SemanticSearchEngine, 
+  QueryProcessor, 
+  IntentClassifier,
+  HybridSearchEngine,
+  SearchPersonalizer 
+} from '@/lib/ai/ai-search';
+import { generateQueryEmbedding } from '@/lib/ai/voyage-client';
+
+// Types
+interface AISearchRequest {
+  query: string;
+  filters?: {
+    scent_families?: string[];
+    price_range?: { min: number; max: number };
+    sample_only?: boolean;
+    occasions?: string[];
+    seasons?: string[];
+    brands?: string[];
+    intensity_range?: { min: number; max: number };
+  };
+  personalization?: {
+    user_id?: string;
+    context?: {
+      time_of_day?: string;
+      season?: string;
+      occasion?: string;
+      device_type?: string;
+    };
+  };
+  options?: {
+    max_results?: number;
+    similarity_threshold?: number;
+    enable_explanations?: boolean;
+    search_type?: 'semantic' | 'hybrid' | 'keyword';
+  };
+}
+
+interface AISearchResponse {
+  success: boolean;
+  query: string;
+  results: Array<{
+    fragrance_id: string;
+    name: string;
+    brand: string;
+    similarity_score?: number;
+    final_score: number;
+    explanation?: string;
+    metadata: {
+      search_method: string;
+      personalized: boolean;
+      confidence: number;
+    };
+  }>;
+  query_understanding: {
+    intent: string;
+    entities: Array<{ text: string; type: string }>;
+    corrected_query?: string;
+    expanded_terms?: string[];
+  };
+  search_metadata: {
+    total_results: number;
+    search_methods_used: string[];
+    processing_time_ms: number;
+    embedding_cost: number;
+    cache_used: boolean;
+    personalization_applied: boolean;
+  };
+  suggestions?: Array<{
+    text: string;
+    type: string;
+  }>;
+  error?: string;
+}
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
+  try {
+    const body: AISearchRequest = await request.json();
+    
+    // Validate request
+    if (!body.query || typeof body.query !== 'string' || body.query.trim().length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Query is required and cannot be empty'
+      }, { status: 400 });
+    }
+
+    const query = body.query.trim();
+    
+    // Validate query length
+    if (query.length < 2) {
+      return NextResponse.json({
+        success: false,
+        error: 'Query must be at least 2 characters long'
+      }, { status: 400 });
+    }
+
+    if (query.length > 500) {
+      return NextResponse.json({
+        success: false,
+        error: 'Query too long (max 500 characters)'
+      }, { status: 400 });
+    }
+
+    const supabase = await createServerSupabase();
+    
+    // Initialize AI search components
+    const queryProcessor = new QueryProcessor({
+      enableEntityExtraction: true,
+      enableQueryExpansion: true,
+      enableSpellCorrection: true
+    });
+
+    const intentClassifier = new IntentClassifier({
+      enableMLClassification: true,
+      confidenceThreshold: 0.7
+    });
+
+    const searchType = body.options?.search_type || 'hybrid';
+    
+    let searchResults;
+    const searchMethodsUsed: string[] = [];
+    let embeddingCost = 0;
+    let cacheUsed = false;
+
+    // Process query
+    const processedQuery = await queryProcessor.processQuery(query);
+    const intent = await intentClassifier.classifyIntent(query);
+
+    try {
+      if (searchType === 'semantic' || searchType === 'hybrid') {
+        // Semantic search using embeddings
+        const semanticSearch = new SemanticSearchEngine({
+          supabase,
+          embeddingModel: 'voyage-3-large',
+          maxResults: body.options?.max_results || 20,
+          defaultThreshold: body.options?.similarity_threshold || 0.7,
+          enableCache: true
+        });
+
+        const semanticResults = await semanticSearch.search(query, {
+          similarityThreshold: body.options?.similarity_threshold,
+          maxResults: body.options?.max_results,
+          filters: body.filters
+        });
+
+        if (semanticResults.success) {
+          searchResults = semanticResults;
+          searchMethodsUsed.push('vector');
+          embeddingCost = semanticResults.metadata.embedding_cost;
+          cacheUsed = semanticResults.metadata.embedding_cached;
+        } else {
+          throw new Error('Semantic search failed');
+        }
+
+        // Add keyword search for hybrid mode
+        if (searchType === 'hybrid') {
+          const keywordResults = await performKeywordSearch(supabase, query, body.filters);
+          searchResults = mergeSearchResults(searchResults, keywordResults);
+          searchMethodsUsed.push('keyword');
+        }
+
+      } else {
+        // Keyword-only search
+        searchResults = await performKeywordSearch(supabase, query, body.filters);
+        searchMethodsUsed.push('keyword');
+      }
+
+    } catch (searchError) {
+      console.warn('Primary search method failed, using fallback:', searchError.message);
+      
+      // Fallback to simple keyword search
+      try {
+        searchResults = await performKeywordSearch(supabase, query, body.filters);
+        searchMethodsUsed.push('keyword_fallback');
+      } catch (fallbackError) {
+        throw new Error(`All search methods failed: ${fallbackError.message}`);
+      }
+    }
+
+    // Apply personalization if requested
+    let personalizationApplied = false;
+    if (body.personalization?.user_id && searchResults.results) {
+      try {
+        const personalizer = new SearchPersonalizer({
+          supabase,
+          enableUserPreferences: true,
+          enableBehavioralLearning: true
+        });
+
+        const personalizedResults = await personalizer.personalizeResults(
+          searchResults.results,
+          body.personalization.user_id
+        );
+
+        searchResults.results = personalizedResults;
+        personalizationApplied = true;
+      } catch (personalizationError) {
+        console.warn('Personalization failed:', personalizationError.message);
+      }
+    }
+
+    // Generate explanations if requested
+    if (body.options?.enable_explanations) {
+      searchResults.results = searchResults.results.map(result => ({
+        ...result,
+        explanation: generateSearchExplanation(result, intent, personalizationApplied)
+      }));
+    }
+
+    // Format final response
+    const response: AISearchResponse = {
+      success: true,
+      query: query,
+      results: searchResults.results.map(result => ({
+        fragrance_id: result.fragrance_id,
+        name: result.name,
+        brand: result.brand,
+        similarity_score: result.similarity,
+        final_score: result.final_score || result.similarity || 0.5,
+        explanation: result.explanation,
+        metadata: {
+          search_method: searchMethodsUsed.join('+'),
+          personalized: personalizationApplied,
+          confidence: result.similarity || 0.5
+        }
+      })),
+      query_understanding: {
+        intent: intent.primary_intent,
+        entities: intent.entities.map(e => ({ text: e.text, type: e.type })),
+        corrected_query: processedQuery.corrected_query !== query ? processedQuery.corrected_query : undefined,
+        expanded_terms: processedQuery.expanded_terms.length > 0 ? processedQuery.expanded_terms : undefined
+      },
+      search_metadata: {
+        total_results: searchResults.results.length,
+        search_methods_used: searchMethodsUsed,
+        processing_time_ms: Date.now() - startTime,
+        embedding_cost: embeddingCost,
+        cache_used: cacheUsed,
+        personalization_applied: personalizationApplied
+      }
+    };
+
+    // Set appropriate cache headers
+    const cacheControl = embeddingCost > 0 
+      ? 'public, s-maxage=300, stale-while-revalidate=900' // 5 min cache for AI results
+      : 'public, s-maxage=600, stale-while-revalidate=1800'; // 10 min cache for keyword results
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': cacheControl,
+        'X-Search-Methods': searchMethodsUsed.join(','),
+        'X-Processing-Time': (Date.now() - startTime).toString(),
+        'X-Personalized': personalizationApplied.toString()
+      }
+    });
+
+  } catch (error) {
+    console.error('AI Search API error:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Search temporarily unavailable',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      query: body?.query || '',
+      search_metadata: {
+        processing_time_ms: Date.now() - startTime,
+        search_methods_used: [],
+        total_results: 0,
+        embedding_cost: 0,
+        cache_used: false,
+        personalization_applied: false
+      }
+    }, { status: 500 });
+  }
+}
+
+// Helper function for keyword search
+async function performKeywordSearch(
+  supabase: any, 
+  query: string, 
+  filters?: any
+): Promise<{
+  success: boolean;
+  results: any[];
+  search_type: string;
+}> {
+  let searchQuery = supabase
+    .from('fragrances')
+    .select(`
+      id,
+      name,
+      brand_id,
+      full_description,
+      main_accords,
+      fragrance_family,
+      rating_value,
+      sample_available,
+      sample_price_usd,
+      fragrance_brands(name)
+    `);
+
+  // Apply text search
+  if (query && query.trim()) {
+    searchQuery = searchQuery.or(`
+      name.ilike.%${query}%,
+      full_description.ilike.%${query}%,
+      fragrance_family.ilike.%${query}%
+    `);
+  }
+
+  // Apply filters
+  if (filters?.scent_families && filters.scent_families.length > 0) {
+    searchQuery = searchQuery.in('fragrance_family', filters.scent_families);
+  }
+
+  if (filters?.sample_only) {
+    searchQuery = searchQuery.eq('sample_available', true);
+  }
+
+  if (filters?.brands && filters.brands.length > 0) {
+    searchQuery = searchQuery.in('brand_id', filters.brands);
+  }
+
+  // Order by rating and limit
+  searchQuery = searchQuery
+    .order('rating_value', { ascending: false })
+    .limit(20);
+
+  const { data, error } = await searchQuery;
+
+  if (error) {
+    throw new Error(`Keyword search failed: ${error.message}`);
+  }
+
+  return {
+    success: true,
+    results: (data || []).map(item => ({
+      fragrance_id: item.id,
+      name: item.name,
+      brand: item.fragrance_brands?.name || 'Unknown',
+      description: item.full_description,
+      scent_family: item.fragrance_family,
+      rating: item.rating_value,
+      sample_available: item.sample_available,
+      sample_price_usd: item.sample_price_usd,
+      relevance: 0.8, // Base keyword relevance
+      metadata: { keyword_search: true }
+    })),
+    search_type: 'keyword'
+  };
+}
+
+// Helper function to merge vector and keyword results
+function mergeSearchResults(vectorResults: any, keywordResults: any): any {
+  const mergedMap = new Map();
+  
+  // Add vector results
+  if (vectorResults.results) {
+    vectorResults.results.forEach(result => {
+      mergedMap.set(result.fragrance_id, {
+        ...result,
+        vector_similarity: result.similarity || 0,
+        keyword_relevance: 0,
+        sources: ['vector']
+      });
+    });
+  }
+
+  // Merge keyword results
+  if (keywordResults.results) {
+    keywordResults.results.forEach(result => {
+      if (mergedMap.has(result.fragrance_id)) {
+        const existing = mergedMap.get(result.fragrance_id);
+        existing.keyword_relevance = result.relevance || 0;
+        existing.sources.push('keyword');
+      } else {
+        mergedMap.set(result.fragrance_id, {
+          ...result,
+          vector_similarity: 0,
+          keyword_relevance: result.relevance || 0,
+          sources: ['keyword']
+        });
+      }
+    });
+  }
+
+  // Calculate final scores and rank
+  const mergedResults = Array.from(mergedMap.values()).map(result => ({
+    ...result,
+    final_score: (result.vector_similarity * 0.7) + 
+                 (result.keyword_relevance * 0.2) + 
+                 ((result.rating || 4.0) / 5.0 * 0.1) // Popularity component
+  })).sort((a, b) => b.final_score - a.final_score);
+
+  return {
+    ...vectorResults,
+    results: mergedResults,
+    search_type: 'hybrid'
+  };
+}
+
+// Helper function to generate search explanations
+function generateSearchExplanation(result: any, intent: any, personalized: boolean): string {
+  const explanations = [];
+
+  // Vector similarity explanation
+  if (result.vector_similarity > 0.8) {
+    explanations.push('Strong semantic match for your search');
+  } else if (result.vector_similarity > 0.6) {
+    explanations.push('Good semantic similarity');
+  }
+
+  // Keyword relevance explanation
+  if (result.keyword_relevance > 0.8) {
+    explanations.push('Exact match for search terms');
+  }
+
+  // Intent-based explanation
+  if (intent.primary_intent === 'scent_description') {
+    explanations.push('Matches your scent description');
+  } else if (intent.primary_intent === 'comparison') {
+    explanations.push('Similar to requested fragrance');
+  }
+
+  // Personalization explanation
+  if (personalized && result.personalization_score > 0.5) {
+    explanations.push('Recommended based on your preferences');
+  }
+
+  // Default explanation
+  if (explanations.length === 0) {
+    explanations.push('Relevant match for your search');
+  }
+
+  return explanations.join('. ');
+}
+
+// GET endpoint for backward compatibility
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  
+  // Convert GET parameters to POST body format
+  const query = searchParams.get('q') || '';
+  const filters = {
+    scent_families: searchParams.get('scent_families')?.split(',').filter(Boolean) || [],
+    sample_only: searchParams.get('sample_only') === 'true',
+    brands: searchParams.get('brands')?.split(',').filter(Boolean) || []
+  };
+
+  // Create request body
+  const aiSearchRequest: AISearchRequest = {
+    query,
+    filters,
+    options: {
+      max_results: parseInt(searchParams.get('limit') || '20'),
+      search_type: 'hybrid',
+      enable_explanations: true
+    }
+  };
+
+  // Use POST handler
+  const mockRequest = {
+    json: async () => aiSearchRequest
+  } as NextRequest;
+
+  return POST(mockRequest);
+}

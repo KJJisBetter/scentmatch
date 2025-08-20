@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement comprehensive fragrance data quality system addressing three critical launch-blocking issues from Linear tickets SCE-49, SCE-50, and SCE-51. Transform malformed fragrance names like "Bleu De EDP" into professional "Bleu de Chanel EDP" format through automated normalization engine. Handle missing popular fragrances like "Coach For Me" with intelligent alternative suggestions and demand tracking instead of empty search results. Build proactive data quality monitoring pipeline that detects and resolves issues before users encounter them, ensuring professional platform credibility for August 21st launch.

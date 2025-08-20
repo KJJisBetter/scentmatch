@@ -1,0 +1,141 @@
+{
+  "logging": {
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+      "standard": {
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "datefmt": "%Y-%m-%d %H:%M:%S"
+      },
+      "detailed": {
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s",
+        "datefmt": "%Y-%m-%d %H:%M:%S"
+      },
+      "json": {
+        "format": "{\"timestamp\": \"%(asctime)s\", \"logger\": \"%(name)s\", \"level\": \"%(levelname)s\", \"message\": \"%(message)s\", \"module\": \"%(filename)s\", \"line\": %(lineno)d}",
+        "datefmt": "%Y-%m-%dT%H:%M:%S"
+      }
+    },
+    "handlers": {
+      "console": {
+        "class": "logging.StreamHandler",
+        "level": "INFO",
+        "formatter": "standard",
+        "stream": "ext://sys.stdout"
+      },
+      "file_info": {
+        "class": "logging.handlers.RotatingFileHandler",
+        "level": "INFO", 
+        "formatter": "standard",
+        "filename": "logs/pipeline_info.log",
+        "maxBytes": 52428800,
+        "backupCount": 10,
+        "encoding": "utf-8"
+      },
+      "file_error": {
+        "class": "logging.handlers.RotatingFileHandler",
+        "level": "ERROR",
+        "formatter": "detailed",
+        "filename": "logs/pipeline_errors.log",
+        "maxBytes": 10485760,
+        "backupCount": 5,
+        "encoding": "utf-8"
+      },
+      "file_performance": {
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "level": "DEBUG",
+        "formatter": "json",
+        "filename": "logs/pipeline_performance.log",
+        "when": "midnight",
+        "interval": 1,
+        "backupCount": 30,
+        "encoding": "utf-8"
+      },
+      "file_monitoring": {
+        "class": "logging.handlers.RotatingFileHandler",
+        "level": "INFO",
+        "formatter": "standard",
+        "filename": "logs/monitoring_cycles.log",
+        "maxBytes": 20971520,
+        "backupCount": 15,
+        "encoding": "utf-8"
+      }
+    },
+    "loggers": {
+      "hybrid_pipeline": {
+        "level": "INFO",
+        "handlers": ["console", "file_info", "file_error"],
+        "propagate": false
+      },
+      "monitoring_system": {
+        "level": "INFO", 
+        "handlers": ["console", "file_monitoring", "file_error"],
+        "propagate": false
+      },
+      "performance_monitor": {
+        "level": "DEBUG",
+        "handlers": ["file_performance"],
+        "propagate": false
+      },
+      "database_operations": {
+        "level": "INFO",
+        "handlers": ["file_info", "file_error"],
+        "propagate": false
+      },
+      "scraping_operations": {
+        "level": "INFO",
+        "handlers": ["file_info", "file_error"],
+        "propagate": false
+      }
+    },
+    "root": {
+      "level": "INFO",
+      "handlers": ["console", "file_info"]
+    }
+  },
+  "log_management": {
+    "retention_policy": {
+      "info_logs_days": 30,
+      "error_logs_days": 90,
+      "performance_logs_days": 7,
+      "monitoring_logs_days": 60,
+      "archive_old_logs": true,
+      "compress_archived_logs": true
+    },
+    "log_directories": {
+      "base_log_dir": "logs",
+      "subdirectories": [
+        "monitoring",
+        "scraping", 
+        "database",
+        "performance",
+        "errors",
+        "archive"
+      ]
+    },
+    "monitoring": {
+      "log_size_alert_mb": 100,
+      "log_growth_rate_alert": true,
+      "disk_space_threshold_gb": 1,
+      "automatic_cleanup": true
+    }
+  },
+  "custom_log_levels": {
+    "PERFORMANCE": 25,
+    "SCRAPING": 22,
+    "DATABASE": 18,
+    "MONITORING": 15
+  },
+  "structured_logging": {
+    "enable_json_logs": true,
+    "include_request_ids": true,
+    "include_execution_context": true,
+    "log_correlation_ids": true,
+    "performance_metrics_logging": {
+      "execution_times": true,
+      "memory_usage": true,
+      "database_query_performance": true,
+      "api_response_times": true
+    }
+  }
+}

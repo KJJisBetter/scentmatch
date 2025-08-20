@@ -55,7 +55,9 @@ async function getUserData() {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      console.error('Error fetching user profile:', profileError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching user profile:', profileError);
+      }
     }
 
     // Get basic collection stats for initial load
@@ -64,7 +66,9 @@ async function getUserData() {
     });
 
     if (statsError && statsError.code !== '42883') {
-      console.error('Error fetching collection stats:', statsError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching collection stats:', statsError);
+      }
     }
 
     // Get recent collection activity
@@ -85,7 +89,9 @@ async function getUserData() {
       .limit(5);
 
     if (activityError) {
-      console.error('Error fetching recent activity:', activityError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching recent activity:', activityError);
+      }
     }
 
     return {
@@ -100,7 +106,9 @@ async function getUserData() {
     };
 
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching dashboard data:', error);
+    }
     redirect('/auth/signin');
   }
 }

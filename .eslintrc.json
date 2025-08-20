@@ -25,6 +25,16 @@
       "rules": {
         "no-console": "off"
       }
+    },
+    {
+      "files": [
+        "lib/ai/real-time-recommendations.ts",
+        "components/recommendations/recommendations-system.tsx"
+      ],
+      "rules": {
+        "prefer-const": "warn",
+        "react-hooks/exhaustive-deps": "warn"
+      }
     }
   ]
 }

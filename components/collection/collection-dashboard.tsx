@@ -118,30 +118,17 @@ export function CollectionDashboard({
         setIsLoading(true);
         const supabase = createClientSupabase();
         
-        // Fetch user's complete collection with fragrance details
+        // Fetch user's complete collection with basic details
         const { data: collectionData, error } = await supabase
           .from('user_collections')
           .select(`
             id,
             fragrance_id,
-            status,
-            rating,
-            personal_notes,
             added_at,
-            occasions,
-            seasons,
-            usage_frequency,
-            purchase_date,
-            purchase_price,
             fragrances:fragrance_id (
               id,
               name,
               brand_id,
-              description,
-              scent_family,
-              image_url,
-              intensity_score,
-              longevity_hours,
               sample_available,
               sample_price_usd,
               fragrance_brands:brand_id (
@@ -153,7 +140,9 @@ export function CollectionDashboard({
           .order('added_at', { ascending: false });
 
         if (error) {
-          console.error('Error loading collection:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error loading collection:', error);
+          }
           return;
         }
 
@@ -166,7 +155,9 @@ export function CollectionDashboard({
         }
 
       } catch (error) {
-        console.error('Error in loadCollection:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error in loadCollection:', error);
+        }
       } finally {
         setIsLoading(false);
       }
