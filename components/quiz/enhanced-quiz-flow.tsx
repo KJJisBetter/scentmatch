@@ -12,7 +12,7 @@ import {
 import { AdaptiveQuizInterface } from './adaptive-quiz-interface';
 import { getNaturalQuizData } from '@/lib/quiz/natural-quiz-data';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
-import { WorkingRecommendationEngine } from '@/lib/quiz/working-recommendation-engine';
+// Removed WorkingRecommendationEngine - now using API endpoint
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
 
@@ -91,14 +91,19 @@ export function EnhancedQuizFlow({ onConversionReady }: EnhancedQuizFlowProps) {
         ...responses,
       ];
 
-      // Generate recommendations using the enhanced responses
-      const engine = new WorkingRecommendationEngine();
-      const result = await engine.generateRecommendations(
-        enhancedResponses,
-        quizSessionToken
-      );
+      // Generate recommendations using API endpoint (database-backed)
+      const response = await fetch('/api/quiz/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          responses: enhancedResponses,
+          session_token: quizSessionToken,
+        }),
+      });
 
-      if (result.success && result.recommendations.length >= 3) {
+      const result = await response.json();
+
+      if (result.analysis_complete && result.recommendations?.length >= 3) {
         setRecommendations(result.recommendations);
 
         // Track successful quiz completion
@@ -108,7 +113,7 @@ export function EnhancedQuizFlow({ onConversionReady }: EnhancedQuizFlowProps) {
             gender_preference: genderPreference,
             question_count: responses.length,
             recommendation_count: result.recommendations.length,
-            processing_time_ms: result.total_processing_time_ms,
+            processing_time_ms: result.processing_time_ms,
             quiz_session: quizSessionToken,
           });
         }
@@ -116,12 +121,13 @@ export function EnhancedQuizFlow({ onConversionReady }: EnhancedQuizFlowProps) {
         // Prepare data for conversion flow
         if (onConversionReady) {
           onConversionReady({
-            quiz_session_token: quizSessionToken,
+            quiz_session_token: result.quiz_session_token || quizSessionToken,
             recommendations: result.recommendations,
             gender_preference: genderPreference,
             experience_level: experienceLevel,
-            processing_time_ms: result.total_processing_time_ms,
-            recommendation_method: 'direct_matching',
+            processing_time_ms: result.processing_time_ms,
+            recommendation_method:
+              result.recommendation_method || 'database_functions',
           });
         }
 
