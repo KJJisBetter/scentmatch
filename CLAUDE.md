@@ -1,25 +1,10 @@
 # ScentMatch Development Guidelines
 
-> **Agent OS Enhanced with Production Workflow**
+> **Agent OS Enhanced with Research Protocol**
 
-## Date Check Protocol - MANDATORY FIRST STEP
+## Core Principles
 
-BEFORE starting ANY work session:
-
-```
-ALWAYS check current date first:
-- Use date-checker agent if available
-- Confirm actual date before creating files/folders
-- Ensure timestamps are accurate in reports
-- Never assume or guess the current date
-```
-
-Examples:
-
-- ❌ Creating "2025-08-13-bug-report.md" on wrong date
-- ✅ "@agent:date-checker" → confirm → create with correct date
-
-## Uncertainty Protocol - CRITICAL
+### Uncertainty Protocol - CRITICAL
 
 When uncertain about ANYTHING:
 
@@ -37,151 +22,43 @@ NEVER:
 - Show fake confidence
 ```
 
-Examples:
+### Mandatory Research Protocol - REQUIRED
 
-- ❌ "Implementing auth..." [while unsure]
-- ✅ "I'm unsure which auth pattern you prefer. JWT or sessions?"
-
-## Research Protocol - MANDATORY
-
-When ANY issue, error, or unfamiliar pattern is found:
+**BEFORE implementing any unfamiliar patterns:**
 
 ```
-BEFORE coding any "solution":
-1. INVESTIGATE thoroughly:
-   - Check console logs for exact error messages
-   - Take screenshots of error states with Playwright
-   - Capture network tab for failed requests
-   - Document error context (what user was doing)
+REQUIRED: Use research agents to verify understanding
+NEVER: Assume cached knowledge is current
+ALWAYS: Confirm approach with domain experts first
 
-2. RESEARCH with MCP servers:
-   - mcp__firecrawl__firecrawl_search for web research
-   - mcp__Ref__ref_search_documentation for technical docs
-   - mcp__exa__web_search_exa for current solutions
+RESEARCH AGENTS:
+- AI/ML features → ai-vector-researcher
+- Database optimization → supabase-researcher
+- UI patterns → shadcn-research-expert
+- Design systems → tailwind-researcher
+- UX optimization → ux-conversion-researcher
+- Framework patterns → nextjs-research-expert
 
-2. CACHE external research:
-   - SAVE to .claude/docs/external/[source-name]/[topic].md
-   - Include: URL, date cached, key findings, relevance
-
-3. DOCUMENT solution:
-   - Issue: Exact problem description
-   - Research: What you found from MCP servers
-   - Solution: Chosen approach with rationale
-   - Result: What actually worked
-
-4. SAVE to .claude/docs/internal/solutions/[date]-[issue-name].md
-
-NEVER skip research when encountering:
-- Unfamiliar error messages
-- Library/framework issues
-- Performance problems
-- Accessibility violations
-- Build/compilation errors
-
-## Issue Documentation Protocol - MANDATORY
-
-For EVERY issue encountered during development:
+RESEARCH SAVES TO:
+- .claude/docs/external/[technology]/ - Research findings
+- .claude/docs/internal/solutions/ - Implementation patterns
 ```
 
-1. DOCUMENT the issue immediately:
-   - Create .claude/docs/internal/solutions/[date]-[issue-name].md
-   - Include: exact error message, context, attempted solutions
-2. RESEARCH before fixing:
-   - Use MCP servers to find established solutions
-   - Document research findings and sources
-3. IMPLEMENT solution:
-   - Document chosen approach and rationale
-   - Include code examples and patterns
-4. VALIDATE result:
-   - Test thoroughly and document outcomes
-   - Note any side effects or limitations
-
-PURPOSE: Build knowledge base for future issues, prevent repeated mistakes
+### Implementation Protocol
 
 ```
+FOR COMPLEX FEATURES:
+1. MANDATORY: Research with domain agents first
+2. Verify cached patterns are current and applicable
+3. Implement with browser testing (Playwright MCP)
+4. Document working patterns
 
-Examples:
-- ❌ Fix error and move on [no documentation]
-- ✅ Document issue → Research → Implement → Validate → Save pattern
+FOR SIMPLE FIXES:
+1. Check cached patterns first
+2. Apply direct fixes
+3. REQUIRED: Test functionality works in browser
+4. Document if novel solution
 ```
-
-## Documentation Structure - MANDATORY
-
-```
-.claude/docs/
-├── external/           # CACHE - External research from MCP servers
-│   ├── next-js/       # Next.js documentation and solutions
-│   ├── react/         # React patterns and solutions
-│   ├── tailwind/      # TailwindCSS research
-│   ├── accessibility/ # WCAG and a11y research
-│   └── libraries/     # Third-party library documentation
-├── internal/          # LEARNED - Our pain points, solutions, patterns
-│   ├── solutions/     # Issues we solved (YYYY-MM-DD-issue-name.md)
-│   ├── patterns/      # Reusable code patterns we developed
-│   └── architecture/ # System design decisions we made
-└── docs/              # REPO - Public documentation for the repository
-    ├── api/           # API documentation for developers
-    ├── components/    # Component usage guides
-    ├── deployment/    # Deployment and setup guides
-    └── troubleshooting/ # User-facing help documentation
-```
-
-Examples:
-
-- ❌ "I'll fix the useState error..." [without researching]
-- ✅ "I found a useState error. Let me research Next.js client component patterns first."
-
-## Testing Protocol - PLAYWRIGHT MCP ONLY
-
-When testing pages or checking if server is running:
-
-```
-NEVER use curl, wget, or similar tools
-ALWAYS use Playwright MCP for page testing:
-- Use mcp__playwright__* tools for all browser testing
-- Take screenshots to see actual state
-- Capture console errors for debugging
-- Never use npx playwright or local playwright scripts
-```
-
-**IMPORTANT:** When user mentions "playwright" they ALWAYS mean Playwright MCP tools (mcp**playwright**\*), not local/CLI playwright.
-
-Examples:
-
-- ❌ `curl -I http://localhost:3000`
-- ❌ `npx playwright test`
-- ✅ Use mcp**playwright**browser_navigate and mcp**playwright**browser_snapshot
-
-## Git Branch Protocol - NO EXCEPTIONS
-
-### Branch Creation Rules
-
-```
-BEFORE any work:
-CHECK current branch
-IF main:
-  CREATE feature/[descriptive-name]
-  SWITCH to new branch
-ELSE:
-  ASK: "Create branch from main or current [branch-name]?"
-  WAIT for answer
-  CREATE based on response
-```
-
-### Absolute Rules
-
-- **NEVER** push to main directly (even if user asks)
-- **NEVER** delete branches (preserve history)
-- **ALWAYS** create PR for main
-- **ALWAYS** work on feature branches
-
-### Branch Naming (Solo Dev Friendly)
-
-- `feature/` - Planned features
-- `fix/` - Bug fixes
-- `wip/` - Work in progress
-- `try/` - Experiments
-- `done/` - Merged but preserved
 
 ## Agent OS Integration
 
@@ -190,28 +67,218 @@ ELSE:
 - @.agent-os/product/mission.md
 - @.agent-os/product/tech-stack.md
 - @.agent-os/product/roadmap.md
-- @~/.agent-os/instructions/create-spec.md
-- @~/.agent-os/instructions/execute-tasks.md
 
 ### Check Cache Before Work
 
-- @.claude/docs/internal/patterns/
-- @.claude/docs/internal/solutions/
-- @.claude/handoffs/team-activity.md (keep under 100 lines)
+- @.claude/docs/internal/patterns/ (fresh patterns only)
+- @.claude/docs/internal/solutions/ (last 7 days only)
+- @.claude/handoffs/team-activity.md (current work only)
+
+### CRITICAL: Pattern Verification Rules
+
+```
+NEVER TRUST CACHED PATTERNS BLINDLY:
+1. Read patterns as GUIDANCE only (not final truth)
+2. Investigate current state independently
+3. Verify pattern actually applies to current situation
+4. Test claimed solution works NOW
+5. Only implement if verified
+
+NEVER:
+❌ Claim "this is already fixed" based on cached patterns
+❌ Apply patterns without current verification
+❌ Trust "✅ FIXED" claims from old files
+❌ Skip investigation because pattern exists
+```
+
+## Documentation Structure
+
+```
+.claude/docs/
+├── external/           # Research from expert agents
+│   ├── ai-research/   # AI/ML patterns and algorithms
+│   ├── supabase/      # Database optimization patterns
+│   ├── nextjs/        # Framework best practices
+│   └── tailwindcss/   # Design system patterns
+├── internal/          # Our solutions and patterns
+│   ├── solutions/     # Issues solved (YYYY-MM-DD-issue-name.md)
+│   └── patterns/      # Reusable code patterns
+└── handoffs/          # Team coordination
+    └── team-activity.md
+```
+
+## Git Workflow
+
+### Branch Rules
+
+```
+BEFORE any work:
+CHECK current branch
+IF main: CREATE feature/[name] and SWITCH
+ALWAYS: Create PR for main (never push directly)
+```
+
+### Absolute Rules
+
+- **NEVER** push to main directly
+- **ALWAYS** create PR for main
+- **ALWAYS** work on feature branches
+
+## Code Quality
+
+### File Size Guidelines
+
+```
+IF FILE > 100 LINES:
+  ANALYZE: Can this be split or simplified?
+  PREFER: Multiple focused files over large monolithic ones
+```
+
+### Library Policy
+
+```
+BEFORE adding external libraries:
+1. Check if Next.js/React built-ins handle this
+2. ASK USER: "Should I add [library] or build internal solution?"
+3. WAIT for explicit approval
+```
+
+## File Access
+
+**Hidden Files:** Claude can and should read .env.local, .env files for debugging
+**Environment Setup:** When database/API issues occur, check environment variables first
+**Don't Hesitate:** Read any file needed for proper debugging and development
+
+**Before Database Operations:**
+
+- Always check environment variables are loaded
+- Use `node -e "console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)"` to verify
+
+## Testing Approach - MANDATORY BROWSER TESTING
+
+**FOR ANY UI WORK:**
+
+- **REQUIRED:** Use Playwright MCP to verify what user sees
+- **API testing alone is insufficient** for user-facing features
+- **VERIFY:** Complete user journey works in browser
+
+**Testing Tools:**
+
+- Browser testing: Playwright MCP (required for UI)
+- API testing: curl, fetch, or direct HTTP requests
+- Unit testing: Vitest framework
+- Integration testing: Browser + API combined
+
+**Critical Rule:** If users interact with it, test it in browser
+
+**Examples:**
+
+- ✅ `curl http://localhost:3000/api/search?q=dior` for API testing
+- ✅ **REQUIRED:** Playwright MCP for any UI changes
+- ✅ Vitest for unit/integration tests
+
+## Emergency vs Standard Development
+
+### Emergency Situations
+
+- Production users blocked
+- < 24h timeline
+- Single obvious bug
+
+**Approach:** Apply cached patterns immediately, skip research if solution is clear
+
+### Standard Development
+
+- New features
+- Complex investigations
+- Multiple related issues
+
+**Approach:** Use research agents for knowledge gaps, apply Agent OS workflow
+
+## Pattern Management
+
+### Cache Hygiene - AUTOMATIC
+
+```
+FRESH PATTERNS (< 7 days):
+- .claude/docs/internal/solutions/YYYY-MM-DD-*
+- Actively useful for current work
+
+MATURE PATTERNS (7-30 days):
+- .claude/docs/internal/patterns/[category].md
+- Proven, consolidated solutions
+
+ARCHIVED PATTERNS (> 30 days):
+- .claude/docs/archive/YYYY-MM/
+- Historical reference only
+
+AUTO-CLEANUP:
+- Weekly: Consolidate solutions → patterns
+- Monthly: Archive old patterns
+```
+
+### Pattern Quality Rules
+
+```
+ONLY SAVE patterns that:
+✅ Actually solved a real problem
+✅ Solution was verified working
+✅ Likely to be reused
+✅ Not already documented
+
+NEVER SAVE:
+❌ Speculative solutions
+❌ One-off emergency workarounds
+❌ Debugging steps that failed
+❌ Duplicates of existing patterns
+```
+
+## Team Activity Hygiene - AGGRESSIVE CLEANUP
+
+### Living Documentation Rules
+
+```
+CURRENT WORK ONLY:
+- Delete completed items after 48 hours
+- When file > 30 lines: Auto-archive to dated backup
+- Keep only: active tasks, current blockers, immediate context
+
+LIVING REFERENCES:
+- Reference current files only (verify they exist)
+- Clean up dead references to moved/deleted files
+- Never claim something works without current verification
+
+AUTO-CLEANUP TRIGGERS:
+- IF > 30 lines: Move old sections to archive
+- IF referencing non-existent files: Remove dead references
+- IF patterns > 14 days old: Verify or archive
+```
+
+## Linear Issue Management
+
+```
+STANDARD WORKFLOW:
+- Document issues with priority labels (🚨🔥⭐💡🚀)
+- 🚨 Launch Critical: Blocks release
+- 🔥 Pre-Launch: Should fix before release
+- ⭐ Nice-to-Have: Improves experience
+- 💡🚀 Post-Launch: Future enhancements
+
+COMPLETION WORKFLOW:
+- Update Linear status when issues resolved
+- Add verification comments with test evidence
+- Create tickets for out-of-scope ideas during work
+```
 
 ## Critical Reminders
 
-1. **Check Date First**: Always verify date before starting work
-2. **Uncertainty = STOP**: Never proceed when unsure
-3. **Main is Sacred**: Never push directly, always PR
-4. **Phases are Strict**: Planning → Approval → Coding → Quality → PR
-5. **Cache First**: Always check for existing solutions
-6. **Preserve History**: Never delete branches
-7. **File Size Limit**: 100 lines maximum per file
-8. **Library Approval**: Ask before adding external dependencies
-9. **Investigate First**: Console logs + screenshots before fixing
-10. **Next.js First**: Use built-ins before external libraries
+1. **Uncertainty = STOP**: Never proceed when unsure
+2. **Research Required**: Use expert agents before complex work
+3. **Browser Test Everything**: UI changes must be verified visually
+4. **Team Activity = Current Only**: Archive old completed work
+5. **Verify Before Claiming**: Test that fixes actually work NOW
+6. **Main is Sacred**: Never push directly, always PR
 
 ---
 
-Remember: Check date first, then when uncertain, STOP and ASK. No fake confidence. Always PR to main.
+Remember: Research first, test in browser, keep documentation current.
