@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
+// Database types import removed - database.types file doesn't exist
 
 // Enhanced activity event types
 export interface UserActivity {

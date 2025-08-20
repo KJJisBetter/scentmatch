@@ -12,10 +12,8 @@ import { generateText } from '@/lib/ai/voyage-client';
 
 // Stub data for backwards compatibility - use API endpoints instead
 const fragranceData: any[] = [];
-import {
-  analyzeQuizResponses,
-  generatePersonalityDescription,
-} from '@/lib/ai/openai-client';
+// OpenAI client imports removed - openai-client.ts deleted
+// TODO: Replace with ai-client.ts or direct OpenAI API calls
 
 export interface QuizResponse {
   question_id: string;

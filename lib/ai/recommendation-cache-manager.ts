@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
+// Database types import removed - database.types file doesn't exist
 import { createHash } from 'crypto';
 import { EventEmitter } from 'events';
 
@@ -1813,9 +1813,4 @@ export {
   EmbeddingCacheStats
 };
 
-// Export additional classes
-export {
-  AIProviderCostMonitor,
-  createAIProviderCostMonitor,
-  DEFAULT_COST_CONFIG
-} from './ai-cost-optimizer';
+// Cost monitoring exports removed - ai-cost-optimizer.ts deleted

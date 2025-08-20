@@ -7,7 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
+// Database types import removed - database.types file doesn't exist
 import { EventEmitter } from 'events';
 import { createHash } from 'crypto';
 
@@ -2050,10 +2050,7 @@ export function createAdaptiveSearchSystem(
   };
 }
 
-export {
-  AIPerformanceMonitor,
-  AISystemHealthMonitor
-} from './performance-monitoring';
+// Performance monitoring exports removed - performance-monitoring.ts deleted
 
 // Export adaptive search classes
 export {
@@ -2063,15 +2060,7 @@ export {
   AdaptiveSearchEngine
 };
 
-// Type exports
-export type {
-  PerformanceBenchmark,
-  MonitoringAlert,
-  SystemHealthReport,
-  ComponentHealth,
-  OptimizationRecommendation,
-  PerformanceSummary
-} from './performance-monitoring';
+// Performance monitoring type exports removed - performance-monitoring.ts deleted
 
 // Export adaptive search types
 export type {
