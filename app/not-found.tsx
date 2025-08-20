@@ -38,7 +38,7 @@ export default function NotFound() {
             </Button>
 
             <Button variant='outline' asChild className='w-full'>
-              <Link href='/search'>Search Fragrances</Link>
+              <Link href='/browse'>Browse Fragrances</Link>
             </Button>
           </div>
         </div>

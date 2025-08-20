@@ -6,8 +6,12 @@
  * based on deep AI analysis of user preferences.
  */
 
-import fragranceData from '@/data/fragrances.json';
+// DEPRECATED: JSON data has been migrated to database
+// This file is kept for compatibility but should use API endpoints instead
 import { generateText } from '@/lib/ai/voyage-client';
+
+// Stub data for backwards compatibility - use API endpoints instead
+const fragranceData: any[] = [];
 import {
   analyzeQuizResponses,
   generatePersonalityDescription,
