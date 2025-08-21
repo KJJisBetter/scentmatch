@@ -3,20 +3,24 @@ import { createServiceSupabase } from '@/lib/supabase';
 
 /**
  * POST /api/quiz/convert-to-account
- * 
+ *
  * Critical MVP endpoint: Convert guest quiz session to authenticated user account
  * This is where the business conversion happens - anonymous visitors become customers
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Use service role client for guest session transfers
     // Guest sessions are token-based, not cookie-based, so createServerSupabase() fails
     const supabase = createServiceSupabase();
 
     // Validate required fields
-    if (!body.session_token || !body.user_data?.email || !body.user_data?.user_id) {
+    if (
+      !body.session_token ||
+      !body.user_data?.email ||
+      !body.user_data?.user_id
+    ) {
       return NextResponse.json(
         { error: 'Session token, user email, and user_id are required' },
         { status: 400 }
@@ -24,8 +28,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user exists (more reliable than session-based auth for this conversion flow)
-    const { data: existingUser, error: userCheckError } = await supabase.auth.admin.getUserById(body.user_data.user_id);
-    
+    const { data: existingUser, error: userCheckError } = await (
+      supabase as any
+    ).auth.admin.getUserById(body.user_data.user_id);
+
     if (userCheckError || !existingUser.user) {
       console.error('User verification failed:', userCheckError);
       return NextResponse.json(
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
     const user = existingUser.user;
 
     // Find guest session
-    const { data: guestSession, error: sessionError } = await supabase
+    const { data: guestSession, error: sessionError } = await (supabase as any)
       .from('user_quiz_sessions')
       .select('*')
       .eq('session_token', body.session_token)
@@ -52,9 +58,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Use database function for atomic transfer
-    const { data: transferResult, error: transferError } = await supabase.rpc('transfer_guest_session_to_user', {
+    const { data: transferResult, error: transferError } = await (
+      supabase as any
+    ).rpc('transfer_guest_session_to_user', {
       guest_session_token: body.session_token,
-      target_user_id: user.id
+      target_user_id: user.id,
     });
 
     if (transferError || !transferResult?.transfer_successful) {
@@ -67,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create/update user profile with quiz completion
-    const { error: profileError } = await supabase
+    const { error: profileError } = await (supabase as any)
       .from('user_profiles')
       .upsert({
         id: user.id,
@@ -75,9 +83,12 @@ export async function POST(request: NextRequest) {
         first_name: body.user_data.first_name,
         onboarding_completed: true,
         quiz_completed_at: new Date().toISOString(),
-        quiz_personality_type: await getPersonalityFromSession(supabase, guestSession.id),
+        quiz_personality_type: await getPersonalityFromSession(
+          supabase,
+          guestSession.id
+        ),
         onboarding_step: 'recommendations_unlocked',
-        referral_source: guestSession.referral_source
+        referral_source: guestSession.referral_source,
       });
 
     if (profileError) {
@@ -88,12 +99,15 @@ export async function POST(request: NextRequest) {
     // Generate enhanced recommendations for new account
     let enhancedRecommendations = [];
     try {
-      const { data: personalizedRecs } = await supabase.rpc('get_personalized_recommendations', {
-        target_user_id: user.id,
-        max_results: 15,
-        include_owned: false
-      });
-      
+      const { data: personalizedRecs } = await (supabase as any).rpc(
+        'get_personalized_recommendations',
+        {
+          target_user_id: user.id,
+          max_results: 15,
+          include_owned: false,
+        }
+      );
+
       enhancedRecommendations = personalizedRecs || [];
     } catch (recError) {
       console.error('Enhanced recommendations failed:', recError);
@@ -101,51 +115,62 @@ export async function POST(request: NextRequest) {
     }
 
     // Successful conversion response
-    return NextResponse.json({
-      account_created: true,
-      user_id: user.id,
-      quiz_data_transferred: transferResult.transfer_successful,
-      transfer_summary: {
-        quiz_responses: transferResult.responses_transferred || 0,
-        personality_profile: transferResult.personality_profile_transferred || false,
-        progress_preserved: true,
-        recommendations_enhanced: enhancedRecommendations.length > 0
+    return NextResponse.json(
+      {
+        account_created: true,
+        user_id: user.id,
+        quiz_data_transferred: transferResult.transfer_successful,
+        transfer_summary: {
+          quiz_responses: transferResult.responses_transferred || 0,
+          personality_profile:
+            transferResult.personality_profile_transferred || false,
+          progress_preserved: true,
+          recommendations_enhanced: enhancedRecommendations.length > 0,
+        },
+        enhanced_profile: {
+          onboarding_completed: true,
+          quiz_personality_type: await getPersonalityFromSession(
+            supabase,
+            guestSession.id
+          ),
+          personalization_confidence: 0.85, // Enhanced with account
+          initial_collection_suggestions: Math.min(
+            enhancedRecommendations.length,
+            5
+          ),
+        },
+        immediate_benefits: {
+          personalized_recommendations: enhancedRecommendations.length,
+          quiz_accuracy_bonus: 0.18, // 18% better matching
+          sample_recommendations: enhancedRecommendations.filter(
+            (r: any) => r.sample_available
+          ).length,
+          account_creation_bonus: '20% off first sample order',
+        },
+        next_steps: {
+          redirect_to: '/recommendations?quiz_completed=true&new_account=true',
+          onboarding_step: 'explore_recommendations',
+          recommended_actions: [
+            'View all 15 personalized recommendations',
+            'Order sample set with 20% discount',
+            'Save favorites to your new collection',
+          ],
+        },
       },
-      enhanced_profile: {
-        onboarding_completed: true,
-        quiz_personality_type: await getPersonalityFromSession(supabase, guestSession.id),
-        personalization_confidence: 0.85, // Enhanced with account
-        initial_collection_suggestions: Math.min(enhancedRecommendations.length, 5)
-      },
-      immediate_benefits: {
-        personalized_recommendations: enhancedRecommendations.length,
-        quiz_accuracy_bonus: 0.18, // 18% better matching
-        sample_recommendations: enhancedRecommendations.filter((r: any) => r.sample_available).length,
-        account_creation_bonus: '20% off first sample order'
-      },
-      next_steps: {
-        redirect_to: '/recommendations?quiz_completed=true&new_account=true',
-        onboarding_step: 'explore_recommendations',
-        recommended_actions: [
-          'View all 15 personalized recommendations',
-          'Order sample set with 20% discount',
-          'Save favorites to your new collection'
-        ]
+      {
+        headers: {
+          'Cache-Control': 'private, no-cache', // Don't cache conversion responses
+        },
       }
-    }, {
-      headers: {
-        'Cache-Control': 'private, no-cache' // Don't cache conversion responses
-      }
-    });
-
+    );
   } catch (error) {
     console.error('Conversion error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Account conversion failed',
         message: 'Please try again or contact support',
-        support_available: true
+        support_available: true,
       },
       { status: 500 }
     );
@@ -153,9 +178,12 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to get personality type from session
-async function getPersonalityFromSession(supabase: any, sessionId: string): Promise<string> {
+async function getPersonalityFromSession(
+  supabase: any,
+  sessionId: string
+): Promise<string> {
   try {
-    const { data: personality } = await supabase
+    const { data: personality } = await (supabase as any)
       .from('user_fragrance_personalities')
       .select('personality_type')
       .eq('session_id', sessionId)

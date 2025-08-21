@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DirectDatabaseEngine } from '@/lib/ai-sdk/compatibility-layer';
+import { nanoid } from 'nanoid';
+import { withRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/quiz/analyze
@@ -8,6 +10,12 @@ import { DirectDatabaseEngine } from '@/lib/ai-sdk/compatibility-layer';
  * Uses analyze_quiz_personality() and get_quiz_recommendations() database functions
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting check
+  const rateLimitCheck = await withRateLimit(request, 'quiz_analyze');
+  if (rateLimitCheck.blocked) {
+    return rateLimitCheck.response;
+  }
+
   try {
     const body = await request.json();
 
@@ -23,10 +31,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use session token or generate one
-    const sessionToken =
-      body.session_token ||
-      `quiz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Use session token or generate one (cryptographically secure)
+    const sessionToken = body.session_token || `quiz-${nanoid(10)}`;
 
     // Use direct database engine (working RPC functions)
     const engine = new DirectDatabaseEngine();

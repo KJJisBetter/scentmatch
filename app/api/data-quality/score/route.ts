@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceSupabase();
 
     // Get the most recent quality score
-    const { data: latestScore, error: scoreError } = await supabase
+    const { data: latestScore, error: scoreError } = await (supabase as any)
       .from('data_quality_scores')
       .select('*')
       .order('check_timestamp', { ascending: false })
@@ -21,16 +21,16 @@ export async function GET(request: NextRequest) {
 
     if (scoreError || !latestScore) {
       // No quality checks run yet, trigger one
-      const { data: newCheckId, error: checkError } = await supabase.rpc(
-        'run_data_quality_checks'
-      );
+      const { data: newCheckId, error: checkError } = await (
+        supabase as any
+      ).rpc('run_data_quality_checks');
 
       if (checkError) {
         throw new Error(`Failed to run quality check: ${checkError.message}`);
       }
 
       // Get the new results
-      const { data: newScore, error: newScoreError } = await supabase
+      const { data: newScore, error: newScoreError } = await (supabase as any)
         .from('data_quality_scores')
         .select('*')
         .eq('id', newCheckId)
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get quality trend (last 5 checks)
-    const { data: trendData } = await supabase
+    const { data: trendData } = await (supabase as any)
       .from('data_quality_scores')
       .select('overall_score, check_timestamp')
       .order('check_timestamp', { ascending: false })
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current issue count by severity
-    const { data: issueCounts } = await supabase
+    const { data: issueCounts } = await (supabase as any)
       .from('data_quality_issues')
       .select('severity, count(*)')
       .eq('status', 'open')

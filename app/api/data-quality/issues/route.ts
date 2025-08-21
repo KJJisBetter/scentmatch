@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceSupabase();
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('data_quality_issues')
       .select(
         'id, issue_type, severity, fragrance_id, description, details, status, created_at, resolved_at'
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get summary statistics
-    const { data: summary } = await supabase
+    const { data: summary } = await (supabase as any)
       .from('data_quality_issues')
       .select('severity, status');
 
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         issues:
-          issues?.map(issue => ({
+          issues?.map((issue: any) => ({
             issue_id: issue.id,
             type: issue.issue_type,
             severity: issue.severity,

@@ -80,7 +80,7 @@ export async function toggleWishlist(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -92,7 +92,7 @@ export async function toggleWishlist(
     }
 
     // Verify fragrance exists
-    const { data: fragrance, error: fragranceError } = await supabase
+    const { data: fragrance, error: fragranceError } = await (supabase as any)
       .from('fragrances')
       .select('id, name')
       .eq('id', fragrance_id)
@@ -111,7 +111,7 @@ export async function toggleWishlist(
 
     if (action === 'add') {
       // Check if already in wishlist
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('user_collections')
         .select('id')
         .eq('user_id', user.id)
@@ -128,7 +128,7 @@ export async function toggleWishlist(
       }
 
       // Add to wishlist
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_collections')
         .insert({
           user_id: user.id,
@@ -152,7 +152,7 @@ export async function toggleWishlist(
       in_wishlist = true;
     } else if (action === 'remove') {
       // Remove from wishlist
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_collections')
         .delete()
         .eq('user_id', user.id)
@@ -212,7 +212,7 @@ export async function getUserWishlist(): Promise<GetWishlistResult> {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -222,7 +222,7 @@ export async function getUserWishlist(): Promise<GetWishlistResult> {
     }
 
     // Get user's wishlist with fragrance details
-    const { data: wishlist, error } = await supabase
+    const { data: wishlist, error } = await (supabase as any)
       .from('user_collections')
       .select(
         `
@@ -311,7 +311,7 @@ export async function isInWishlist(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -322,7 +322,7 @@ export async function isInWishlist(
     }
 
     // Check if fragrance is in wishlist
-    const { data: existing, error } = await supabase
+    const { data: existing, error } = await (supabase as any)
       .from('user_collections')
       .select('id')
       .eq('user_id', user.id)

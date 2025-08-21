@@ -12,6 +12,7 @@ import {
   UnifiedRecommendationEngine,
   type UnifiedRecommendationRequest,
 } from './unified-recommendation-engine';
+import { nanoid } from 'nanoid';
 
 // Legacy interfaces that need to be maintained
 export interface LegacyQuizResponse {
@@ -114,7 +115,7 @@ export class DirectDatabaseEngine {
       return {
         recommendations: legacyRecommendations,
         quiz_session_token:
-          result.quiz_session_token || sessionToken || `quiz-${Date.now()}`,
+          result.quiz_session_token || sessionToken || `quiz-${nanoid(10)}`,
         total_processing_time_ms: result.processing_time_ms,
         recommendation_method: result.recommendation_method,
         success: result.success,
@@ -125,7 +126,7 @@ export class DirectDatabaseEngine {
 
       return {
         recommendations: [],
-        quiz_session_token: sessionToken || `quiz-${Date.now()}`,
+        quiz_session_token: sessionToken || `quiz-${nanoid(10)}`,
         total_processing_time_ms: 100,
         recommendation_method: 'error_fallback',
         success: false,
@@ -195,7 +196,7 @@ export class DatabaseRecommendationEngine {
 
     return {
       recommendations: legacyRecommendations,
-      quiz_session_token: result.quiz_session_token || `quiz-${Date.now()}`,
+      quiz_session_token: result.quiz_session_token || `quiz-${nanoid(10)}`,
       total_processing_time_ms: result.processing_time_ms,
       recommendation_method: result.recommendation_method,
       success: result.success,
@@ -262,7 +263,7 @@ export class WorkingRecommendationEngine {
 
     return {
       recommendations: legacyRecommendations,
-      quiz_session_token: result.quiz_session_token || `quiz-${Date.now()}`,
+      quiz_session_token: result.quiz_session_token || `quiz-${nanoid(10)}`,
       total_processing_time_ms: result.processing_time_ms,
       recommendation_method: result.recommendation_method,
       success: result.success,
@@ -328,7 +329,7 @@ export class QuizEngine {
 
     return {
       recommendations: legacyRecommendations,
-      quiz_session_token: result.quiz_session_token || `quiz-${Date.now()}`,
+      quiz_session_token: result.quiz_session_token || `quiz-${nanoid(10)}`,
       total_processing_time_ms: result.processing_time_ms,
       recommendation_method: result.recommendation_method,
       success: result.success,

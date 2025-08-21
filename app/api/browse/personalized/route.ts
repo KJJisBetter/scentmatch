@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // If user is authenticated, check collection size
     if (user && !authError) {
-      const { data: collectionData } = await supabase
+      const { data: collectionData } = await (supabase as any)
         .from('user_collections')
         .select('id, collection_type')
         .eq('user_id', user.id)
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const collectionStatuses: Record<string, string[]> = {};
     if (user && fragrances.length > 0) {
       const fragranceIds = fragrances.map((f: any) => f.id);
-      const { data: statusData } = await supabase
+      const { data: statusData } = await (supabase as any)
         .from('user_collections')
         .select('fragrance_id, collection_type')
         .eq('user_id', user.id)

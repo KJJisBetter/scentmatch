@@ -14,6 +14,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { aiClient } from './client';
 import type { AIPersonalityResponse, AIRecommendationResponse } from './client';
+import { nanoid } from 'nanoid';
 
 // Strategy types for the unified engine
 export type RecommendationStrategy = 'database' | 'ai' | 'hybrid';
@@ -190,10 +191,13 @@ export class UnifiedRecommendationEngine {
     // Try to use existing database RPC functions first
     if (request.quizResponses) {
       try {
-        const rpcResult = await this.supabase.rpc('get_quiz_recommendations', {
-          quiz_responses: request.quizResponses,
-          max_results: limit,
-        });
+        const rpcResult = await (this.supabase as any).rpc(
+          'get_quiz_recommendations',
+          {
+            quiz_responses: request.quizResponses,
+            max_results: limit,
+          }
+        );
 
         // Check if rpcResult exists and has data
         if (
@@ -250,7 +254,7 @@ export class UnifiedRecommendationEngine {
     }
 
     // Get available fragrances from database
-    const { data: fragrances } = await this.supabase
+    const { data: fragrances } = await (this.supabase as any)
       .from('fragrances')
       .select(
         `
@@ -395,7 +399,7 @@ export class UnifiedRecommendationEngine {
     limit: number
   ): Promise<RecommendationItem[]> {
     try {
-      const { data: popular, error } = await this.supabase
+      const { data: popular, error } = await (this.supabase as any)
         .from('fragrances')
         .select(
           `
@@ -479,10 +483,10 @@ export class UnifiedRecommendationEngine {
   }
 
   /**
-   * Generate session token
+   * Generate cryptographically secure session token
    */
   private generateSessionToken(): string {
-    return `quiz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `quiz-${nanoid(10)}`;
   }
 }
 

@@ -80,7 +80,7 @@ export async function toggleCollection(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -92,7 +92,7 @@ export async function toggleCollection(
     }
 
     // Verify fragrance exists
-    const { data: fragrance, error: fragranceError } = await supabase
+    const { data: fragrance, error: fragranceError } = await (supabase as any)
       .from('fragrances')
       .select('id, name')
       .eq('id', fragrance_id)
@@ -111,7 +111,7 @@ export async function toggleCollection(
 
     if (action === 'add') {
       // Check if already in collection
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('user_collections')
         .select('id')
         .eq('user_id', user.id)
@@ -128,7 +128,7 @@ export async function toggleCollection(
       }
 
       // Add to collection
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_collections')
         .insert({
           user_id: user.id,
@@ -152,7 +152,7 @@ export async function toggleCollection(
       in_collection = true;
     } else if (action === 'remove') {
       // Remove from collection
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_collections')
         .delete()
         .eq('user_id', user.id)
@@ -212,7 +212,7 @@ export async function getUserCollection(): Promise<GetCollectionResult> {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -222,7 +222,7 @@ export async function getUserCollection(): Promise<GetCollectionResult> {
     }
 
     // Get user's collection with fragrance details
-    const { data: collection, error } = await supabase
+    const { data: collection, error } = await (supabase as any)
       .from('user_collections')
       .select(
         `
@@ -311,7 +311,7 @@ export async function isInCollection(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -322,7 +322,7 @@ export async function isInCollection(
     }
 
     // Check if fragrance is in collection
-    const { data: existing, error } = await supabase
+    const { data: existing, error } = await (supabase as any)
       .from('user_collections')
       .select('id')
       .eq('user_id', user.id)

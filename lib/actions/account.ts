@@ -75,8 +75,9 @@ export async function convertToAccount(
     }
 
     // Verify user exists (more reliable than session-based auth for this conversion flow)
-    const { data: existingUser, error: userCheckError } =
-      await supabase.auth.admin.getUserById(params.user_data.user_id);
+    const { data: existingUser, error: userCheckError } = await (
+      supabase as any
+    ).auth.admin.getUserById(params.user_data.user_id);
 
     if (userCheckError || !existingUser.user) {
       console.error('User verification failed:', userCheckError);
@@ -90,7 +91,7 @@ export async function convertToAccount(
     const user = existingUser.user;
 
     // Find guest session
-    const { data: guestSession, error: sessionError } = await supabase
+    const { data: guestSession, error: sessionError } = await (supabase as any)
       .from('user_quiz_sessions')
       .select('*')
       .eq('session_token', params.session_token)
@@ -106,13 +107,12 @@ export async function convertToAccount(
     }
 
     // Use database function for atomic transfer
-    const { data: transferResult, error: transferError } = await supabase.rpc(
-      'transfer_guest_session_to_user',
-      {
-        guest_session_token: params.session_token,
-        target_user_id: user.id,
-      }
-    );
+    const { data: transferResult, error: transferError } = await (
+      supabase as any
+    ).rpc('transfer_guest_session_to_user', {
+      guest_session_token: params.session_token,
+      target_user_id: user.id,
+    });
 
     if (transferError || !transferResult?.transfer_successful) {
       console.error('Transfer failed:', transferError);
@@ -131,7 +131,7 @@ export async function convertToAccount(
     );
 
     // Create/update user profile with quiz completion
-    const { error: profileError } = await supabase
+    const { error: profileError } = await (supabase as any)
       .from('user_profiles')
       .upsert({
         id: user.id,
@@ -152,7 +152,7 @@ export async function convertToAccount(
     // Generate enhanced recommendations for new account
     let enhancedRecommendations = [];
     try {
-      const { data: personalizedRecs } = await supabase.rpc(
+      const { data: personalizedRecs } = await (supabase as any).rpc(
         'get_personalized_recommendations',
         {
           target_user_id: user.id,
@@ -249,7 +249,7 @@ export async function validateGuestSession(session_token: string): Promise<{
     const supabase = createServiceSupabase();
 
     // Find guest session
-    const { data: guestSession, error: sessionError } = await supabase
+    const { data: guestSession, error: sessionError } = await (supabase as any)
       .from('user_quiz_sessions')
       .select('*')
       .eq('session_token', session_token)
@@ -307,7 +307,7 @@ async function getPersonalityFromSession(
   sessionId: string
 ): Promise<string> {
   try {
-    const { data: personality } = await supabase
+    const { data: personality } = await (supabase as any)
       .from('user_fragrance_personalities')
       .select('personality_type')
       .eq('session_id', sessionId)

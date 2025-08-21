@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Heart, Plus, Check, Settings } from 'lucide-react';
 import { createClientSupabase } from '@/lib/supabase-client';
 import { InteractionTracker } from './interaction-tracker';
@@ -25,18 +31,18 @@ interface CollectionStatus {
 
 /**
  * CollectionActions Component
- * 
+ *
  * Handles adding/removing fragrances from user collections
  * Supports multiple collection types and optimistic updates
  * Implements mobile-first interaction patterns
  */
-export function CollectionActions({ 
-  fragranceId, 
+export function CollectionActions({
+  fragranceId,
   variant = 'default',
-  className 
+  className,
 }: CollectionActionsProps) {
   const [collectionStatus, setCollectionStatus] = useState<CollectionStatus>({
-    in_collection: false
+    in_collection: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -51,21 +57,24 @@ export function CollectionActions({
     const fetchCollectionStatus = async () => {
       try {
         const supabase = createClientSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await (supabase as any).auth.getUser();
+
         if (!user) {
           setIsLoading(false);
           return;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('user_collections')
           .select('status, rating, personal_notes, added_at')
           .eq('user_id', user.id)
           .eq('fragrance_id', fragranceId)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // Not found is OK
+        if (error && error.code !== 'PGRST116') {
+          // Not found is OK
           console.error('Error fetching collection status:', error);
         }
 
@@ -86,9 +95,11 @@ export function CollectionActions({
     fetchCollectionStatus();
   }, [fragranceId]);
 
-  const handleToggleCollection = async (newStatus: 'owned' | 'wishlist' | 'tried') => {
+  const handleToggleCollection = async (
+    newStatus: 'owned' | 'wishlist' | 'tried'
+  ) => {
     setIsUpdating(true);
-    
+
     // Optimistic update
     const wasInCollection = collectionStatus.in_collection;
     setCollectionStatus(prev => ({
@@ -106,15 +117,17 @@ export function CollectionActions({
 
     try {
       const supabase = createClientSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await (supabase as any).auth.getUser();
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
       if (wasInCollection) {
         // Update existing entry
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('user_collections')
           .update({ status: newStatus, updated_at: new Date().toISOString() })
           .eq('user_id', user.id)
@@ -123,7 +136,7 @@ export function CollectionActions({
         if (error) throw error;
       } else {
         // Add new entry
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('user_collections')
           .insert({
             user_id: user.id,
@@ -136,7 +149,7 @@ export function CollectionActions({
       }
     } catch (error) {
       console.error('Failed to update collection:', error);
-      
+
       // Revert optimistic update
       setCollectionStatus(prev => ({
         ...prev,
@@ -150,7 +163,7 @@ export function CollectionActions({
 
   const handleRemoveFromCollection = async () => {
     setIsUpdating(true);
-    
+
     // Optimistic update
     const originalStatus = { ...collectionStatus };
     setCollectionStatus({ in_collection: false });
@@ -164,13 +177,15 @@ export function CollectionActions({
 
     try {
       const supabase = createClientSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await (supabase as any).auth.getUser();
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_collections')
         .delete()
         .eq('user_id', user.id)
@@ -179,7 +194,7 @@ export function CollectionActions({
       if (error) throw error;
     } catch (error) {
       console.error('Failed to remove from collection:', error);
-      
+
       // Revert optimistic update
       setCollectionStatus(originalStatus);
     } finally {
@@ -199,70 +214,70 @@ export function CollectionActions({
             metadata={trackInteraction.metadata}
           />
         )}
-        
+
         <Sheet>
           <SheetTrigger asChild>
             <Button
-              size="lg"
-              variant={collectionStatus.in_collection ? "default" : "outline"}
-              className="w-11 h-11 p-0"
+              size='lg'
+              variant={collectionStatus.in_collection ? 'default' : 'outline'}
+              className='w-11 h-11 p-0'
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className='h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin' />
               ) : collectionStatus.in_collection ? (
-                <Check className="h-4 w-4" />
+                <Check className='h-4 w-4' />
               ) : (
-                <Heart className="h-4 w-4" />
+                <Heart className='h-4 w-4' />
               )}
             </Button>
           </SheetTrigger>
-          
-          <SheetContent side="bottom" className="h-fit">
+
+          <SheetContent side='bottom' className='h-fit'>
             <SheetHeader>
               <SheetTitle>Manage Collection</SheetTitle>
             </SheetHeader>
-            
-            <div className="grid grid-cols-3 gap-3 mt-6">
+
+            <div className='grid grid-cols-3 gap-3 mt-6'>
               <Button
-                variant="outline"
+                variant='outline'
                 onClick={() => handleToggleCollection('wishlist')}
                 disabled={isUpdating}
-                className="h-20 flex-col space-y-2"
+                className='h-20 flex-col space-y-2'
               >
-                <Heart className="h-5 w-5" />
-                <span className="text-xs">Wishlist</span>
+                <Heart className='h-5 w-5' />
+                <span className='text-xs'>Wishlist</span>
               </Button>
-              
+
               <Button
-                variant="outline"
+                variant='outline'
                 onClick={() => handleToggleCollection('tried')}
                 disabled={isUpdating}
-                className="h-20 flex-col space-y-2"
+                className='h-20 flex-col space-y-2'
               >
-                <Check className="h-5 w-5" />
-                <span className="text-xs">Tried</span>
+                <Check className='h-5 w-5' />
+                <span className='text-xs'>Tried</span>
               </Button>
-              
+
               <Button
-                variant="outline"
+                variant='outline'
                 onClick={() => handleToggleCollection('owned')}
                 disabled={isUpdating}
-                className="h-20 flex-col space-y-2"
+                className='h-20 flex-col space-y-2'
               >
-                <Plus className="h-5 w-5" />
-                <span className="text-xs">Owned</span>
+                <Plus className='h-5 w-5' />
+                <span className='text-xs'>Owned</span>
               </Button>
             </div>
 
             {collectionStatus.in_collection && (
-              <div className="mt-6 pt-6 border-t">
+              <div className='mt-6 pt-6 border-t'>
                 <Button
-                  variant="destructive"
-                  size="sm"
+                  variant='destructive'
+                  size='sm'
                   onClick={handleRemoveFromCollection}
                   disabled={isUpdating}
-                  className="w-full"
+                  className='w-full'
                 >
                   Remove from Collection
                 </Button>
@@ -277,13 +292,13 @@ export function CollectionActions({
   // Badge variant (floating on image)
   if (variant === 'badge') {
     if (!collectionStatus.in_collection) return null;
-    
+
     return (
-      <Badge 
-        variant="default" 
-        className="absolute top-3 right-3 bg-green-600 hover:bg-green-700"
+      <Badge
+        variant='default'
+        className='absolute top-3 right-3 bg-green-600 hover:bg-green-700'
       >
-        <Check className="h-3 w-3 mr-1" />
+        <Check className='h-3 w-3 mr-1' />
         {collectionStatus.status === 'owned' && 'Owned'}
         {collectionStatus.status === 'wishlist' && 'Wishlist'}
         {collectionStatus.status === 'tried' && 'Tried'}
@@ -302,63 +317,62 @@ export function CollectionActions({
           metadata={trackInteraction.metadata}
         />
       )}
-      
+
       <div className={cn('space-y-3', className)}>
         {isLoading ? (
-          <div className="flex space-x-2">
-            <div className="h-10 w-24 bg-muted animate-pulse rounded" />
-            <div className="h-10 w-24 bg-muted animate-pulse rounded" />
+          <div className='flex space-x-2'>
+            <div className='h-10 w-24 bg-muted animate-pulse rounded' />
+            <div className='h-10 w-24 bg-muted animate-pulse rounded' />
           </div>
         ) : collectionStatus.in_collection ? (
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Badge variant="default" className="bg-green-600">
-                <Check className="h-3 w-3 mr-1" />
+          <div className='space-y-2'>
+            <div className='flex items-center space-x-2'>
+              <Badge variant='default' className='bg-green-600'>
+                <Check className='h-3 w-3 mr-1' />
                 In your collection
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant='outline' className='text-xs'>
                 {collectionStatus.status}
               </Badge>
             </div>
-            
-            <div className="flex space-x-2">
+
+            <div className='flex space-x-2'>
               <Button
-                size="sm"
-                variant="outline"
+                size='sm'
+                variant='outline'
                 onClick={() => handleToggleCollection('wishlist')}
                 disabled={isUpdating}
               >
                 Move to Wishlist
               </Button>
-              
+
               <Button
-                size="sm"
-                variant="ghost"
+                size='sm'
+                variant='ghost'
                 onClick={handleRemoveFromCollection}
                 disabled={isUpdating}
               >
-                <Settings className="h-4 w-4" />
+                <Settings className='h-4 w-4' />
               </Button>
             </div>
           </div>
         ) : (
-          <div className="flex space-x-2">
+          <div className='flex space-x-2'>
             <Button
-              variant="outline"
+              variant='outline'
               onClick={() => handleToggleCollection('wishlist')}
               disabled={isUpdating}
             >
-              <Heart className="h-4 w-4 mr-2" />
+              <Heart className='h-4 w-4 mr-2' />
               Add to Wishlist
             </Button>
-            
+
             <Button
-              variant="outline"  
+              variant='outline'
               onClick={() => handleToggleCollection('owned')}
               disabled={isUpdating}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              I Own This
+              <Plus className='h-4 w-4 mr-2' />I Own This
             </Button>
           </div>
         )}

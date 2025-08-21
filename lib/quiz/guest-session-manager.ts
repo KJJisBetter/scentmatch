@@ -4,7 +4,7 @@ import type { QuizSession } from '@/types/quiz';
 
 /**
  * GuestSessionManager Class
- * 
+ *
  * Manages anonymous quiz sessions for non-authenticated users
  * Implements research-backed patterns for guest experience:
  * - Secure session token generation for anonymous access
@@ -34,11 +34,13 @@ export class GuestSessionManager {
   /**
    * Create new guest session with security measures
    */
-  async createSession(options: {
-    referral_source?: string;
-    ip_address?: string;
-    user_agent?: string;
-  } = {}): Promise<QuizSession> {
+  async createSession(
+    options: {
+      referral_source?: string;
+      ip_address?: string;
+      user_agent?: string;
+    } = {}
+  ): Promise<QuizSession> {
     if (this.isServerSide) await this.initializeServerClient();
 
     try {
@@ -54,7 +56,7 @@ export class GuestSessionManager {
 
       // Generate secure session token
       const sessionToken = await this.generateSecureToken();
-      
+
       // Create session record
       const sessionData = {
         user_id: null,
@@ -64,13 +66,15 @@ export class GuestSessionManager {
         total_questions: 15,
         is_completed: false,
         is_guest_session: true,
-        expires_at: new Date(Date.now() + this.sessionDurationHours * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(
+          Date.now() + this.sessionDurationHours * 60 * 60 * 1000
+        ).toISOString(),
         referral_source,
         ip_hash: ip_address ? await this.hashString(ip_address) : null,
-        user_agent_hash: user_agent ? await this.hashString(user_agent) : null
+        user_agent_hash: user_agent ? await this.hashString(user_agent) : null,
       };
 
-      const { data: session, error } = await this.supabase
+      const { data: session, error } = await (this.supabase as any)
         .from('user_quiz_sessions')
         .insert(sessionData)
         .select()
@@ -81,7 +85,6 @@ export class GuestSessionManager {
       }
 
       return session;
-
     } catch (error) {
       console.error('Error creating guest session:', error);
       throw error;
@@ -100,10 +103,11 @@ export class GuestSessionManager {
     if (this.isServerSide) await this.initializeServerClient();
 
     try {
-      const { session_token, current_question, responses, partial_analysis } = progressData;
+      const { session_token, current_question, responses, partial_analysis } =
+        progressData;
 
       // Get session
-      const { data: session } = await this.supabase
+      const { data: session } = await (this.supabase as any)
         .from('user_quiz_sessions')
         .select('id, expires_at')
         .eq('session_token', session_token)
@@ -119,11 +123,11 @@ export class GuestSessionManager {
       }
 
       // Update session progress
-      await this.supabase
+      await (this.supabase as any)
         .from('user_quiz_sessions')
         .update({
           current_question,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', session.id);
 
@@ -135,9 +139,8 @@ export class GuestSessionManager {
         saved: true,
         progress_percentage: progressPercentage,
         next_question_ready: responses.length < 15,
-        estimated_completion_time: estimatedRemainingTime
+        estimated_completion_time: estimatedRemainingTime,
       };
-
     } catch (error) {
       console.error('Error saving guest progress:', error);
       throw error;
@@ -151,7 +154,7 @@ export class GuestSessionManager {
     if (this.isServerSide) await this.initializeServerClient();
 
     try {
-      const { data: session, error } = await this.supabase
+      const { data: session, error } = await (this.supabase as any)
         .from('user_quiz_sessions')
         .select('*')
         .eq('session_token', sessionToken)
@@ -174,7 +177,6 @@ export class GuestSessionManager {
       }
 
       return session;
-
     } catch (error) {
       console.error('Error getting guest session:', error);
       return null;
@@ -193,10 +195,13 @@ export class GuestSessionManager {
 
     try {
       // Use database function for atomic transfer
-      const { data: transferResult, error } = await this.supabase.rpc('transfer_guest_session_to_user', {
-        guest_session_token: guestSessionToken,
-        target_user_id: userId
-      });
+      const { data: transferResult, error } = await (this.supabase as any).rpc(
+        'transfer_guest_session_to_user',
+        {
+          guest_session_token: guestSessionToken,
+          target_user_id: userId,
+        }
+      );
 
       if (error) {
         throw new Error(`Transfer failed: ${error.message}`);
@@ -208,12 +213,12 @@ export class GuestSessionManager {
 
       // Update user profile with quiz completion if applicable
       if (transferResult.personality_profile_transferred) {
-        await this.supabase
+        await (this.supabase as any)
           .from('user_profiles')
           .update({
             onboarding_step: 'quiz_completed',
             quiz_completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', userId);
       }
@@ -224,17 +229,20 @@ export class GuestSessionManager {
           quiz_responses: transferResult.responses_transferred,
           personality_profile: transferResult.personality_profile_transferred,
           partial_analysis: true,
-          progress_timestamps: true
+          progress_timestamps: true,
         },
         new_user_profile: {
           id: userId,
-          quiz_completed_at: transferResult.personality_profile_transferred ? new Date().toISOString() : null,
-          onboarding_step: transferResult.personality_profile_transferred ? 'quiz_completed' : 'quiz_in_progress'
+          quiz_completed_at: transferResult.personality_profile_transferred
+            ? new Date().toISOString()
+            : null,
+          onboarding_step: transferResult.personality_profile_transferred
+            ? 'quiz_completed'
+            : 'quiz_in_progress',
         },
         recommendations_generated: 0, // Would be calculated
-        cleanup_completed: true
+        cleanup_completed: true,
       };
-
     } catch (error) {
       console.error('Error transferring guest session:', error);
       throw error;
@@ -249,15 +257,14 @@ export class GuestSessionManager {
 
     try {
       // Mark session as expired
-      await this.supabase
+      await (this.supabase as any)
         .from('user_quiz_sessions')
         .update({
           expires_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('session_token', sessionToken)
         .eq('is_guest_session', true);
-
     } catch (error) {
       console.error('Error expiring guest session:', error);
     }
@@ -270,7 +277,9 @@ export class GuestSessionManager {
     if (this.isServerSide) await this.initializeServerClient();
 
     try {
-      const { data: cleanupResult, error } = await this.supabase.rpc('cleanup_expired_quiz_sessions');
+      const { data: cleanupResult, error } = await (this.supabase as any).rpc(
+        'cleanup_expired_quiz_sessions'
+      );
 
       if (error) {
         throw new Error(`Cleanup failed: ${error.message}`);
@@ -280,9 +289,10 @@ export class GuestSessionManager {
         sessions_cleaned: cleanupResult.cleaned_sessions,
         data_freed_mb: cleanupResult.storage_freed_estimate_kb / 1024,
         cleanup_duration_ms: 100, // Approximate
-        next_cleanup_scheduled: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour
+        next_cleanup_scheduled: new Date(
+          Date.now() + 60 * 60 * 1000
+        ).toISOString(), // 1 hour
       };
-
     } catch (error) {
       console.error('Error in cleanup:', error);
       throw error;
@@ -294,11 +304,13 @@ export class GuestSessionManager {
   /**
    * Check rate limiting for IP address
    */
-  private async checkRateLimit(ipAddress: string): Promise<{ limited: boolean; message?: string }> {
+  private async checkRateLimit(
+    ipAddress: string
+  ): Promise<{ limited: boolean; message?: string }> {
     const ipHash = await this.hashString(ipAddress);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-    const { data: recentSessions } = await this.supabase
+    const { data: recentSessions } = await (this.supabase as any)
       .from('user_quiz_sessions')
       .select('id')
       .eq('ip_hash', ipHash)
@@ -309,7 +321,7 @@ export class GuestSessionManager {
     if (sessionCount >= this.rateLimitPerHour) {
       return {
         limited: true,
-        message: `Too many sessions from IP: ${sessionCount}/${this.rateLimitPerHour} per hour`
+        message: `Too many sessions from IP: ${sessionCount}/${this.rateLimitPerHour} per hour`,
       };
     }
 
@@ -324,13 +336,13 @@ export class GuestSessionManager {
       // Use Web Crypto API for secure random generation
       const array = new Uint8Array(16);
       crypto.getRandomValues(array);
-      
-      const token = Array.from(array, byte => 
+
+      const token = Array.from(array, byte =>
         byte.toString(16).padStart(2, '0')
       ).join('');
 
       // Verify uniqueness
-      const { data: existing } = await this.supabase
+      const { data: existing } = await (this.supabase as any)
         .from('user_quiz_sessions')
         .select('id')
         .eq('session_token', token)
@@ -342,7 +354,6 @@ export class GuestSessionManager {
       }
 
       return `secure-token-${token}`;
-
     } catch (error) {
       console.error('Error generating secure token:', error);
       throw error;
@@ -363,7 +374,7 @@ export class GuestSessionManager {
 
 /**
  * SessionTokenGenerator Class
- * 
+ *
  * Dedicated token generation and validation for guest sessions
  */
 export class SessionTokenGenerator {
@@ -373,16 +384,23 @@ export class SessionTokenGenerator {
   async generate(): Promise<string> {
     const array = new Uint8Array(16);
     crypto.getRandomValues(array);
-    
-    return Array.from(array, byte => 
-      byte.toString(16).padStart(2, '0')
-    ).join('');
+
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join(
+      ''
+    );
   }
 
   /**
    * Validate session token format and existence
    */
-  async validate(token: string): Promise<{ valid: boolean; session_id?: string; reason?: string; expired_at?: string }> {
+  async validate(
+    token: string
+  ): Promise<{
+    valid: boolean;
+    session_id?: string;
+    reason?: string;
+    expired_at?: string;
+  }> {
     // Validate format
     if (!token || !token.match(/^[a-f0-9]{32}$/)) {
       return { valid: false, reason: 'invalid_format' };
@@ -390,8 +408,8 @@ export class SessionTokenGenerator {
 
     try {
       const supabase = createClientSupabase();
-      
-      const { data: session } = await supabase
+
+      const { data: session } = await (supabase as any)
         .from('user_quiz_sessions')
         .select('id, expires_at')
         .eq('session_token', token)
@@ -403,18 +421,17 @@ export class SessionTokenGenerator {
       }
 
       if (new Date(session.expires_at) < new Date()) {
-        return { 
-          valid: false, 
+        return {
+          valid: false,
           reason: 'expired',
-          expired_at: session.expires_at
+          expired_at: session.expires_at,
         };
       }
 
-      return { 
-        valid: true, 
-        session_id: session.id 
+      return {
+        valid: true,
+        session_id: session.id,
       };
-
     } catch (error) {
       console.error('Error validating token:', error);
       return { valid: false, reason: 'validation_error' };

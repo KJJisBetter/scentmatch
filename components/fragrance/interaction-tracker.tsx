@@ -5,14 +5,20 @@ import { createClientSupabase } from '@/lib/supabase-client';
 
 interface InteractionTrackerProps {
   fragranceId: string;
-  interactionType: 'view' | 'like' | 'dislike' | 'sample_request' | 'add_to_collection' | 'remove_from_collection';
+  interactionType:
+    | 'view'
+    | 'like'
+    | 'dislike'
+    | 'sample_request'
+    | 'add_to_collection'
+    | 'remove_from_collection';
   interactionContext: string;
   metadata?: Record<string, any>;
 }
 
 /**
  * InteractionTracker Component
- * 
+ *
  * Client-side component that tracks user interactions with fragrances
  * Follows research-backed patterns for minimal hydration and optimal performance
  */
@@ -26,17 +32,19 @@ export function InteractionTracker({
     const trackInteraction = async () => {
       try {
         const supabase = createClientSupabase();
-        
+
         // Check if user is authenticated
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await (supabase as any).auth.getUser();
+
         if (!user) {
           // Don't track interactions for unauthenticated users
           return;
         }
 
         // Track the interaction
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('user_fragrance_interactions')
           .insert({
             user_id: user.id,

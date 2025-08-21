@@ -29,7 +29,7 @@ export async function generateMetadata({
   const supabase = await createServerSupabase();
 
   try {
-    const { data: fragrance } = await supabase
+    const { data: fragrance } = await (supabase as any)
       .from('fragrances')
       .select(
         `
@@ -119,7 +119,7 @@ async function getFragranceData(id: string) {
     // Use the same fallback approach as the search API (which works)
     // Skip RPC calls that cause "call" errors and use direct database queries
 
-    let fallbackQuery = supabase.from('fragrances').select(`
+    let fallbackQuery = (supabase as any).from('fragrances').select(`
         id,
         name,
         scent_family,

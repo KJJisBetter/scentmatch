@@ -120,7 +120,7 @@ export class SearchSuggestionEngine {
     const suggestions: SearchSuggestion[] = [];
 
     // Search fragrances
-    const { data: fragrances } = await this.supabase
+    const { data: fragrances } = await (this.supabase as any)
       .from('fragrances')
       .select('name, fragrance_brands(name)')
       .ilike('name', `%${query}%`)
@@ -136,7 +136,7 @@ export class SearchSuggestionEngine {
     });
 
     // Search brands
-    const { data: brands } = await this.supabase
+    const { data: brands } = await (this.supabase as any)
       .from('fragrance_brands')
       .select('name')
       .ilike('name', `%${query}%`)

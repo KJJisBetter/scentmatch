@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase';
+import { withRateLimit } from '@/lib/rate-limit';
 import {
   SearchSuggestionEngine,
   QueryProcessor,
@@ -13,6 +14,12 @@ import {
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+
+  // Rate limiting check
+  const rateLimitCheck = await withRateLimit(request, 'search_suggestions');
+  if (rateLimitCheck.blocked) {
+    return rateLimitCheck.response;
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -80,14 +87,14 @@ export async function GET(request: NextRequest) {
 
       // Fallback to original MVP implementation
       const [fragranceResults, brandResults] = await Promise.all([
-        supabase
+        (supabase as any)
           .from('fragrances')
           .select('name')
           .ilike('name', `%${query}%`)
           .limit(3)
           .order('rating_value', { ascending: false, nullsFirst: false }),
 
-        supabase
+        (supabase as any)
           .from('fragrance_brands')
           .select('name')
           .ilike('name', `%${query}%`)

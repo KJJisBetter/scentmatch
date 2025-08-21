@@ -53,14 +53,14 @@ async function getUserRecommendationData() {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       redirect('/auth/signin?redirect=/recommendations');
     }
 
     // Fetch user profile and collection for personalization context
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await (supabase as any)
       .from('user_profiles')
       .select(
         `
@@ -76,35 +76,36 @@ async function getUserRecommendationData() {
       .single();
 
     // Get collection stats for recommendation tuning
-    const { data: collectionStats, error: statsError } = await supabase.rpc(
-      'get_collection_insights',
-      {
-        target_user_id: user.id,
-      }
-    );
+    const { data: collectionStats, error: statsError } = await (
+      supabase as any
+    ).rpc('get_collection_insights', {
+      target_user_id: user.id,
+    });
 
     // Get user preferences from interactions for initial personalization
-    const { data: recentInteractions, error: interactionsError } =
-      await supabase
-        .from('user_fragrance_interactions')
-        .select(
-          `
+    const { data: recentInteractions, error: interactionsError } = await (
+      supabase as any
+    )
+      .from('user_fragrance_interactions')
+      .select(
+        `
         fragrance_id,
         interaction_type,
         created_at
       `
-        )
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      )
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
 
     // Get initial recommendations (cached if available)
-    const { data: initialRecommendations, error: recError } =
-      await supabase.rpc('get_personalized_recommendations', {
-        target_user_id: user.id,
-        max_results: 20,
-        include_owned: false,
-      });
+    const { data: initialRecommendations, error: recError } = await (
+      supabase as any
+    ).rpc('get_personalized_recommendations', {
+      target_user_id: user.id,
+      max_results: 20,
+      include_owned: false,
+    });
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching user profile:', profileError);

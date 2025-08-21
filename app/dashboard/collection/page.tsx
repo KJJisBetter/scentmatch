@@ -5,7 +5,7 @@ import { CollectionDashboard } from '@/components/collection/collection-dashboar
 
 /**
  * Personal Collection Management Dashboard
- * 
+ *
  * Route: /dashboard/collection
  * Features:
  * - Progressive collection views (currently wearing → seasonal → full collection)
@@ -19,8 +19,10 @@ import { CollectionDashboard } from '@/components/collection/collection-dashboar
 
 export const metadata: Metadata = {
   title: 'My Collection - ScentMatch',
-  description: 'Manage your fragrance collection with AI-powered insights and organization tools.',
-  keywords: 'fragrance collection, personal collection, scent organization, AI insights, collection management',
+  description:
+    'Manage your fragrance collection with AI-powered insights and organization tools.',
+  keywords:
+    'fragrance collection, personal collection, scent organization, AI insights, collection management',
   robots: {
     index: false, // Private dashboard pages shouldn't be indexed
     follow: false,
@@ -29,19 +31,23 @@ export const metadata: Metadata = {
 
 async function getUserData() {
   const supabase = await createServerSupabase();
-  
+
   try {
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await (supabase as any).auth.getUser();
+
     if (authError || !user) {
       redirect('/auth/signin');
     }
 
     // Fetch user profile for personalization
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await (supabase as any)
       .from('user_profiles')
-      .select(`
+      .select(
+        `
         id,
         email,
         first_name,
@@ -50,7 +56,8 @@ async function getUserData() {
         favorite_accords,
         disliked_accords,
         privacy_settings
-      `)
+      `
+      )
       .eq('id', user.id)
       .single();
 
@@ -61,8 +68,10 @@ async function getUserData() {
     }
 
     // Get basic collection stats for initial load
-    const { data: collectionStats, error: statsError } = await supabase.rpc('get_collection_insights', {
-      target_user_id: user.id
+    const { data: collectionStats, error: statsError } = await (
+      supabase as any
+    ).rpc('get_collection_insights', {
+      target_user_id: user.id,
     });
 
     if (statsError && statsError.code !== '42883') {
@@ -72,9 +81,12 @@ async function getUserData() {
     }
 
     // Get recent collection activity
-    const { data: recentActivity, error: activityError } = await supabase
+    const { data: recentActivity, error: activityError } = await (
+      supabase as any
+    )
       .from('user_collections')
-      .select(`
+      .select(
+        `
         id,
         fragrance_id,
         status,
@@ -83,7 +95,8 @@ async function getUserData() {
           name,
           fragrance_brands:brand_id (name)
         )
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .order('added_at', { ascending: false })
       .limit(5);
@@ -100,11 +113,10 @@ async function getUserData() {
       collectionStats: collectionStats || {
         total_fragrances: 0,
         diversity_score: 0,
-        dominant_families: []
+        dominant_families: [],
       },
-      recentActivity: recentActivity || []
+      recentActivity: recentActivity || [],
     };
-
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('Error fetching dashboard data:', error);
@@ -114,75 +126,86 @@ async function getUserData() {
 }
 
 export default async function CollectionPage() {
-  const { user, userProfile, collectionStats, recentActivity } = await getUserData();
+  const { user, userProfile, collectionStats, recentActivity } =
+    await getUserData();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100">
+    <div className='min-h-screen bg-gradient-to-br from-cream-50 to-cream-100'>
       {/* Dashboard Container */}
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className='container mx-auto px-4 py-6 max-w-7xl'>
         {/* Dashboard Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div className='mb-8'>
+          <div className='flex items-center justify-between mb-4'>
             <div>
-              <h1 className="text-3xl font-serif font-bold text-foreground">
-                {userProfile?.first_name ? `${userProfile.first_name}'s` : 'My'} Fragrance Collection
+              <h1 className='text-3xl font-serif font-bold text-foreground'>
+                {userProfile?.first_name ? `${userProfile.first_name}'s` : 'My'}{' '}
+                Fragrance Collection
               </h1>
-              <p className="text-lg text-muted-foreground">
-                Discover patterns, organize your scents, and find your next favorite
+              <p className='text-lg text-muted-foreground'>
+                Discover patterns, organize your scents, and find your next
+                favorite
               </p>
             </div>
-            
+
             {/* Quick Actions */}
-            <div className="hidden md:flex items-center space-x-3">
-              <button className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors">
+            <div className='hidden md:flex items-center space-x-3'>
+              <button className='px-4 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors'>
                 Export Collection
               </button>
-              <button className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+              <button className='px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors'>
                 Add Fragrance
               </button>
             </div>
           </div>
 
           {/* Quick Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-card rounded-lg p-4 border">
-              <div className="text-2xl font-bold text-foreground">
-                {typeof collectionStats.total_fragrances === 'number' 
-                  ? collectionStats.total_fragrances 
+          <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-6'>
+            <div className='bg-card rounded-lg p-4 border'>
+              <div className='text-2xl font-bold text-foreground'>
+                {typeof collectionStats.total_fragrances === 'number'
+                  ? collectionStats.total_fragrances
                   : 0}
               </div>
-              <div className="text-sm text-muted-foreground">Total Fragrances</div>
+              <div className='text-sm text-muted-foreground'>
+                Total Fragrances
+              </div>
             </div>
-            
-            <div className="bg-card rounded-lg p-4 border">
-              <div className="text-2xl font-bold text-foreground">
-                {collectionStats.diversity_score 
+
+            <div className='bg-card rounded-lg p-4 border'>
+              <div className='text-2xl font-bold text-foreground'>
+                {collectionStats.diversity_score
                   ? Math.round(collectionStats.diversity_score * 100) + '%'
                   : '0%'}
               </div>
-              <div className="text-sm text-muted-foreground">Collection Diversity</div>
+              <div className='text-sm text-muted-foreground'>
+                Collection Diversity
+              </div>
             </div>
-            
-            <div className="bg-card rounded-lg p-4 border">
-              <div className="text-2xl font-bold text-foreground">
+
+            <div className='bg-card rounded-lg p-4 border'>
+              <div className='text-2xl font-bold text-foreground'>
                 {recentActivity.length}
               </div>
-              <div className="text-sm text-muted-foreground">Recent Additions</div>
+              <div className='text-sm text-muted-foreground'>
+                Recent Additions
+              </div>
             </div>
-            
-            <div className="bg-card rounded-lg p-4 border">
-              <div className="text-2xl font-bold text-foreground">
-                {Array.isArray(collectionStats.dominant_families) 
-                  ? collectionStats.dominant_families.length 
+
+            <div className='bg-card rounded-lg p-4 border'>
+              <div className='text-2xl font-bold text-foreground'>
+                {Array.isArray(collectionStats.dominant_families)
+                  ? collectionStats.dominant_families.length
                   : 0}
               </div>
-              <div className="text-sm text-muted-foreground">Scent Families</div>
+              <div className='text-sm text-muted-foreground'>
+                Scent Families
+              </div>
             </div>
           </div>
         </div>
 
         {/* Main Collection Dashboard */}
-        <CollectionDashboard 
+        <CollectionDashboard
           userId={user.id}
           userProfile={userProfile || undefined}
           initialStats={collectionStats}

@@ -103,7 +103,7 @@ export function RecommendationsSystem({
 
     try {
       // Get personalized recommendations
-      const { data: personalizedRecs } = await supabase.rpc(
+      const { data: personalizedRecs } = await (supabase as any).rpc(
         'get_personalized_recommendations',
         {
           target_user_id: userId,
@@ -113,7 +113,7 @@ export function RecommendationsSystem({
       );
 
       // Get trending recommendations (with personalization)
-      const { data: trendingRecs } = await supabase
+      const { data: trendingRecs } = await (supabase as any)
         .from('fragrances')
         .select(
           `
@@ -133,7 +133,7 @@ export function RecommendationsSystem({
 
       // Get seasonal recommendations
       const currentSeason = getCurrentSeason();
-      const { data: seasonalRecs } = await supabase
+      const { data: seasonalRecs } = await (supabase as any)
         .from('fragrances')
         .select(
           `
@@ -171,7 +171,7 @@ export function RecommendationsSystem({
   const loadFallbackRecommendations = async () => {
     const supabase = createClientSupabase();
 
-    const { data: fallbackRecs } = await supabase
+    const { data: fallbackRecs } = await (supabase as any)
       .from('fragrances')
       .select(
         `
@@ -217,7 +217,7 @@ export function RecommendationsSystem({
 
       if (isColdStart) {
         // Cold start recommendations - diverse popular items
-        const { data: coldStartRecs } = await supabase
+        const { data: coldStartRecs } = await (supabase as any)
           .from('fragrances')
           .select(
             `

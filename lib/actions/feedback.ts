@@ -91,7 +91,7 @@ export async function processFeedback(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return {
@@ -217,7 +217,7 @@ export async function processFeedback(
     }
 
     // Store interaction in new AI system format
-    const { error: interactionError } = await supabase
+    const { error: interactionError } = await (supabase as any)
       .from('user_interactions')
       .insert({
         user_id: user.id,

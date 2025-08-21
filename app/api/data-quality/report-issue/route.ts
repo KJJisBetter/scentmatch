@@ -4,14 +4,14 @@
  * Spec: @.agent-os/specs/2025-08-20-fragrance-data-quality-system/
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createServiceSupabase } from '@/lib/supabase'
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceSupabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
-    const body = await request.json()
-    const { fragrance_id, issue_type, description, severity = 'medium' } = body
+    const body = await request.json();
+    const { fragrance_id, issue_type, description, severity = 'medium' } = body;
 
     // Validate required parameters
     if (!fragrance_id || typeof fragrance_id !== 'string') {
@@ -21,11 +21,11 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'INVALID_INPUT',
             message: 'fragrance_id parameter is required and must be a string',
-            details: { provided: typeof fragrance_id }
-          }
+            details: { provided: typeof fragrance_id },
+          },
         },
         { status: 400 }
-      )
+      );
     }
 
     if (!issue_type || typeof issue_type !== 'string') {
@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'INVALID_INPUT',
             message: 'issue_type parameter is required and must be a string',
-            details: { provided: typeof issue_type }
-          }
+            details: { provided: typeof issue_type },
+          },
         },
         { status: 400 }
-      )
+      );
     }
 
     if (!description || typeof description !== 'string') {
@@ -49,15 +49,15 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'INVALID_INPUT',
             message: 'description parameter is required and must be a string',
-            details: { provided: typeof description }
-          }
+            details: { provided: typeof description },
+          },
         },
         { status: 400 }
-      )
+      );
     }
 
     // Validate severity level
-    const validSeverities = ['low', 'medium', 'high', 'critical']
+    const validSeverities = ['low', 'medium', 'high', 'critical'];
     if (!validSeverities.includes(severity)) {
       return NextResponse.json(
         {
@@ -65,11 +65,11 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'INVALID_INPUT',
             message: `Invalid severity level. Must be one of: ${validSeverities.join(', ')}`,
-            details: { severity, valid_options: validSeverities }
-          }
+            details: { severity, valid_options: validSeverities },
+          },
         },
         { status: 400 }
-      )
+      );
     }
 
     // Validate issue type
@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
       'missing_concentration',
       'incorrect_gender',
       'data_inconsistency',
-      'other'
-    ]
+      'other',
+    ];
 
     if (!validIssueTypes.includes(issue_type)) {
       return NextResponse.json(
@@ -92,37 +92,37 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'INVALID_INPUT',
             message: `Invalid issue_type. Must be one of: ${validIssueTypes.join(', ')}`,
-            details: { issue_type, valid_options: validIssueTypes }
-          }
+            details: { issue_type, valid_options: validIssueTypes },
+          },
         },
         { status: 400 }
-      )
+      );
     }
 
-    const supabase = createServiceSupabase()
+    const supabase = createServiceSupabase();
 
     // Verify fragrance exists (check both canonical and original tables)
-    let fragranceExists = false
-    
+    let fragranceExists = false;
+
     // Check canonical table first
-    const { data: canonicalCheck } = await supabase
+    const { data: canonicalCheck } = await (supabase as any)
       .from('fragrances_canonical')
       .select('id')
       .eq('id', fragrance_id)
-      .single()
+      .single();
 
     if (canonicalCheck) {
-      fragranceExists = true
+      fragranceExists = true;
     } else {
       // Check original fragrances table
-      const { data: originalCheck } = await supabase
+      const { data: originalCheck } = await (supabase as any)
         .from('fragrances')
         .select('id')
         .eq('id', fragrance_id)
-        .single()
+        .single();
 
       if (originalCheck) {
-        fragranceExists = true
+        fragranceExists = true;
       }
     }
 
@@ -133,15 +133,15 @@ export async function POST(request: NextRequest) {
           error: {
             code: 'FRAGRANCE_NOT_FOUND',
             message: `Fragrance with ID ${fragrance_id} not found in canonical or original tables`,
-            details: { fragrance_id }
-          }
+            details: { fragrance_id },
+          },
         },
         { status: 404 }
-      )
+      );
     }
 
     // Create quality issue record
-    const { data: issueRecord, error: insertError } = await supabase
+    const { data: issueRecord, error: insertError } = await (supabase as any)
       .from('data_quality_issues')
       .insert({
         issue_type,
@@ -151,14 +151,14 @@ export async function POST(request: NextRequest) {
         details: {
           reported_via: 'api',
           user_agent: request.headers.get('user-agent'),
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       })
       .select('id, status, created_at')
-      .single()
+      .single();
 
     if (insertError) {
-      throw insertError
+      throw insertError;
     }
 
     // Return success response
@@ -168,24 +168,23 @@ export async function POST(request: NextRequest) {
         issue_id: issueRecord.id,
         status: issueRecord.status,
         created_at: issueRecord.created_at,
-        message: `Data quality issue reported successfully. Issue ID: ${issueRecord.id}`
-      }
-    })
-
+        message: `Data quality issue reported successfully. Issue ID: ${issueRecord.id}`,
+      },
+    });
   } catch (error) {
-    console.error('Report issue API error:', error)
-    
+    console.error('Report issue API error:', error);
+
     return NextResponse.json(
       {
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Internal server error reporting issue',
-          details: process.env.NODE_ENV === 'development' ? error : {}
-        }
+          details: process.env.NODE_ENV === 'development' ? error : {},
+        },
       },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -198,5 +197,5 @@ export async function OPTIONS(request: NextRequest) {
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
-  })
+  });
 }

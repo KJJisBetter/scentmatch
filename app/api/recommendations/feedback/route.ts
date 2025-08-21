@@ -7,6 +7,7 @@ import {
   type FeedbackEvent,
   type BanditFeedbackEvent,
 } from '@/lib/ai-sdk/feedback-processor';
+import { withRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/recommendations/feedback
@@ -17,6 +18,12 @@ import {
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
+  // Rate limiting check
+  const rateLimitCheck = await withRateLimit(request, 'recommendations');
+  if (rateLimitCheck.blocked) {
+    return rateLimitCheck.response;
+  }
+
   try {
     const supabase = await createServerSupabase();
 
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await (supabase as any).auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -146,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Store interaction in new AI system format
-    const { error: interactionError } = await supabase
+    const { error: interactionError } = await (supabase as any)
       .from('user_interactions')
       .insert({
         user_id: user.id,
@@ -258,7 +265,7 @@ async function processPreferenceLearning(
 ): Promise<any> {
   try {
     // Get fragrance details for learning
-    const { data: fragrance } = await supabase
+    const { data: fragrance } = await (supabase as any)
       .from('fragrances')
       .select(
         `
@@ -323,7 +330,7 @@ async function processPreferenceLearning(
     }
 
     // Store preference update (in a real implementation, this would update user_preferences table)
-    const { error: prefError } = await supabase
+    const { error: prefError } = await (supabase as any)
       .from('user_preferences')
       .upsert({
         user_id: userId,

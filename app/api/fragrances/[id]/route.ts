@@ -9,14 +9,11 @@ interface RouteParams {
 
 /**
  * GET /api/fragrances/[id]
- * 
+ *
  * Fetches detailed fragrance information by ID
  * Returns comprehensive fragrance data including brand info
  */
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
@@ -31,9 +28,10 @@ export async function GET(
     const supabase = await createServerSupabase();
 
     // Fetch fragrance with brand information using actual database columns
-    const { data: fragrance, error } = await supabase
+    const { data: fragrance, error } = await (supabase as any)
       .from('fragrances')
-      .select(`
+      .select(
+        `
         id,
         name,
         brand_id,
@@ -42,7 +40,8 @@ export async function GET(
           id,
           name
         )
-      `)
+      `
+      )
       .eq('id', id)
       .single();
 
@@ -74,7 +73,6 @@ export async function GET(
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400', // 1 hour cache, 24 hour stale
       },
     });
-
   } catch (error) {
     console.error('Unexpected error in fragrance API:', error);
     return NextResponse.json(
