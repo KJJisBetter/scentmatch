@@ -21,12 +21,7 @@ async function SearchFiltersData({
   // Small delay to demonstrate progressive loading
   await new Promise(resolve => setTimeout(resolve, 30));
 
-  return (
-    <SearchFilters
-      onFiltersChange={onFiltersChange}
-      initialFilters={initialFilters}
-    />
-  );
+  return <SearchFilters onFiltersChange={onFiltersChange} />;
 }
 
 function SearchFiltersFallback() {

@@ -284,8 +284,8 @@ export async function GET(request: NextRequest) {
         const missingProductResponse = await detector.handleProductNotFound(
           query,
           undefined, // No user ID from search request
-          request.headers.get('x-forwarded-for'),
-          request.headers.get('user-agent')
+          request.headers.get('x-forwarded-for') || undefined,
+          request.headers.get('user-agent') || undefined
         );
 
         // If we have good alternatives, format them as search results

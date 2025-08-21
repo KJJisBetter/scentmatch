@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize AI feedback processor
     const feedbackProcessor = new FeedbackProcessor({
-      supabase,
+      supabase: supabase as any,
       enableImplicitFeedback: true,
       enableExplicitFeedback: true,
       learningRate: 0.1,
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
     const recommendationCache = new RecommendationCache({
-      supabase,
+      supabase: supabase as any,
       defaultTTL: 3600,
       enableRealTimeInvalidation: true,
     });
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Process Thompson Sampling bandit feedback
     let banditProcessingResult = null;
     try {
-      const thompsonService = createThompsonSamplingService(supabase);
+      const thompsonService = createThompsonSamplingService(supabase as any);
 
       // Convert to bandit feedback format
       const banditFeedback: BanditFeedbackEvent = {

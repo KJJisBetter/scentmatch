@@ -20,47 +20,18 @@ export function PerformanceObserver({
   reportToAnalytics = true,
 }: PerformanceObserverProps) {
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined') return;
 
     const metrics: PerformanceMetrics = {};
 
     // Largest Contentful Paint (LCP)
     if ('PerformanceObserver' in window) {
       try {
-        const lcpObserver = new PerformanceObserver(entryList => {
-          const entries = entryList.getEntries();
-          const lastEntry = entries[entries.length - 1] as any;
-          metrics.lcp = lastEntry.startTime;
-
-          if (onMetricsUpdate) {
-            onMetricsUpdate(metrics);
-          }
-
-          if (
-            reportToAnalytics &&
-            typeof window !== 'undefined' &&
-            (window as any).gtag
-          ) {
-            (window as any).gtag('event', 'web_vitals', {
-              metric_name: 'LCP',
-              metric_value: Math.round(lastEntry.startTime),
-              metric_rating:
-                lastEntry.startTime < 2500
-                  ? 'good'
-                  : lastEntry.startTime < 4000
-                    ? 'needs_improvement'
-                    : 'poor',
-            });
-          }
-        });
-
-        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
-
-        // First Input Delay (FID)
-        const fidObserver = new PerformanceObserver(entryList => {
-          const entries = entryList.getEntries();
-          entries.forEach((entry: any) => {
-            metrics.fid = entry.processingStart - entry.startTime;
+        const lcpObserver = new (window as any).PerformanceObserver(
+          (entryList: any) => {
+            const entries = entryList.getEntries();
+            const lastEntry = entries[entries.length - 1] as any;
+            metrics.lcp = lastEntry.startTime;
 
             if (onMetricsUpdate) {
               onMetricsUpdate(metrics);
@@ -72,48 +43,27 @@ export function PerformanceObserver({
               (window as any).gtag
             ) {
               (window as any).gtag('event', 'web_vitals', {
-                metric_name: 'FID',
-                metric_value: Math.round(
-                  entry.processingStart - entry.startTime
-                ),
+                metric_name: 'LCP',
+                metric_value: Math.round(lastEntry.startTime),
                 metric_rating:
-                  entry.processingStart - entry.startTime < 100
+                  lastEntry.startTime < 2500
                     ? 'good'
-                    : entry.processingStart - entry.startTime < 300
+                    : lastEntry.startTime < 4000
                       ? 'needs_improvement'
                       : 'poor',
               });
             }
-          });
-        });
-
-        fidObserver.observe({ entryTypes: ['first-input'] });
-
-        // Cumulative Layout Shift (CLS)
-        let clsValue = 0;
-        const clsObserver = new PerformanceObserver(entryList => {
-          const entries = entryList.getEntries();
-          entries.forEach((entry: any) => {
-            if (!entry.hadRecentInput) {
-              clsValue += entry.value;
-            }
-          });
-
-          metrics.cls = clsValue;
-
-          if (onMetricsUpdate) {
-            onMetricsUpdate(metrics);
           }
-        });
+        );
 
-        clsObserver.observe({ entryTypes: ['layout-shift'] });
+        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
 
-        // First Contentful Paint (FCP)
-        const fcpObserver = new PerformanceObserver(entryList => {
-          const entries = entryList.getEntries();
-          entries.forEach((entry: any) => {
-            if (entry.name === 'first-contentful-paint') {
-              metrics.fcp = entry.startTime;
+        // First Input Delay (FID)
+        const fidObserver = new (window as any).PerformanceObserver(
+          (entryList: any) => {
+            const entries = entryList.getEntries();
+            entries.forEach((entry: any) => {
+              metrics.fid = entry.processingStart - entry.startTime;
 
               if (onMetricsUpdate) {
                 onMetricsUpdate(metrics);
@@ -125,19 +75,77 @@ export function PerformanceObserver({
                 (window as any).gtag
               ) {
                 (window as any).gtag('event', 'web_vitals', {
-                  metric_name: 'FCP',
-                  metric_value: Math.round(entry.startTime),
+                  metric_name: 'FID',
+                  metric_value: Math.round(
+                    entry.processingStart - entry.startTime
+                  ),
                   metric_rating:
-                    entry.startTime < 1800
+                    entry.processingStart - entry.startTime < 100
                       ? 'good'
-                      : entry.startTime < 3000
+                      : entry.processingStart - entry.startTime < 300
                         ? 'needs_improvement'
                         : 'poor',
                 });
               }
+            });
+          }
+        );
+
+        fidObserver.observe({ entryTypes: ['first-input'] });
+
+        // Cumulative Layout Shift (CLS)
+        let clsValue = 0;
+        const clsObserver = new (window as any).PerformanceObserver(
+          (entryList: any) => {
+            const entries = entryList.getEntries();
+            entries.forEach((entry: any) => {
+              if (!entry.hadRecentInput) {
+                clsValue += entry.value;
+              }
+            });
+
+            metrics.cls = clsValue;
+
+            if (onMetricsUpdate) {
+              onMetricsUpdate(metrics);
             }
-          });
-        });
+          }
+        );
+
+        clsObserver.observe({ entryTypes: ['layout-shift'] });
+
+        // First Contentful Paint (FCP)
+        const fcpObserver = new (window as any).PerformanceObserver(
+          (entryList: any) => {
+            const entries = entryList.getEntries();
+            entries.forEach((entry: any) => {
+              if (entry.name === 'first-contentful-paint') {
+                metrics.fcp = entry.startTime;
+
+                if (onMetricsUpdate) {
+                  onMetricsUpdate(metrics);
+                }
+
+                if (
+                  reportToAnalytics &&
+                  typeof window !== 'undefined' &&
+                  (window as any).gtag
+                ) {
+                  (window as any).gtag('event', 'web_vitals', {
+                    metric_name: 'FCP',
+                    metric_value: Math.round(entry.startTime),
+                    metric_rating:
+                      entry.startTime < 1800
+                        ? 'good'
+                        : entry.startTime < 3000
+                          ? 'needs_improvement'
+                          : 'poor',
+                  });
+                }
+              }
+            });
+          }
+        );
 
         fcpObserver.observe({ entryTypes: ['paint'] });
 
@@ -207,8 +215,11 @@ export function PerformanceObserver({
         };
       } catch (error) {
         console.warn('Performance monitoring not available:', error);
+        return () => {}; // Return empty cleanup function
       }
     }
+
+    return () => {}; // Return empty cleanup function for other cases
   }, [onMetricsUpdate, reportToAnalytics]);
 
   return null; // This component doesn't render anything

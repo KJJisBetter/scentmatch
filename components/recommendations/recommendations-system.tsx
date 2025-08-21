@@ -192,16 +192,32 @@ export function RecommendationsSystem({
       setRecommendations({
         perfect_matches: fallbackRecs
           .slice(0, 4)
-          .map(f => ({ ...f, match_percentage: 75, source: 'fallback' })),
+          .map((f: any) => ({
+            ...f,
+            match_percentage: 75,
+            source: 'fallback',
+          })),
         trending: fallbackRecs
           .slice(4, 8)
-          .map(f => ({ ...f, match_percentage: 70, source: 'fallback' })),
+          .map((f: any) => ({
+            ...f,
+            match_percentage: 70,
+            source: 'fallback',
+          })),
         adventurous: fallbackRecs
           .slice(8, 10)
-          .map(f => ({ ...f, match_percentage: 65, source: 'fallback' })),
+          .map((f: any) => ({
+            ...f,
+            match_percentage: 65,
+            source: 'fallback',
+          })),
         seasonal: fallbackRecs
           .slice(10, 12)
-          .map(f => ({ ...f, match_percentage: 68, source: 'fallback' })),
+          .map((f: any) => ({
+            ...f,
+            match_percentage: 68,
+            source: 'fallback',
+          })),
       });
     }
   };
@@ -310,7 +326,7 @@ export function RecommendationsSystem({
               ...prev,
               confidence_level: Math.min(
                 prev.confidence_level +
-                  result.preference_update.confidence_change,
+                  (result.preference_update?.confidence_change || 0),
                 1.0
               ),
             }));

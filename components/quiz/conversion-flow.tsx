@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Sparkles,
   CheckCircle,
@@ -290,23 +291,21 @@ export function ConversionFlow({
             </div>
 
             {/* Quiz Data Preservation Indicator */}
-            <div className='bg-green-50 border border-green-200 p-3 rounded-lg mb-6'>
-              <div className='flex items-center space-x-2'>
-                <CheckCircle className='w-5 h-5 text-green-600' />
-                <span className='text-sm text-green-800'>
-                  Your quiz results and recommendations will be saved
-                </span>
-              </div>
-            </div>
+            <Alert className='mb-6' variant='default'>
+              <CheckCircle className='w-4 h-4' />
+              <AlertDescription>
+                Your quiz results and recommendations will be saved
+              </AlertDescription>
+            </Alert>
 
             {errors.length > 0 && (
-              <div className='bg-red-50 border border-red-200 p-3 rounded-lg mb-4'>
-                {errors.map(error => (
-                  <div key={error} className='text-sm text-red-800'>
-                    {error}
-                  </div>
-                ))}
-              </div>
+              <Alert variant='destructive' className='mb-4'>
+                <AlertDescription>
+                  {errors.map(error => (
+                    <div key={error}>{error}</div>
+                  ))}
+                </AlertDescription>
+              </Alert>
             )}
 
             <div className='space-y-4'>
@@ -506,22 +505,24 @@ export function ConversionFlow({
             </h3>
 
             {/* What They're Missing */}
-            <div className='bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6'>
-              <h4 className='font-medium text-yellow-800 mb-3'>
-                Limited Guest Experience:
-              </h4>
-              <div className='space-y-2 text-sm text-yellow-700'>
-                <div>
-                  ⚠️ Only 3 recommendations (missing 12 perfect matches)
+            <Alert className='mb-6 border-yellow-200 bg-yellow-50'>
+              <AlertDescription>
+                <h4 className='font-medium text-yellow-800 mb-3'>
+                  Limited Guest Experience:
+                </h4>
+                <div className='space-y-2 text-sm text-yellow-700'>
+                  <div>
+                    ⚠️ Only 3 recommendations (missing 12 perfect matches)
+                  </div>
+                  <div>⚠️ Cannot save favorites or build collection</div>
+                  <div>
+                    ⚠️ No enhanced AI recommendations based on your activity
+                  </div>
+                  <div>⚠️ Quiz results will be deleted in 24 hours</div>
+                  <div>⚠️ No sample order discount</div>
                 </div>
-                <div>⚠️ Cannot save favorites or build collection</div>
-                <div>
-                  ⚠️ No enhanced AI recommendations based on your activity
-                </div>
-                <div>⚠️ Quiz results will be deleted in 24 hours</div>
-                <div>⚠️ No sample order discount</div>
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
 
             {/* Reconsideration Opportunity */}
             <div className='text-center space-y-4'>

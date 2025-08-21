@@ -312,7 +312,6 @@ export function EnhancedSearchInput({
                       {showConfidence && (
                         <ConfidenceIcon
                           className={`h-3 w-3 flex-shrink-0 ${color}`}
-                          title={label}
                         />
                       )}
 
@@ -321,10 +320,7 @@ export function EnhancedSearchInput({
                       </span>
 
                       {suggestion.trending && (
-                        <Zap
-                          className='h-3 w-3 text-orange-500 flex-shrink-0'
-                          title='Trending'
-                        />
+                        <Zap className='h-3 w-3 text-orange-500 flex-shrink-0' />
                       )}
                     </div>
 

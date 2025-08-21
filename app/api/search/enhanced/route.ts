@@ -96,15 +96,15 @@ export async function GET(request: NextRequest) {
         id: result.fragrance.id,
         name: result.fragrance.name,
         brand: result.fragrance.brand,
-        brand_id: result.fragrance.brand_id || result.fragrance.id,
+        brand_id: (result.fragrance as any).brand_id || result.fragrance.id,
         gender: result.fragrance.gender || 'unisex',
         scent_family: result.fragrance.scent_family,
         relevance_score: result.score,
         sample_available: result.fragrance.sample_available ?? true,
         sample_price_usd: result.fragrance.sample_price_usd || 15,
         popularity_score: result.fragrance.popularity_score || 0,
-        rating_value: result.fragrance.rating_value || 0,
-        rating_count: result.fragrance.rating_count || 0,
+        rating_value: (result.fragrance as any).rating_value || 0,
+        rating_count: (result.fragrance as any).rating_count || 0,
 
         // Enhanced fields
         match_reason: result.match_reason,
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
         'X-Search-Method': 'fuse-js',
-        'X-Search-Mode': mode,
+        'X-Search-Mode': mode as string,
         'X-Results-Count': searchResponse.total.toString(),
         'X-Processing-Time': searchResponse.search_time_ms.toString(),
       },

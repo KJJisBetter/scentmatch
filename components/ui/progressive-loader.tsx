@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 interface ProgressiveLoaderProps {
   isLoading: boolean;
@@ -59,16 +60,11 @@ export function ProgressiveLoader({
       aria-live='polite'
     >
       {/* Progress bar */}
-      <div className='w-full bg-muted rounded-full h-2 overflow-hidden'>
-        <div
-          className='h-full bg-primary transition-all duration-300 ease-out'
-          style={{ width: `${displayProgress}%` }}
-          role='progressbar'
-          aria-valuenow={displayProgress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        />
-      </div>
+      <Progress
+        value={displayProgress}
+        className='h-2'
+        aria-label={`Loading progress: ${displayProgress}%`}
+      />
 
       {/* Status text */}
       <div className='text-center'>

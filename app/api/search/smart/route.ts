@@ -166,8 +166,8 @@ export async function GET(request: NextRequest) {
         const missingProductResponse = await detector.handleProductNotFound(
           query,
           undefined, // No user ID from search request
-          request.headers.get('x-forwarded-for'),
-          request.headers.get('user-agent')
+          request.headers.get('x-forwarded-for') || undefined,
+          request.headers.get('user-agent') || undefined
         );
 
         missingProductHandled = true;
@@ -322,8 +322,8 @@ async function enhanceSearchResults(
           .toLowerCase()
           .split(' ');
         const nameWords = result.name.toLowerCase().split(' ');
-        const matchingTerms = normalizedTerms.filter(term =>
-          nameWords.some(word => word.includes(term))
+        const matchingTerms = normalizedTerms.filter((term: any) =>
+          nameWords.some((word: any) => word.includes(term))
         );
         boostedScore += matchingTerms.length * 0.02;
       }

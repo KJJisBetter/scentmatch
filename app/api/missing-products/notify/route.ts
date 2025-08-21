@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
           notification_id: existingNotificationCheck.data.id,
           message: `You're already signed up for notifications about "${trimmedQuery}"`,
           estimated_users_waiting:
-            await this.getEstimatedWaitingUsers(normalizedQuery),
+            await getEstimatedWaitingUsers(normalizedQuery),
         },
       });
     }

@@ -8,6 +8,7 @@ import { SearchResultsStreaming } from './search-results-streaming';
 import { SearchFiltersStreaming } from './search-filters-streaming';
 import { useSearch } from './use-search';
 import { SearchSkeleton } from '@/components/ui/skeletons';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SearchPageProps {
   initialQuery?: string;
@@ -67,9 +68,9 @@ export function SearchPage({
               placeholder='Search by fragrance name, brand, or notes...'
             />
             {error && (
-              <div className='mt-3 p-3 bg-red-50 border border-red-200 rounded-lg'>
-                <p className='text-sm text-red-600'>{error}</p>
-              </div>
+              <Alert variant='destructive' className='mt-3'>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
           </div>
         </div>

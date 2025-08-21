@@ -1,18 +1,32 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, Sparkles, Heart, ShoppingCart } from 'lucide-react';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form';
 import { DirectDatabaseEngine as DirectRecommendationEngine } from '@/lib/ai-sdk/compatibility-layer';
 import { ConversionFlow } from './conversion-flow';
+import {
+  singleQuestionSchema,
+  type SingleQuestionFormData,
+} from '@/lib/quiz/form-schemas';
 
 /**
  * QuizInterface Component (MVP)
  *
+ * Uses React Hook Form with zod validation for robust form handling.
  * Simple but effective quiz flow for MVP:
  * - 5 essential questions for personality classification
  * - Immediate analysis and results
@@ -29,6 +43,14 @@ export function QuizInterface() {
   const [quizSessionToken] = useState(
     `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   );
+
+  // Form for each question
+  const form = useForm<SingleQuestionFormData>({
+    resolver: zodResolver(singleQuestionSchema),
+    defaultValues: {
+      answer: '',
+    },
+  });
 
   // MVP Quiz Questions (5 essential questions)
   const mvpQuestions = [
@@ -147,13 +169,18 @@ export function QuizInterface() {
     },
   ];
 
-  const handleAnswerSelect = (answer: string) => {
+  // Reset form when question changes
+  React.useEffect(() => {
+    form.reset({ answer: '' });
+  }, [currentQuestion, form]);
+
+  const handleAnswerSubmit = async (data: SingleQuestionFormData) => {
     const currentQ = mvpQuestions[currentQuestion];
     if (!currentQ) return;
 
     const newResponse = {
       question_id: currentQ.id,
-      answer_value: answer,
+      answer_value: data.answer,
       timestamp: new Date().toISOString(),
     };
 
@@ -165,7 +192,7 @@ export function QuizInterface() {
       (window as any).gtag('event', 'quiz_question_answered', {
         question_number: currentQuestion + 1,
         question_id: currentQ.id,
-        answer: answer,
+        answer: data.answer,
         quiz_session: quizSessionToken,
       });
     }
@@ -183,6 +210,11 @@ export function QuizInterface() {
       }
       analyzeQuiz(updatedResponses);
     }
+  };
+
+  const handleOptionClick = (answer: string) => {
+    form.setValue('answer', answer);
+    form.handleSubmit(handleAnswerSubmit)();
   };
 
   const analyzeQuiz = async (allResponses: any[]) => {
@@ -304,25 +336,41 @@ export function QuizInterface() {
             {question.text}
           </h2>
 
-          <div className='space-y-4'>
-            {question.options.map(option => (
-              <button
-                key={option.value}
-                onClick={() => handleAnswerSelect(option.value)}
-                className='w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98]'
-              >
-                <div className='flex items-center space-x-4'>
-                  <div className='text-2xl'>{option.emoji}</div>
-                  <div className='flex-1'>
-                    <span className='font-medium group-hover:text-purple-700'>
-                      {option.text}
-                    </span>
-                  </div>
-                  <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500' />
-                </div>
-              </button>
-            ))}
-          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAnswerSubmit)}>
+              <FormField
+                control={form.control}
+                name='answer'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className='space-y-4'>
+                        {question.options.map(option => (
+                          <button
+                            key={option.value}
+                            type='button'
+                            onClick={() => handleOptionClick(option.value)}
+                            className='w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98]'
+                          >
+                            <div className='flex items-center space-x-4'>
+                              <div className='text-2xl'>{option.emoji}</div>
+                              <div className='flex-1'>
+                                <span className='font-medium group-hover:text-purple-700'>
+                                  {option.text}
+                                </span>
+                              </div>
+                              <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500' />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
         </CardContent>
       </Card>
 

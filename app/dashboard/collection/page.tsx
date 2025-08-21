@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase';
-import { CollectionDashboard } from '@/components/collection/collection-dashboard';
+import { CollectionDashboardModern } from '@/components/collection/collection-dashboard-modern';
 
 /**
  * Personal Collection Management Dashboard
@@ -205,7 +205,7 @@ export default async function CollectionPage() {
         </div>
 
         {/* Main Collection Dashboard */}
-        <CollectionDashboard
+        <CollectionDashboardModern
           userId={user.id}
           userProfile={userProfile || undefined}
           initialStats={collectionStats}

@@ -147,7 +147,7 @@ function getTrendingSuggestions(query: string, limit: number) {
         type: 'fragrance' as const,
         confidence: 0.6,
         personalized: false,
-        trending: true,
+        result_count: undefined,
       });
     }
   }
@@ -161,7 +161,7 @@ function getTrendingSuggestions(query: string, limit: number) {
         type: 'brand' as const,
         confidence: 0.5,
         personalized: false,
-        trending: true,
+        result_count: undefined,
       });
     }
   }

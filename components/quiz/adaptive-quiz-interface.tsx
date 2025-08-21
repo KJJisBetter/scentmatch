@@ -1,15 +1,32 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, CheckCircle } from 'lucide-react';
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
   getNaturalQuizData,
   type ExperienceLevel,
   type NaturalQuizData,
 } from '@/lib/quiz/natural-quiz-data';
+import {
+  createQuestionValidation,
+  singleQuestionSchema,
+  multipleQuestionSchema,
+  type SingleQuestionFormData,
+  type MultipleQuestionFormData,
+} from '@/lib/quiz/form-schemas';
 
 export type QuizMode = ExperienceLevel;
 
@@ -22,6 +39,7 @@ interface AdaptiveQuizInterfaceProps {
 /**
  * AdaptiveQuizInterface Component
  *
+ * Uses React Hook Form with zod validation for robust form handling.
  * Provides experience-adaptive quiz interface with three distinct modes:
  * - Beginner: 4 questions, 4 options each, simplified language
  * - Enthusiast: 6 questions, 6 options each, balanced complexity
@@ -34,11 +52,11 @@ export function AdaptiveQuizInterface({
 }: AdaptiveQuizInterfaceProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
-  const [currentSelections, setCurrentSelections] = useState<string[]>([]);
 
   const quizData = getNaturalQuizData(mode);
   const questions = quizData.questions;
   const currentQuestion = questions[currentQuestionIndex];
+
   const progress = useMemo(
     () => ({
       current: currentQuestionIndex + 1,
@@ -48,123 +66,148 @@ export function AdaptiveQuizInterface({
   );
   const progressPercent = (progress.current / progress.total) * 100;
 
+  // Single selection form
+  const singleForm = useForm<SingleQuestionFormData>({
+    resolver: zodResolver(singleQuestionSchema),
+    defaultValues: {
+      answer: '',
+    },
+  });
+
+  // Multiple selection form
+  const multipleForm = useForm<{ selections: string[] }>({
+    resolver: zodResolver(
+      createQuestionValidation(
+        true,
+        currentQuestion?.minSelections || 1,
+        currentQuestion?.maxSelections || 8
+      ) as any
+    ),
+    defaultValues: {
+      selections: [],
+    },
+  });
+
+  // Reset forms when question changes
+  useEffect(() => {
+    singleForm.reset({ answer: '' });
+    multipleForm.reset({ selections: [] });
+  }, [currentQuestionIndex, singleForm, multipleForm]);
+
   // Notify parent of progress updates
-  React.useEffect(() => {
+  useEffect(() => {
     if (onProgressUpdate) {
       onProgressUpdate(progress);
     }
   }, [currentQuestionIndex, onProgressUpdate, progress]);
 
-  const handleAnswerSelect = (answer: string) => {
-    if (!currentQuestion) return;
-
-    if (currentQuestion.allowMultiple) {
-      const selectedOption = currentQuestion.options.find(
-        opt => opt.value === answer
-      );
-
-      // Handle auto-select options (like "I love variety" or "I'm open to anything")
-      if (
-        selectedOption?.autoSelectAll &&
-        !currentSelections.includes(answer)
-      ) {
-        // Auto-select all other options except this one
-        const allOtherValues = currentQuestion.options
-          .filter(opt => !opt.autoSelectAll)
-          .map(opt => opt.value);
-        setCurrentSelections([answer, ...allOtherValues]);
-        return;
-      }
-
-      // Handle regular multiple selection
-      const newSelections = currentSelections.includes(answer)
-        ? currentSelections.filter(s => s !== answer)
-        : [...currentSelections, answer];
-
-      // If selecting a non-auto option, remove any auto-select options
-      if (!selectedOption?.autoSelectAll) {
-        const filteredSelections = newSelections.filter(selection => {
-          const opt = currentQuestion.options.find(o => o.value === selection);
-          return !opt?.autoSelectAll;
-        });
-
-        // Check max selections
-        if (filteredSelections.length > (currentQuestion.maxSelections || 3)) {
-          return;
-        }
-
-        setCurrentSelections(filteredSelections);
-      } else {
-        setCurrentSelections(newSelections);
-      }
-    } else {
-      // Handle single selection (continue immediately)
-      const newResponse = {
-        question_id: currentQuestion.id,
-        answer_value: answer,
-        experience_level: mode,
-        timestamp: new Date().toISOString(),
-      };
-
-      const updatedResponses = [...responses, newResponse];
-      setResponses(updatedResponses);
-      setCurrentSelections([]);
-
-      // Track selection
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'quiz_question_answered', {
-          question_id: currentQuestion.id,
-          answer: answer,
-          mode: mode,
-          question_number: currentQuestionIndex + 1,
-        });
-      }
-
-      proceedToNext(updatedResponses);
-    }
-  };
-
-  const handleMultipleSelectionContinue = () => {
-    if (
-      !currentQuestion ||
-      currentSelections.length < (currentQuestion.minSelections || 1)
-    ) {
-      return;
-    }
-
-    const newResponse = {
-      question_id: currentQuestion.id,
-      answer_value: currentSelections.join(','),
-      answer_metadata: { selections: currentSelections },
-      experience_level: mode,
-      timestamp: new Date().toISOString(),
-    };
-
+  const proceedToNext = (newResponse: any) => {
     const updatedResponses = [...responses, newResponse];
     setResponses(updatedResponses);
-    setCurrentSelections([]);
 
-    // Track multiple selection
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'quiz_multiple_selection', {
-        question_id: currentQuestion.id,
-        selections: currentSelections,
-        selection_count: currentSelections.length,
-        mode: mode,
-        question_number: currentQuestionIndex + 1,
-      });
-    }
-
-    proceedToNext(updatedResponses);
-  };
-
-  const proceedToNext = (updatedResponses: any[]) => {
     if (currentQuestionIndex >= questions.length - 1) {
       // Quiz complete
       onQuizComplete(updatedResponses);
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
+  };
+
+  const handleSingleSelection = (data: SingleQuestionFormData) => {
+    if (!currentQuestion) return;
+
+    const newResponse = {
+      question_id: currentQuestion.id,
+      answer_value: data.answer,
+      experience_level: mode,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Track selection
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'quiz_question_answered', {
+        question_id: currentQuestion.id,
+        answer: data.answer,
+        mode: mode,
+        question_number: currentQuestionIndex + 1,
+      });
+    }
+
+    proceedToNext(newResponse);
+  };
+
+  const handleMultipleSelection = (data: { selections: string[] }) => {
+    if (!currentQuestion) return;
+
+    const newResponse = {
+      question_id: currentQuestion.id,
+      answer_value: data.selections.join(','),
+      answer_metadata: { selections: data.selections },
+      experience_level: mode,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Track multiple selection
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'quiz_multiple_selection', {
+        question_id: currentQuestion.id,
+        selections: data.selections,
+        selection_count: data.selections.length,
+        mode: mode,
+        question_number: currentQuestionIndex + 1,
+      });
+    }
+
+    proceedToNext(newResponse);
+  };
+
+  const handleSingleClick = (answer: string) => {
+    singleForm.setValue('answer', answer);
+    singleForm.handleSubmit(handleSingleSelection)();
+  };
+
+  const handleMultipleToggle = (answer: string, checked: boolean) => {
+    const currentSelections = multipleForm.getValues('selections') || [];
+
+    if (!currentQuestion) return;
+
+    const selectedOption = currentQuestion.options.find(
+      opt => opt.value === answer
+    );
+
+    // Handle auto-select options
+    if (selectedOption?.autoSelectAll && checked) {
+      const allOtherValues = currentQuestion.options
+        .filter(opt => !opt.autoSelectAll)
+        .map(opt => opt.value);
+      multipleForm.setValue('selections', [answer, ...allOtherValues]);
+      return;
+    }
+
+    // Handle regular multiple selection
+    let newSelections: string[];
+    if (checked) {
+      // Add selection
+      newSelections = [...currentSelections.filter(s => s !== answer), answer];
+
+      // Remove auto-select options if selecting non-auto option
+      if (!selectedOption?.autoSelectAll) {
+        newSelections = newSelections.filter(selection => {
+          const opt = currentQuestion.options.find(o => o.value === selection);
+          return !opt?.autoSelectAll;
+        });
+      }
+
+      // Check max selections
+      if (newSelections.length > (currentQuestion.maxSelections || 8)) {
+        return;
+      }
+    } else {
+      // Remove selection
+      newSelections = currentSelections.filter(s => s !== answer);
+    }
+
+    multipleForm.setValue('selections', newSelections);
   };
 
   // Get mode-specific styling and text
@@ -210,6 +253,8 @@ export function AdaptiveQuizInterface({
     return null;
   }
 
+  const watchedSelections = multipleForm.watch('selections') || [];
+
   return (
     <div className='max-w-2xl mx-auto'>
       {/* Progress Bar */}
@@ -247,74 +292,127 @@ export function AdaptiveQuizInterface({
             </p>
           )}
 
-          <div className='space-y-4'>
-            {currentQuestion.options.map(option => {
-              const isSelected =
-                currentQuestion.allowMultiple &&
-                currentSelections.includes(option.value);
-
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => handleAnswerSelect(option.value)}
-                  className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98] ${
-                    isSelected
-                      ? 'border-purple-500 bg-purple-50'
-                      : `border-gray-200 ${modeConfig.buttonStyle}`
-                  }`}
-                  style={{ minHeight: '48px' }} // Touch-friendly minimum
-                >
-                  <div className='flex items-center space-x-4'>
-                    <div className='text-2xl'>{option.emoji}</div>
-                    <div className='flex-1'>
-                      <span
-                        className={`font-medium ${isSelected ? 'text-purple-700' : 'group-hover:text-purple-700'}`}
-                      >
-                        {option.text}
-                      </span>
-                    </div>
-                    {currentQuestion.allowMultiple ? (
-                      <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                          isSelected
-                            ? 'bg-purple-500 border-purple-500'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {isSelected && (
-                          <CheckCircle className='w-3 h-3 text-white' />
-                        )}
-                      </div>
-                    ) : (
-                      <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500' />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Continue Button for Multiple Selection Questions */}
-          {currentQuestion.allowMultiple && (
-            <div className='mt-6 text-center'>
-              <Button
-                onClick={handleMultipleSelectionContinue}
-                disabled={
-                  currentSelections.length <
-                  (currentQuestion.minSelections || 1)
-                }
-                className='px-8 py-3'
+          {currentQuestion.allowMultiple ? (
+            // Multiple Selection Form
+            <Form {...multipleForm}>
+              <form
+                onSubmit={multipleForm.handleSubmit(handleMultipleSelection)}
               >
-                Continue with {currentSelections.length}{' '}
-                {currentSelections.length === 1 ? 'choice' : 'choices'}
-              </Button>
-              <p className='text-xs text-muted-foreground mt-2'>
-                {currentSelections.length}/{currentQuestion.maxSelections || 3}{' '}
-                selected
-                {currentQuestion.minSelections &&
-                  ` (minimum ${currentQuestion.minSelections})`}
-              </p>
-            </div>
+                <FormField
+                  control={multipleForm.control}
+                  name='selections'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className='space-y-4'>
+                          {currentQuestion.options.map(option => {
+                            const isSelected = watchedSelections.includes(
+                              option.value
+                            );
+
+                            return (
+                              <div
+                                key={option.value}
+                                className={`w-full p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98] ${
+                                  isSelected
+                                    ? 'border-purple-500 bg-purple-50'
+                                    : `border-gray-200 ${modeConfig.buttonStyle}`
+                                }`}
+                                onClick={() =>
+                                  handleMultipleToggle(
+                                    option.value,
+                                    !isSelected
+                                  )
+                                }
+                              >
+                                <div className='flex items-center space-x-4'>
+                                  <div className='text-2xl'>{option.emoji}</div>
+                                  <div className='flex-1'>
+                                    <span
+                                      className={`font-medium ${
+                                        isSelected
+                                          ? 'text-purple-700'
+                                          : 'hover:text-purple-700'
+                                      }`}
+                                    >
+                                      {option.text}
+                                    </span>
+                                  </div>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    className='pointer-events-none'
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Continue Button for Multiple Selection */}
+                <div className='mt-6 text-center'>
+                  <Button
+                    type='submit'
+                    disabled={
+                      watchedSelections.length <
+                      (currentQuestion.minSelections || 1)
+                    }
+                    className='px-8 py-3'
+                  >
+                    Continue with {watchedSelections.length}{' '}
+                    {watchedSelections.length === 1 ? 'choice' : 'choices'}
+                  </Button>
+                  <p className='text-xs text-muted-foreground mt-2'>
+                    {watchedSelections.length}/
+                    {currentQuestion.maxSelections || 3} selected
+                    {currentQuestion.minSelections &&
+                      ` (minimum ${currentQuestion.minSelections})`}
+                  </p>
+                </div>
+              </form>
+            </Form>
+          ) : (
+            // Single Selection Form
+            <Form {...singleForm}>
+              <form onSubmit={singleForm.handleSubmit(handleSingleSelection)}>
+                <FormField
+                  control={singleForm.control}
+                  name='answer'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className='space-y-4'>
+                          {currentQuestion.options.map(option => (
+                            <button
+                              key={option.value}
+                              type='button'
+                              onClick={() => handleSingleClick(option.value)}
+                              className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98] border-gray-200 ${modeConfig.buttonStyle}`}
+                              style={{ minHeight: '48px' }}
+                            >
+                              <div className='flex items-center space-x-4'>
+                                <div className='text-2xl'>{option.emoji}</div>
+                                <div className='flex-1'>
+                                  <span className='font-medium group-hover:text-purple-700'>
+                                    {option.text}
+                                  </span>
+                                </div>
+                                <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500' />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
           )}
         </CardContent>
       </Card>

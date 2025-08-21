@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { MobileNav } from '@/components/ui/mobile-nav';
+import { MobileNavSheet } from '@/components/navigation/mobile-nav-sheet';
 import {
   Sparkles,
   Heart,
@@ -152,7 +152,7 @@ export default function HomePage() {
             </div>
 
             {/* Mobile Navigation */}
-            <MobileNav />
+            <MobileNavSheet />
           </div>
         </header>
 

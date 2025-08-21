@@ -41,8 +41,9 @@ export function EnhancedQuizFlow({
   const [currentStep, setCurrentStep] = useState<QuizStep>(
     initialGender ? 'experience' : 'gender'
   );
-  const [genderPreference, setGenderPreference] =
-    useState<GenderPreference>(initialGender);
+  const [genderPreference, setGenderPreference] = useState<
+    GenderPreference | undefined
+  >(initialGender);
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>();
   const [quizResponses, setQuizResponses] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);

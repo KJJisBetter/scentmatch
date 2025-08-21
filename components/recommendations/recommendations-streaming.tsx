@@ -67,15 +67,15 @@ function ProgressiveRecommendations({
           // Mock API call - replace with actual recommendation API
           const mockRecommendations = await fetchCategoryRecommendations(
             userId,
-            category
+            category || ''
           );
 
           if (mounted) {
             setCategoryRecommendations(prev => ({
               ...prev,
-              [category]: mockRecommendations,
+              [category || 'default']: mockRecommendations,
             }));
-            setLoadedCategories(prev => [...prev, category]);
+            setLoadedCategories(prev => [...prev, category || 'default']);
           }
         } catch (error) {
           console.error(`Failed to load ${category} recommendations:`, error);

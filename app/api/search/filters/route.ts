@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Process scent families for MVP
     const scentFamilyCounts: Record<string, number> = {};
     if (scentFamiliesResult.data) {
-      scentFamiliesResult.data.forEach(item => {
+      scentFamiliesResult.data.forEach((item: any) => {
         if (item.scent_family) {
           scentFamilyCounts[item.scent_family] =
             (scentFamilyCounts[item.scent_family] || 0) + 1;
@@ -66,10 +66,10 @@ export async function GET(request: NextRequest) {
     }
 
     const scentFamilies = Object.entries(scentFamilyCounts)
-      .filter(([_, count]) => count >= 3) // MVP: Only show families with 3+ fragrances
-      .sort(([, a], [, b]) => b - a) // Sort by count descending
+      .filter(([_, count]: [string, number]) => count >= 3) // MVP: Only show families with 3+ fragrances
+      .sort(([, a]: [string, number], [, b]: [string, number]) => b - a) // Sort by count descending
       .slice(0, 10) // Top 10 for MVP
-      .map(([family, count]) => ({
+      .map(([family, count]: [string, number]) => ({
         value: family,
         label: family,
         count,
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const brands = (brandsResult.data || [])
       .filter((brand: any) => (brand.item_count || 0) >= 2) // MVP: Only brands with 2+ fragrances
       .slice(0, 10) // Top 10 for MVP
-      .map(brand => ({
+      .map((brand: any) => ({
         value: brand.name,
         label: brand.name,
         count: brand.item_count || 0,
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Process occasions for MVP
     const occasionCounts: Record<string, number> = {};
     if (occasionsResult.data) {
-      occasionsResult.data.forEach(item => {
+      occasionsResult.data.forEach((item: any) => {
         if (
           item.recommended_occasions &&
           Array.isArray(item.recommended_occasions)
@@ -105,10 +105,10 @@ export async function GET(request: NextRequest) {
     }
 
     const occasions = Object.entries(occasionCounts)
-      .filter(([_, count]) => count >= 5) // MVP: Only occasions with 5+ fragrances
-      .sort(([, a], [, b]) => b - a)
+      .filter(([_, count]: [string, number]) => count >= 5) // MVP: Only occasions with 5+ fragrances
+      .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
       .slice(0, 8) // Top 8 for MVP
-      .map(([occasion, count]) => ({
+      .map(([occasion, count]: [string, number]) => ({
         value: occasion,
         label: occasion,
         count,
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     // Process seasons for MVP
     const seasonCounts: Record<string, number> = {};
     if (seasonsResult.data) {
-      seasonsResult.data.forEach(item => {
+      seasonsResult.data.forEach((item: any) => {
         if (
           item.recommended_seasons &&
           Array.isArray(item.recommended_seasons)
@@ -134,9 +134,9 @@ export async function GET(request: NextRequest) {
     }
 
     const seasons = Object.entries(seasonCounts)
-      .filter(([_, count]) => count >= 5) // MVP: Only seasons with 5+ fragrances
-      .sort(([, a], [, b]) => b - a)
-      .map(([season, count]) => ({
+      .filter(([_, count]: [string, number]) => count >= 5) // MVP: Only seasons with 5+ fragrances
+      .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+      .map(([season, count]: [string, number]) => ({
         value: season,
         label: season,
         count,
@@ -145,14 +145,18 @@ export async function GET(request: NextRequest) {
     // Process sample price ranges for MVP
     const samplePrices = (sampleStatsResult.data || [])
       .map((item: any) => item.sample_price_usd)
-      .filter(price => price !== null && price > 0) as number[];
+      .filter((price: any) => price !== null && price > 0) as number[];
 
     const priceRanges = [];
     if (samplePrices.length > 0) {
-      const underTen = samplePrices.filter(p => p < 10).length;
-      const tenToTwenty = samplePrices.filter(p => p >= 10 && p < 20).length;
-      const twentyToThirty = samplePrices.filter(p => p >= 20 && p < 30).length;
-      const thirtyPlus = samplePrices.filter(p => p >= 30).length;
+      const underTen = samplePrices.filter((p: any) => p < 10).length;
+      const tenToTwenty = samplePrices.filter(
+        (p: any) => p >= 10 && p < 20
+      ).length;
+      const twentyToThirty = samplePrices.filter(
+        (p: any) => p >= 20 && p < 30
+      ).length;
+      const thirtyPlus = samplePrices.filter((p: any) => p >= 30).length;
 
       if (underTen > 0)
         priceRanges.push({

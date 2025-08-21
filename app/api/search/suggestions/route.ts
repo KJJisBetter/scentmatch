@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Initialize AI suggestion engine
-      const suggestionEngine = new SearchSuggestionEngine(supabase, {
+      const suggestionEngine = new SearchSuggestionEngine(supabase as any, {
         enableAI: true,
         enablePersonalization: enablePersonalization && !!userId,
       });
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
       // Add fragrance suggestions
       if (fragranceResults.data) {
-        fragranceResults.data.forEach(fragrance => {
+        fragranceResults.data.forEach((fragrance: any) => {
           fallbackSuggestions.push({
             text: fragrance.name,
             type: 'fragrance',
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
 
       // Add brand suggestions
       if (brandResults.data) {
-        brandResults.data.forEach(brand => {
+        brandResults.data.forEach((brand: any) => {
           fallbackSuggestions.push({
             text: brand.name,
             type: 'brand',

@@ -18,12 +18,16 @@ import {
   Plus,
   Settings,
   Sparkles,
+  Table2,
 } from 'lucide-react';
 import { createClientSupabase } from '@/lib/supabase-client';
+import {
+  CollectionDataTable,
+  type CollectionItem,
+} from './collection-data-table';
 import { ViewSwitcher } from './view-switcher';
 import { CollectionFilters } from './collection-filters';
 import { GridView } from './grid-view';
-import { ListView } from './list-view';
 import { WheelView } from './wheel-view';
 import { CalendarView } from './calendar-view';
 import { AIInsights } from './ai-insights';
@@ -50,7 +54,7 @@ interface CollectionStats {
   recent_additions?: any[];
 }
 
-interface CollectionDashboardProps {
+interface CollectionDashboardModernProps {
   userId: string;
   userProfile?: UserProfile;
   initialStats?: CollectionStats;
@@ -64,32 +68,33 @@ type ProgressiveView =
   | 'entire-collection';
 
 /**
- * CollectionDashboard Component
+ * Modern Collection Dashboard Component
  *
- * Main collection management interface implementing research-backed UX patterns:
- * - Progressive disclosure to avoid cognitive overload
- * - Multiple visualization modes for different user preferences
- * - AI-powered insights with explainable transparency
- * - Mobile-first responsive design with thumb-zone optimization
- * - Performance optimization for large collections
+ * Enhanced version using @tanstack/react-table for improved data management:
+ * - Modern data table with sorting, filtering, pagination
+ * - Reduced custom code by leveraging proven libraries
+ * - Better performance and accessibility
+ * - Progressive disclosure with consistent patterns
  */
-export function CollectionDashboard({
+export function CollectionDashboardModern({
   userId,
   userProfile,
   initialStats,
   recentActivity = [],
-}: CollectionDashboardProps) {
+}: CollectionDashboardModernProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // Dashboard state management
   const [currentView, setCurrentView] = useState<ViewMode>(
-    (searchParams.get('view') as ViewMode) || 'grid'
+    (searchParams.get('view') as ViewMode) || 'table'
   );
   const [progressiveView, setProgressiveView] =
     useState<ProgressiveView>('currently-wearing');
-  const [collection, setCollection] = useState<any[]>([]);
-  const [filteredCollection, setFilteredCollection] = useState<any[]>([]);
+  const [collection, setCollection] = useState<CollectionItem[]>([]);
+  const [filteredCollection, setFilteredCollection] = useState<
+    CollectionItem[]
+  >([]);
   const [collectionStats, setCollectionStats] = useState<CollectionStats>(
     initialStats || {
       total_fragrances: 0,
@@ -100,7 +105,7 @@ export function CollectionDashboard({
 
   // UI state
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<CollectionItem[]>([]);
   const [filters, setFilters] = useState({
     status: 'all',
     family: 'all',
@@ -122,21 +127,33 @@ export function CollectionDashboard({
         setIsLoading(true);
         const supabase = createClientSupabase();
 
-        // Fetch user's complete collection with basic details
+        // Fetch user's complete collection with all necessary data
         const { data: collectionData, error } = await (supabase as any)
           .from('user_collections')
           .select(
             `
             id,
+            user_id,
             fragrance_id,
+            status,
+            rating,
+            personal_notes,
+            usage_frequency,
+            occasions,
+            seasons,
+            purchase_date,
+            purchase_price,
             added_at,
             fragrances:fragrance_id (
               id,
               name,
               brand_id,
+              scent_family,
+              image_url,
               sample_available,
               sample_price_usd,
               fragrance_brands:brand_id (
+                id,
                 name
               )
             )
@@ -152,11 +169,22 @@ export function CollectionDashboard({
           return;
         }
 
-        setCollection(collectionData || []);
+        // Transform data to match CollectionItem interface
+        const transformedData: CollectionItem[] = (collectionData || []).map(
+          (item: any) => ({
+            ...item,
+            fragrances: {
+              ...item.fragrances,
+              fragrance_brands: item.fragrances?.fragrance_brands,
+            },
+          })
+        );
+
+        setCollection(transformedData);
 
         // Update stats if we have fresh data
-        if (collectionData && collectionData.length > 0) {
-          const stats = calculateCollectionStats(collectionData);
+        if (transformedData.length > 0) {
+          const stats = calculateCollectionStats(transformedData);
           setCollectionStats(stats);
         }
       } catch (error) {
@@ -177,7 +205,6 @@ export function CollectionDashboard({
 
     // Apply progressive view logic first
     if (progressiveView === 'currently-wearing') {
-      // Show recently used or high-rating fragrances (max 5)
       filtered = filtered
         .filter(
           item =>
@@ -187,7 +214,6 @@ export function CollectionDashboard({
         )
         .slice(0, 5);
     } else if (progressiveView === 'this-season') {
-      // Show current season fragrances (max 15)
       const currentSeason = getCurrentSeason();
       filtered = filtered
         .filter(
@@ -198,7 +224,6 @@ export function CollectionDashboard({
         )
         .slice(0, 15);
     }
-    // 'entire-collection' shows all items
 
     // Apply filters
     if (filters.status !== 'all') {
@@ -211,26 +236,12 @@ export function CollectionDashboard({
       );
     }
 
-    if (filters.occasion !== 'all') {
-      filtered = filtered.filter(item =>
-        item.occasions?.includes(filters.occasion)
-      );
-    }
-
-    if (filters.season !== 'all') {
-      filtered = filtered.filter(item =>
-        item.seasons?.includes(filters.season)
-      );
-    }
-
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(
         item =>
           item.fragrances?.name?.toLowerCase().includes(searchLower) ||
-          item.fragrances?.fragrance_brands?.name
-            ?.toLowerCase()
-            .includes(searchLower) ||
+          getBrandName(item.fragrances)?.toLowerCase().includes(searchLower) ||
           item.personal_notes?.toLowerCase().includes(searchLower)
       );
     }
@@ -259,13 +270,6 @@ export function CollectionDashboard({
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
     setSelectedItems([]); // Clear selection when filters change
-
-    // Track filter usage
-    setTrackInteraction({
-      type: 'view',
-      context: 'collection_filters',
-      metadata: { filters: { ...filters, ...newFilters } },
-    });
   };
 
   // Handle progressive view changes
@@ -280,28 +284,8 @@ export function CollectionDashboard({
     });
   };
 
-  // Handle item selection for bulk operations
-  const handleItemSelect = (itemId: string, selected: boolean) => {
-    setSelectedItems(prev =>
-      selected ? [...prev, itemId] : prev.filter(id => id !== itemId)
-    );
-  };
-
-  // Handle collection updates
-  const handleCollectionChange = (newCollection: any[]) => {
-    setCollection(newCollection);
-
-    // Recalculate stats
-    const newStats = calculateCollectionStats(newCollection);
-    setCollectionStats(newStats);
-
-    // Clear selections
-    setSelectedItems([]);
-  };
-
-  // Handle item clicks for navigation
-  const handleItemClick = (item: any) => {
-    // Track item interaction
+  // Handle collection item click
+  const handleItemClick = (item: CollectionItem) => {
     setTrackInteraction({
       type: 'view',
       context: 'collection_item_click',
@@ -312,8 +296,53 @@ export function CollectionDashboard({
       },
     });
 
-    // Navigate to fragrance detail page
     router.push(`/fragrance/${item.fragrance_id}`);
+  };
+
+  // Handle item editing
+  const handleItemEdit = (item: CollectionItem) => {
+    // TODO: Implement edit modal or navigate to edit page
+    console.log('Edit item:', item);
+  };
+
+  // Handle item removal
+  const handleItemRemove = (item: CollectionItem) => {
+    // TODO: Implement removal with confirmation
+    console.log('Remove item:', item);
+  };
+
+  // Handle selection changes from data table
+  const handleSelectionChange = (newSelectedItems: CollectionItem[]) => {
+    setSelectedItems(newSelectedItems);
+  };
+
+  // Handle collection updates
+  const handleCollectionChange = (newCollection: any[]) => {
+    // Transform to CollectionItem[] format
+    const transformedCollection: CollectionItem[] = newCollection.map(item => ({
+      ...item,
+      fragrances: {
+        ...item.fragrances,
+        fragrance_brands: item.fragrances?.fragrance_brands,
+      },
+    }));
+
+    setCollection(transformedCollection);
+
+    // Recalculate stats
+    const newStats = calculateCollectionStats(transformedCollection);
+    setCollectionStats(newStats);
+
+    // Clear selections
+    setSelectedItems([]);
+  };
+
+  // Helper function to get brand name
+  const getBrandName = (fragrance: any): string => {
+    if (Array.isArray(fragrance?.fragrance_brands)) {
+      return fragrance.fragrance_brands[0]?.name || 'Unknown Brand';
+    }
+    return fragrance?.fragrance_brands?.name || 'Unknown Brand';
   };
 
   if (isLoading) {
@@ -389,11 +418,11 @@ export function CollectionDashboard({
 
         {/* Collection Controls */}
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
-          {/* View Mode Switcher */}
+          {/* View Mode Switcher - Updated with table option */}
           <ViewSwitcher
             currentView={currentView}
             onViewChange={handleViewChange}
-            viewOptions={['grid', 'list', 'wheel', 'calendar']}
+            viewOptions={['grid', 'table', 'wheel', 'calendar']}
           />
 
           {/* Filter and Search Controls */}
@@ -561,17 +590,29 @@ export function CollectionDashboard({
                     <GridView
                       collection={filteredCollection}
                       onItemClick={handleItemClick}
-                      onItemSelect={handleItemSelect}
-                      selectedItems={selectedItems}
+                      onItemSelect={(itemId, selected) => {
+                        const item = filteredCollection.find(
+                          i => i.id === itemId
+                        );
+                        if (item) {
+                          setSelectedItems(prev =>
+                            selected
+                              ? [...prev, item]
+                              : prev.filter(i => i.id !== itemId)
+                          );
+                        }
+                      }}
+                      selectedItems={selectedItems.map(i => i.id)}
                     />
                   )}
 
-                  {currentView === 'list' && (
-                    <ListView
-                      collection={filteredCollection}
+                  {currentView === 'table' && (
+                    <CollectionDataTable
+                      data={filteredCollection}
                       onItemClick={handleItemClick}
-                      onItemSelect={handleItemSelect}
-                      selectedItems={selectedItems}
+                      onItemEdit={handleItemEdit}
+                      onItemRemove={handleItemRemove}
+                      onSelectionChange={handleSelectionChange}
                     />
                   )}
 
@@ -682,8 +723,13 @@ export function CollectionDashboard({
         <CollectionManager
           userId={userId}
           onCollectionChange={handleCollectionChange}
-          selectedItems={selectedItems}
-          onSelectionChange={setSelectedItems}
+          selectedItems={selectedItems.map(i => i.id)}
+          onSelectionChange={ids => {
+            const items = filteredCollection.filter(item =>
+              ids.includes(item.id)
+            );
+            setSelectedItems(items);
+          }}
         />
       </div>
     </>
@@ -699,22 +745,31 @@ function getCurrentSeason(): string {
   return 'winter';
 }
 
-function calculateCollectionStats(collection: any[]): CollectionStats {
+function calculateCollectionStats(
+  collection: CollectionItem[]
+): CollectionStats {
   const total = collection.length;
-  const byStatus = collection.reduce((acc, item) => {
-    acc[item.status] = (acc[item.status] || 0) + 1;
-    return acc;
-  }, {});
+  const byStatus = collection.reduce(
+    (acc, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const families = Array.from(
     new Set(
-      collection.map(item => item.fragrances?.scent_family).filter(Boolean)
+      collection
+        .map(item => item.fragrances?.scent_family)
+        .filter((family): family is string => Boolean(family))
     )
   );
 
   const diversityScore = total > 0 ? families.length / total : 0;
 
-  const ratings = collection.map(item => item.rating).filter(Boolean);
+  const ratings = collection
+    .map(item => item.rating)
+    .filter(Boolean) as number[];
   const averageRating =
     ratings.length > 0
       ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
