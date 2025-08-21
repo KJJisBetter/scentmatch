@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, Sparkles, Heart, ShoppingCart } from 'lucide-react';
-import { DirectRecommendationEngine } from '@/lib/quiz/direct-recommendation-engine';
+import { DirectDatabaseEngine as DirectRecommendationEngine } from '@/lib/ai-sdk/compatibility-layer';
 import { ConversionFlow } from './conversion-flow';
 
 /**

@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { unstable_rethrow } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase';
 import {
   FeedbackProcessor,
@@ -8,13 +11,77 @@ import {
   type BanditFeedbackEvent,
 } from '@/lib/ai-sdk/feedback-processor';
 
+export interface FeedbackParams {
+  fragrance_id: string;
+  feedback_type:
+    | 'like'
+    | 'dislike'
+    | 'rating'
+    | 'purchase_intent'
+    | 'love'
+    | 'maybe'
+    | 'dismiss';
+  rating_value?: number;
+  confidence?: number;
+  reason?: string;
+  recommendation_id?: string;
+  source?: string;
+  position?: number;
+  context?: Record<string, any>;
+  algorithm_used?: string;
+  session_id?: string;
+  time_to_action_seconds?: number;
+  time_spent_before_rating?: number;
+  previous_interactions?: number;
+}
+
+export interface FeedbackResult {
+  success: boolean;
+  feedback_processed: boolean;
+  feedback_id?: string;
+  learning_impact?: number;
+  preference_update?: {
+    preferences_updated: boolean;
+    embedding_updated: boolean;
+    confidence_change: number;
+    learning_weight: number;
+  };
+  recommendation_refresh?: {
+    cache_invalidated: boolean;
+    new_recommendations_available: boolean;
+    refresh_recommended: boolean;
+  };
+  feedback_quality?: {
+    reliability_score: number;
+    quality_level: string;
+    trust_factors: any;
+  };
+  bandit_optimization?: {
+    algorithm_updated: boolean;
+    new_success_rate: number;
+    bandit_learning_impact: number;
+    processing_time_ms: number;
+  } | null;
+  user_message: string;
+  metadata?: {
+    processing_time_ms: number;
+    ai_learning_applied: boolean;
+    bandit_learning_applied: boolean;
+    preference_adjustment_type: any;
+  };
+  error?: string;
+}
+
 /**
- * POST /api/recommendations/feedback
+ * Server Action: Process recommendation feedback
  *
+ * Converts POST /api/recommendations/feedback functionality to Server Action
  * AI-enhanced feedback processing with real-time preference learning,
  * embedding updates, and recommendation cache invalidation.
  */
-export async function POST(request: NextRequest) {
+export async function processFeedback(
+  params: FeedbackParams
+): Promise<FeedbackResult> {
   const startTime = Date.now();
 
   try {
@@ -27,20 +94,22 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return {
+        success: false,
+        feedback_processed: false,
+        user_message: 'Authentication required',
+        error: 'Authentication required',
+      };
     }
 
-    const body = await request.json();
-
     // Validate required fields
-    if (!body.fragrance_id || !body.feedback_type) {
-      return NextResponse.json(
-        { error: 'fragrance_id and feedback_type are required' },
-        { status: 400 }
-      );
+    if (!params.fragrance_id || !params.feedback_type) {
+      return {
+        success: false,
+        feedback_processed: false,
+        user_message: 'Missing required feedback information',
+        error: 'fragrance_id and feedback_type are required',
+      };
     }
 
     // Validate feedback type
@@ -54,11 +123,13 @@ export async function POST(request: NextRequest) {
       'dismiss',
     ];
 
-    if (!validFeedbackTypes.includes(body.feedback_type)) {
-      return NextResponse.json(
-        { error: 'Invalid feedback type' },
-        { status: 400 }
-      );
+    if (!validFeedbackTypes.includes(params.feedback_type)) {
+      return {
+        success: false,
+        feedback_processed: false,
+        user_message: 'Invalid feedback type',
+        error: 'Invalid feedback type',
+      };
     }
 
     // Initialize AI feedback processor
@@ -79,16 +150,16 @@ export async function POST(request: NextRequest) {
     // Create feedback event
     const feedbackEvent: FeedbackEvent = {
       user_id: user.id,
-      fragrance_id: body.fragrance_id,
-      feedback_type: body.feedback_type,
-      rating_value: body.rating_value,
-      confidence: body.confidence || 0.8,
-      reason: body.reason,
+      fragrance_id: params.fragrance_id,
+      feedback_type: params.feedback_type,
+      rating_value: params.rating_value,
+      confidence: params.confidence || 0.8,
+      reason: params.reason,
       context: {
-        recommendation_id: body.recommendation_id,
-        recommendation_source: body.source || 'unknown',
-        recommendation_position: body.position,
-        ...body.context,
+        recommendation_id: params.recommendation_id,
+        recommendation_source: params.source || 'unknown',
+        recommendation_position: params.position,
+        ...params.context,
       },
     };
 
@@ -104,14 +175,14 @@ export async function POST(request: NextRequest) {
       // Convert to bandit feedback format
       const banditFeedback: BanditFeedbackEvent = {
         user_id: user.id,
-        fragrance_id: body.fragrance_id,
-        algorithm_used: body.algorithm_used || 'hybrid', // Should be provided by frontend
-        action: mapFeedbackTypeToAction(body.feedback_type),
-        action_value: body.rating_value,
+        fragrance_id: params.fragrance_id,
+        algorithm_used: params.algorithm_used || 'hybrid', // Should be provided by frontend
+        action: mapFeedbackTypeToAction(params.feedback_type),
+        action_value: params.rating_value,
         immediate_reward: 0, // Will be calculated by processor
-        contextual_factors: extractContextualFactors(body.context || {}),
-        session_id: body.session_id || `session_${Date.now()}`,
-        time_to_action_seconds: body.time_to_action_seconds,
+        contextual_factors: extractContextualFactors(params.context || {}),
+        session_id: params.session_id || `session_${Date.now()}`,
+        time_to_action_seconds: params.time_to_action_seconds,
       };
 
       banditProcessingResult =
@@ -130,8 +201,8 @@ export async function POST(request: NextRequest) {
         const invalidationResult =
           await recommendationCache.invalidateUserCache(user.id, {
             type: 'feedback_received',
-            fragrance_id: body.fragrance_id,
-            rating: body.rating_value,
+            fragrance_id: params.fragrance_id,
+            rating: params.rating_value,
             impact_level:
               processingResult.learning_impact > 0.2 ? 'high' : 'medium',
           });
@@ -150,19 +221,19 @@ export async function POST(request: NextRequest) {
       .from('user_interactions')
       .insert({
         user_id: user.id,
-        fragrance_id: body.fragrance_id,
-        interaction_type: body.feedback_type,
+        fragrance_id: params.fragrance_id,
+        interaction_type: params.feedback_type,
         interaction_value:
-          body.rating_value ||
-          (body.feedback_type === 'like'
+          params.rating_value ||
+          (params.feedback_type === 'like'
             ? 1
-            : body.feedback_type === 'dislike'
+            : params.feedback_type === 'dislike'
               ? 0
               : 0.5),
         interaction_context: {
-          recommendation_context: body.context || {},
+          recommendation_context: params.context || {},
           feedback_source: 'explicit',
-          recommendation_id: body.recommendation_id,
+          recommendation_id: params.recommendation_id,
           processing_result: processingResult,
         },
       });
@@ -174,14 +245,21 @@ export async function POST(request: NextRequest) {
     // Assess feedback quality for learning weight
     const feedbackQuality = await feedbackProcessor.assessFeedbackQuality({
       user_id: user.id,
-      fragrance_id: body.fragrance_id,
-      feedback_type: body.feedback_type,
-      rating_value: body.rating_value,
-      time_spent_before_rating: body.time_spent_before_rating || 30,
-      previous_interactions: body.previous_interactions || 0,
+      fragrance_id: params.fragrance_id,
+      feedback_type: params.feedback_type,
+      rating_value: params.rating_value,
+      time_spent_before_rating: params.time_spent_before_rating || 30,
+      previous_interactions: params.previous_interactions || 0,
     });
 
-    const response = {
+    // Revalidate paths that use recommendation data
+    if (cacheInvalidated) {
+      revalidatePath('/recommendations');
+      revalidatePath('/dashboard');
+      revalidatePath('/quiz/results');
+    }
+
+    const response: FeedbackResult = {
       success: true,
       feedback_processed: true,
       feedback_id: `feedback_${Date.now()}`,
@@ -211,7 +289,7 @@ export async function POST(request: NextRequest) {
             processing_time_ms: banditProcessingResult.processing_time_ms,
           }
         : null,
-      user_message: getFeedbackMessage(body.feedback_type),
+      user_message: getFeedbackMessage(params.feedback_type),
       metadata: {
         processing_time_ms: Date.now() - startTime,
         ai_learning_applied: true,
@@ -220,140 +298,22 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    return NextResponse.json(response, {
-      headers: {
-        'X-Learning-Impact': processingResult.learning_impact.toString(),
-        'X-Cache-Invalidated': cacheInvalidated.toString(),
-        'X-Processing-Time': (Date.now() - startTime).toString(),
-      },
-    });
+    return response;
   } catch (error) {
     console.error('Error processing feedback:', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to process feedback',
-        details:
-          process.env.NODE_ENV === 'development'
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : undefined,
-        metadata: {
-          processing_time_ms: Date.now() - startTime,
-          ai_learning_applied: false,
-        },
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// Process feedback for preference learning
-async function processPreferenceLearning(
-  supabase: any,
-  userId: string,
-  feedback: any
-): Promise<any> {
-  try {
-    // Get fragrance details for learning
-    const { data: fragrance } = await supabase
-      .from('fragrances')
-      .select(
-        `
-        id,
-        scent_family,
-        notes,
-        intensity_score,
-        brand_id,
-        fragrance_brands:brand_id (name)
-      `
-      )
-      .eq('id', feedback.fragrance_id)
-      .single();
-
-    if (!fragrance) {
-      return { error: 'Fragrance not found for learning' };
-    }
-
-    // Calculate learning weight based on feedback type
-    const learningWeights = {
-      love: 1.0,
-      like: 0.7,
-      sample_request: 0.8,
-      maybe: 0.3,
-      dislike: -0.5,
-      dismiss: -0.3,
-      detailed_rating: 0.5,
-    };
-
-    const weight =
-      learningWeights[feedback.feedback_type as keyof typeof learningWeights] ||
-      0.1;
-
-    // Update user preferences (simplified learning - would be more sophisticated in production)
-    const preferenceUpdates = [];
-    let confidenceChange = 0;
-
-    if (weight > 0) {
-      // Positive feedback - strengthen preferences
-      if (fragrance.scent_family) {
-        preferenceUpdates.push(
-          `increased_${fragrance.scent_family}_preference`
-        );
-        confidenceChange = Math.abs(weight) * 0.05;
-      }
-
-      if (fragrance.notes && Array.isArray(fragrance.notes)) {
-        // Learn from specific notes
-        const topNotes = fragrance.notes.slice(0, 3);
-        preferenceUpdates.push(
-          ...topNotes.map((note: string) => `learned_${note}_preference`)
-        );
-      }
-    } else {
-      // Negative feedback - adjust away from these characteristics
-      if (fragrance.scent_family) {
-        preferenceUpdates.push(
-          `decreased_${fragrance.scent_family}_preference`
-        );
-        confidenceChange = Math.abs(weight) * 0.03; // Smaller confidence change for negative
-      }
-    }
-
-    // Store preference update (in a real implementation, this would update user_preferences table)
-    const { error: prefError } = await supabase
-      .from('user_preferences')
-      .upsert({
-        user_id: userId,
-        preference_type: 'feedback_learning',
-        preference_value: JSON.stringify({
-          fragrance_id: feedback.fragrance_id,
-          feedback_type: feedback.feedback_type,
-          weight: weight,
-          learned_at: new Date().toISOString(),
-        }),
-        preference_strength: Math.abs(weight),
-        learned_from: 'recommendation_feedback',
-      });
+    unstable_rethrow(error);
 
     return {
-      updated_preferences: preferenceUpdates,
-      confidence_change: confidenceChange,
-      embedding_updated: Math.abs(weight) > 0.5, // Update embedding for strong signals
-      learning_weight: weight,
-      fragrance_analyzed: {
-        family: fragrance.scent_family,
-        brand: fragrance.fragrance_brands?.name,
-        intensity: fragrance.intensity_score,
+      success: false,
+      feedback_processed: false,
+      user_message: 'Failed to process feedback',
+      error: 'Failed to process feedback',
+      metadata: {
+        processing_time_ms: Date.now() - startTime,
+        ai_learning_applied: false,
+        bandit_learning_applied: false,
+        preference_adjustment_type: null,
       },
-    };
-  } catch (error) {
-    console.error('Error in preference learning:', error);
-    return {
-      error: 'Preference learning failed',
-      fallback_applied: true,
     };
   }
 }

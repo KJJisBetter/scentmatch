@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, ShoppingCart, Heart, Star } from 'lucide-react';
-import type { FragranceRecommendation } from '@/lib/quiz/direct-recommendation-engine';
+import type { LegacyFragranceRecommendation as FragranceRecommendation } from '@/lib/ai-sdk/compatibility-layer';
 
 interface FragranceRecommendationDisplayProps {
   recommendations: FragranceRecommendation[];

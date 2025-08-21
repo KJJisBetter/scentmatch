@@ -3,7 +3,7 @@ import { createServerSupabase } from '@/lib/supabase';
 
 /**
  * GET /api/browse/personalized
- * 
+ *
  * Smart discovery endpoint that adapts based on user's collection:
  * - New/unauthenticated users: Popular fragrances
  * - Users with collections: AI-personalized recommendations
@@ -14,14 +14,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '20')));
+    const limit = Math.max(
+      1,
+      Math.min(50, parseInt(searchParams.get('limit') || '20'))
+    );
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
     const supabase = await createServerSupabase();
 
     // Check user authentication status
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     let sortingStrategy: 'popularity' | 'personalized' = 'popularity';
     let userCollectionSize = 0;
     let fragrances = [];
@@ -39,16 +45,16 @@ export async function GET(request: NextRequest) {
       // Use personalized recommendations if user has substantial collection (3+ items)
       if (userCollectionSize >= 3) {
         sortingStrategy = 'personalized';
-        
+
         try {
           // Try AI-powered personalized recommendations
           const personalizedResults = await getPersonalizedRecommendations(
-            supabase, 
-            user.id, 
-            limit, 
+            supabase,
+            user.id,
+            limit,
             offset
           );
-          
+
           if (personalizedResults && personalizedResults.length > 0) {
             fragrances = personalizedResults;
           } else {
@@ -84,7 +90,7 @@ export async function GET(request: NextRequest) {
           if (!collectionStatuses[item.fragrance_id]) {
             collectionStatuses[item.fragrance_id] = [];
           }
-          collectionStatuses[item.fragrance_id].push(item.collection_type);
+          collectionStatuses[item.fragrance_id]!.push(item.collection_type);
         });
       }
     }
@@ -94,34 +100,41 @@ export async function GET(request: NextRequest) {
       ...fragrance,
       collection_status: collectionStatuses[fragrance.id] || [],
       in_collection: (collectionStatuses[fragrance.id] || []).includes('owned'),
-      in_wishlist: (collectionStatuses[fragrance.id] || []).includes('wishlist')
+      in_wishlist: (collectionStatuses[fragrance.id] || []).includes(
+        'wishlist'
+      ),
     }));
 
-    return NextResponse.json({
-      fragrances: fragrancesWithStatus,
-      total: fragrancesWithStatus.length,
-      sorting_strategy: sortingStrategy,
-      user_collection_size: userCollectionSize,
-      metadata: {
-        processing_time_ms: Date.now() - startTime,
-        authenticated: !!user,
-        personalized: sortingStrategy === 'personalized'
+    return NextResponse.json(
+      {
+        fragrances: fragrancesWithStatus,
+        total: fragrancesWithStatus.length,
+        sorting_strategy: sortingStrategy,
+        user_collection_size: userCollectionSize,
+        metadata: {
+          processing_time_ms: Date.now() - startTime,
+          authenticated: !!user,
+          personalized: sortingStrategy === 'personalized',
+        },
+      },
+      {
+        headers: {
+          'Cache-Control': user
+            ? 'private, s-maxage=60, stale-while-revalidate=120' // Shorter cache for personalized
+            : 'public, s-maxage=300, stale-while-revalidate=600', // Longer cache for popularity
+          'X-Sorting-Strategy': sortingStrategy,
+        },
       }
-    }, {
-      headers: {
-        'Cache-Control': user 
-          ? 'private, s-maxage=60, stale-while-revalidate=120' // Shorter cache for personalized
-          : 'public, s-maxage=300, stale-while-revalidate=600', // Longer cache for popularity
-        'X-Sorting-Strategy': sortingStrategy
-      }
-    });
-
+    );
   } catch (error) {
     console.error('Personalized browse API error:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      fallback_message: 'Please try the regular browse page'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        fallback_message: 'Please try the regular browse page',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -129,15 +142,16 @@ export async function GET(request: NextRequest) {
  * Get AI-powered personalized recommendations based on user's collection
  */
 async function getPersonalizedRecommendations(
-  supabase: any, 
-  userId: string, 
-  limit: number, 
+  supabase: any,
+  userId: string,
+  limit: number,
   offset: number
 ) {
   // Get user's collection with ratings to understand preferences
   const { data: userCollection } = await supabase
     .from('user_collections')
-    .select(`
+    .select(
+      `
       fragrance_id,
       collection_type,
       rating,
@@ -150,7 +164,8 @@ async function getPersonalizedRecommendations(
         scent_strength,
         longevity
       )
-    `)
+    `
+    )
     .eq('user_id', userId)
     .in('collection_type', ['owned', 'wishlist', 'tried']);
 
@@ -162,9 +177,7 @@ async function getPersonalizedRecommendations(
   const preferences = analyzeUserPreferences(userCollection);
 
   // Get recommendations based on preferences
-  let query = supabase
-    .from('fragrances')
-    .select(`
+  let query = supabase.from('fragrances').select(`
       id,
       name,
       brand_id,
@@ -186,16 +199,16 @@ async function getPersonalizedRecommendations(
   if (preferences.preferredFamilies.length > 0) {
     query = query.in('scent_family', preferences.preferredFamilies);
   }
-  
+
   if (preferences.preferredGenders.length > 0) {
     query = query.in('gender', preferences.preferredGenders);
   }
 
   // Exclude fragrances already in user's collection
   const ownedIds = userCollection
-    .filter(item => item.collection_type === 'owned')
-    .map(item => item.fragrance_id);
-  
+    .filter((item: any) => item.collection_type === 'owned')
+    .map((item: any) => item.fragrance_id);
+
   if (ownedIds.length > 0) {
     query = query.not('id', 'in', `(${ownedIds.join(',')})`);
   }
@@ -205,32 +218,41 @@ async function getPersonalizedRecommendations(
     .order('rating_value', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  return recommendations?.map(result => ({
-    id: result.id,
-    name: result.name,
-    brand: result.fragrance_brands?.name || 'Unknown Brand',
-    brand_id: result.brand_id,
-    gender: result.gender || 'unisex',
-    scent_family: result.scent_family,
-    popularity_score: result.popularity_score || 0,
-    rating_value: result.rating_value || 0,
-    rating_count: result.rating_count || 0,
-    relevance_score: 0.9, // High relevance for personalized recommendations
-    sample_available: result.sample_available ?? true,
-    sample_price_usd: result.sample_price_usd || 15
-  })) || [];
+  return (
+    recommendations?.map((result: any) => ({
+      id: result.id,
+      name: result.name,
+      brand: result.fragrance_brands?.name || 'Unknown Brand',
+      brand_id: result.brand_id,
+      gender: result.gender || 'unisex',
+      scent_family: result.scent_family,
+      popularity_score: result.popularity_score || 0,
+      rating_value: result.rating_value || 0,
+      rating_count: result.rating_count || 0,
+      relevance_score: 0.9, // High relevance for personalized recommendations
+      sample_available: result.sample_available ?? true,
+      sample_price_usd: result.sample_price_usd || 15,
+    })) || []
+  );
 }
 
 /**
  * Get popular fragrances for new/unauthenticated users
  */
-async function getPopularFragrances(supabase: any, limit: number, offset: number) {
+async function getPopularFragrances(
+  supabase: any,
+  limit: number,
+  offset: number
+) {
   try {
-    console.log(`🔥 getPopularFragrances called with limit=${limit}, offset=${offset}`);
-    
+    console.log(
+      `🔥 getPopularFragrances called with limit=${limit}, offset=${offset}`
+    );
+
     const { data: popular, error } = await supabase
       .from('fragrances')
-      .select(`
+      .select(
+        `
         id,
         name,
         brand_id,
@@ -241,7 +263,8 @@ async function getPopularFragrances(supabase: any, limit: number, offset: number
         sample_available,
         sample_price_usd,
         fragrance_brands!inner(name)
-      `)
+      `
+      )
       .order('popularity_score', { ascending: false })
       .order('rating_value', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -253,24 +276,24 @@ async function getPopularFragrances(supabase: any, limit: number, offset: number
 
     console.log(`🔥 Raw popular data length: ${popular?.length || 0}`);
 
-    const mapped = popular?.map((result: any) => ({
-      id: result.id,
-      name: result.name,
-      brand: result.fragrance_brands?.name || 'Unknown Brand',
-      brand_id: result.brand_id,
-      gender: result.gender || 'unisex',
-      scent_family: result.gender || 'Fragrance', // Use gender as fallback since scent_family doesn't exist
-      popularity_score: result.popularity_score || 0,
-      rating_value: result.rating_value || 0,
-      rating_count: result.rating_count || 0,
-      relevance_score: 0.7, // Standard relevance for popular items
-      sample_available: result.sample_available ?? true,
-      sample_price_usd: result.sample_price_usd || 15
-    })) || [];
+    const mapped =
+      popular?.map((result: any) => ({
+        id: result.id,
+        name: result.name,
+        brand: result.fragrance_brands?.name || 'Unknown Brand',
+        brand_id: result.brand_id,
+        gender: result.gender || 'unisex',
+        scent_family: result.gender || 'Fragrance', // Use gender as fallback since scent_family doesn't exist
+        popularity_score: result.popularity_score || 0,
+        rating_value: result.rating_value || 0,
+        rating_count: result.rating_count || 0,
+        relevance_score: 0.7, // Standard relevance for popular items
+        sample_available: result.sample_available ?? true,
+        sample_price_usd: result.sample_price_usd || 15,
+      })) || [];
 
     console.log(`🔥 Mapped popular fragrances length: ${mapped.length}`);
     return mapped;
-
   } catch (error) {
     console.error('🔥 Exception in getPopularFragrances:', error);
     return [];
@@ -283,22 +306,22 @@ async function getPopularFragrances(supabase: any, limit: number, offset: number
 function analyzeUserPreferences(userCollection: any[]) {
   const families = new Map();
   const genders = new Map();
-  
+
   userCollection.forEach(item => {
     if (!item.fragrances) return;
-    
+
     const fragrance = item.fragrances;
     const weight = getPreferenceWeight(item.collection_type, item.rating);
-    
+
     // Count scent families
     if (fragrance.scent_family) {
       families.set(
-        fragrance.scent_family, 
+        fragrance.scent_family,
         (families.get(fragrance.scent_family) || 0) + weight
       );
     }
-    
-    // Count genders  
+
+    // Count genders
     if (fragrance.gender) {
       genders.set(
         fragrance.gender,
@@ -306,21 +329,21 @@ function analyzeUserPreferences(userCollection: any[]) {
       );
     }
   });
-  
+
   // Get top preferences
   const preferredFamilies = Array.from(families.entries())
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 3)
     .map(([family]) => family);
-    
+
   const preferredGenders = Array.from(genders.entries())
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 2)
     .map(([gender]) => gender);
-  
+
   return {
     preferredFamilies,
-    preferredGenders
+    preferredGenders,
   };
 }
 
@@ -329,7 +352,7 @@ function analyzeUserPreferences(userCollection: any[]) {
  */
 function getPreferenceWeight(collectionType: string, rating?: number): number {
   let baseWeight = 1;
-  
+
   // Higher weight for owned vs. wishlist
   switch (collectionType) {
     case 'owned':
@@ -344,11 +367,11 @@ function getPreferenceWeight(collectionType: string, rating?: number): number {
     default:
       baseWeight = 0.5;
   }
-  
+
   // Multiply by rating if available
   if (rating && rating > 0) {
     baseWeight *= rating / 3; // Normalize rating (1-5 scale to weight multiplier)
   }
-  
+
   return baseWeight;
 }

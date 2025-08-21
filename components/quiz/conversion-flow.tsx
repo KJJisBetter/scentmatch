@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { createClientSupabase } from '@/lib/supabase-client';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
+import { convertToAccount } from '@/lib/actions';
 
 interface ConversionFlowProps {
   quizResults: {
@@ -58,6 +59,7 @@ export function ConversionFlow({
   });
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [isPending, startTransition] = useTransition();
 
   // Remove personality display names - using direct recommendations now
 
@@ -109,52 +111,54 @@ export function ConversionFlow({
       }
 
       if (authData.user) {
-        // Transfer quiz data to new account
-        const transferResponse = await fetch('/api/quiz/convert-to-account', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_token: quizResults.quiz_session_token,
-            user_data: {
-              user_id: authData.user.id, // Add user_id for server verification
-              email: accountData.email,
-              first_name: accountData.firstName,
-            },
-            preserve_quiz_data: true,
-            immediate_recommendations: true,
-          }),
+        // Transfer quiz data to new account using Server Action
+        startTransition(async () => {
+          try {
+            const transferResult = await convertToAccount({
+              session_token: quizResults.quiz_session_token,
+              user_data: {
+                user_id: authData.user!.id,
+                email: accountData.email,
+                first_name: accountData.firstName,
+              },
+            });
+
+            if (transferResult.success) {
+              const newUser = {
+                id: authData.user!.id,
+                email: accountData.email,
+                firstName: accountData.firstName,
+                quiz_completed_at: new Date().toISOString(),
+                recommendations_generated: quizResults.recommendations.length,
+                onboarding_step: 'recommendations_unlocked',
+              };
+
+              const conversionResult = {
+                account_created: true,
+                quiz_data_transferred: transferResult.quiz_data_transferred,
+                enhanced_recommendations_unlocked: true,
+                immediate_benefits: transferResult.immediate_benefits || {
+                  recommendation_count: 15,
+                  personalization_boost: 0.18,
+                  collection_features_unlocked: true,
+                  sample_discount: '20% off first order',
+                },
+              };
+
+              onAccountCreated(newUser);
+              onConversionComplete(conversionResult);
+              setStep('conversion_success');
+            } else {
+              setErrors([
+                transferResult.error ||
+                  'Failed to transfer quiz data. Please try again.',
+              ]);
+            }
+          } catch (error) {
+            console.error('Transfer error:', error);
+            setErrors(['Failed to transfer quiz data. Please try again.']);
+          }
         });
-
-        if (transferResponse.ok) {
-          const transferResult = await transferResponse.json();
-
-          const newUser = {
-            id: authData.user.id,
-            email: accountData.email,
-            firstName: accountData.firstName,
-            quiz_completed_at: new Date().toISOString(),
-            recommendations_generated: quizResults.recommendations.length,
-            onboarding_step: 'recommendations_unlocked',
-          };
-
-          const conversionResult = {
-            account_created: true,
-            quiz_data_transferred: transferResult.quiz_data_transferred,
-            enhanced_recommendations_unlocked: true,
-            immediate_benefits: {
-              recommendation_count: 15,
-              personalization_boost: 0.18,
-              collection_features_unlocked: true,
-              sample_discount: '20% off first order',
-            },
-          };
-
-          onAccountCreated(newUser);
-          onConversionComplete(conversionResult);
-          setStep('conversion_success');
-        } else {
-          setErrors(['Failed to transfer quiz data. Please try again.']);
-        }
       }
     } catch (error) {
       console.error('Account creation error:', error);
@@ -361,6 +365,7 @@ export function ConversionFlow({
                 onClick={handleAccountCreation}
                 disabled={
                   isCreatingAccount ||
+                  isPending ||
                   !accountData.email ||
                   !accountData.password ||
                   !accountData.firstName
@@ -382,7 +387,7 @@ export function ConversionFlow({
                 <button
                   onClick={() => setStep('quiz_results')}
                   className='flex items-center space-x-2 text-gray-600 hover:text-gray-800 text-sm mx-auto'
-                  disabled={isCreatingAccount}
+                  disabled={isCreatingAccount || isPending}
                 >
                   <ArrowLeft className='w-4 h-4' />
                   <span>Back to Results</span>

@@ -12,9 +12,11 @@ import {
 import { AdaptiveQuizInterface } from './adaptive-quiz-interface';
 import { getNaturalQuizData } from '@/lib/quiz/natural-quiz-data';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
+import { QuizResultsStreaming } from './quiz-results-streaming';
 // Removed WorkingRecommendationEngine - now using API endpoint
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
+import { QuizSkeleton } from '@/components/ui/skeletons';
 
 type QuizStep = 'gender' | 'experience' | 'quiz' | 'results';
 
@@ -32,9 +34,15 @@ interface EnhancedQuizFlowProps {
  * 3. Adaptive quiz based on experience level
  * 4. Direct 3-recommendation results with AI insights
  */
-export function EnhancedQuizFlow({ onConversionReady, initialGender }: EnhancedQuizFlowProps) {
-  const [currentStep, setCurrentStep] = useState<QuizStep>(initialGender ? 'experience' : 'gender');
-  const [genderPreference, setGenderPreference] = useState<GenderPreference>(initialGender);
+export function EnhancedQuizFlow({
+  onConversionReady,
+  initialGender,
+}: EnhancedQuizFlowProps) {
+  const [currentStep, setCurrentStep] = useState<QuizStep>(
+    initialGender ? 'experience' : 'gender'
+  );
+  const [genderPreference, setGenderPreference] =
+    useState<GenderPreference>(initialGender);
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>();
   const [quizResponses, setQuizResponses] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -221,55 +229,16 @@ export function EnhancedQuizFlow({ onConversionReady, initialGender }: EnhancedQ
     );
   }
 
-  // Loading State
-  if (isGenerating) {
-    return (
-      <Card className='max-w-2xl mx-auto'>
-        <CardContent className='text-center py-12'>
-          <div className='relative mb-6'>
-            <div className='animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto' />
-            <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
-          </div>
-          <h3 className='text-xl font-semibold mb-2'>
-            Finding Your Perfect Matches...
-          </h3>
-          <p className='text-muted-foreground mb-4'>
-            Selecting 3 ideal fragrances for you
-          </p>
-          <div className='text-sm text-muted-foreground space-y-1'>
-            <p>✨ Analyzing your {experienceLevel} preferences</p>
-            <p>🧪 Matching against 1,467 fragrances</p>
-            <p>🎯 Selecting your top 3 matches</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Step 4: Results Display
+  // Step 4: Results Display with Streaming
   if (currentStep === 'results') {
-    if (recommendations.length === 0) {
-      return (
-        <Card className='max-w-2xl mx-auto'>
-          <CardContent className='text-center py-12'>
-            <p className='text-muted-foreground'>
-              Sorry, we couldn't generate recommendations at this time. Please
-              try again.
-            </p>
-          </CardContent>
-        </Card>
-      );
-    }
-
     return (
-      <div className='max-w-6xl mx-auto'>
-        <FragranceRecommendationDisplay
-          recommendations={recommendations}
-          onSampleOrder={handleSampleOrder}
-          onLearnMore={handleLearnMore}
-          onSaveToFavorites={handleSaveToFavorites}
-        />
-      </div>
+      <QuizResultsStreaming
+        recommendations={recommendations}
+        isGenerating={isGenerating}
+        onSampleOrder={handleSampleOrder}
+        onLearnMore={handleLearnMore}
+        onSaveToFavorites={handleSaveToFavorites}
+      />
     );
   }
 

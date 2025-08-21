@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { EnhancedQuizFlow } from '@/components/quiz/enhanced-quiz-flow';
 import { ConversionFlow } from '@/components/quiz/conversion-flow';
+import { QuizSkeleton } from '@/components/ui/skeletons';
 
 /**
  * Fragrance Personality Quiz Page
@@ -89,11 +90,13 @@ export default function QuizPage() {
           </div>
         </div>
 
-        {/* Enhanced Quiz Flow */}
-        <EnhancedQuizFlow 
-          onConversionReady={handleConversionReady} 
-          initialGender={storedGender as any}
-        />
+        {/* Enhanced Quiz Flow with Suspense */}
+        <Suspense fallback={<QuizSkeleton />}>
+          <EnhancedQuizFlow
+            onConversionReady={handleConversionReady}
+            initialGender={storedGender as any}
+          />
+        </Suspense>
 
         {/* Trust Signals */}
         <div className='mt-12 text-center'>
