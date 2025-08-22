@@ -21,14 +21,14 @@ export const openaiClient = createOpenAI({
 
 // Model configurations for different use cases
 export const AI_MODELS = {
-  // For generating recommendations and analysis
-  RECOMMENDATION: openai('gpt-4-turbo'),
+  // For generating recommendations and analysis (gpt-4o supports structured output)
+  RECOMMENDATION: openai('gpt-4o'),
 
   // For embeddings (text similarity)
   EMBEDDING: openai.embedding('text-embedding-3-large'),
 
-  // For chat and conversational features
-  CHAT: openai('gpt-4-turbo'),
+  // For chat and conversational features (gpt-4o supports structured output)
+  CHAT: openai('gpt-4o'),
 
   // For quick analysis and lightweight tasks
   FAST: openai('gpt-3.5-turbo'),

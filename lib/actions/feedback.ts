@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { unstable_rethrow } from 'next/navigation';
-import { createServerSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
 import {
   FeedbackProcessor,
   RecommendationCache,
@@ -10,67 +10,18 @@ import {
   type FeedbackEvent,
   type BanditFeedbackEvent,
 } from '@/lib/ai-sdk/feedback-processor';
+import {
+  FeedbackParams,
+  FeedbackResult,
+  FeedbackParamsSchema,
+  validateFeedbackParams,
+} from '@/lib/schemas/entities';
 
-export interface FeedbackParams {
-  fragrance_id: string;
-  feedback_type:
-    | 'like'
-    | 'dislike'
-    | 'rating'
-    | 'purchase_intent'
-    | 'love'
-    | 'maybe'
-    | 'dismiss';
-  rating_value?: number;
-  confidence?: number;
-  reason?: string;
-  recommendation_id?: string;
-  source?: string;
-  position?: number;
-  context?: Record<string, any>;
-  algorithm_used?: string;
-  session_id?: string;
-  time_to_action_seconds?: number;
-  time_spent_before_rating?: number;
-  previous_interactions?: number;
-}
-
-export interface FeedbackResult {
-  success: boolean;
-  feedback_processed: boolean;
-  feedback_id?: string;
-  learning_impact?: number;
-  preference_update?: {
-    preferences_updated: boolean;
-    embedding_updated: boolean;
-    confidence_change: number;
-    learning_weight: number;
-  };
-  recommendation_refresh?: {
-    cache_invalidated: boolean;
-    new_recommendations_available: boolean;
-    refresh_recommended: boolean;
-  };
-  feedback_quality?: {
-    reliability_score: number;
-    quality_level: string;
-    trust_factors: any;
-  };
-  bandit_optimization?: {
-    algorithm_updated: boolean;
-    new_success_rate: number;
-    bandit_learning_impact: number;
-    processing_time_ms: number;
-  } | null;
-  user_message: string;
-  metadata?: {
-    processing_time_ms: number;
-    ai_learning_applied: boolean;
-    bandit_learning_applied: boolean;
-    preference_adjustment_type: any;
-  };
-  error?: string;
-}
+// Export types from schemas for backward compatibility
+export type { 
+  FeedbackParams,
+  FeedbackResult,
+};
 
 /**
  * Server Action: Process recommendation feedback
@@ -91,7 +42,7 @@ export async function processFeedback(
     const {
       data: { user },
       error: authError,
-    } = await (supabase as any).auth.getUser();
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -102,35 +53,18 @@ export async function processFeedback(
       };
     }
 
-    // Validate required fields
-    if (!params.fragrance_id || !params.feedback_type) {
+    // Validate input using Zod schema
+    const validation = validateFeedbackParams(params);
+    if (!validation.success) {
       return {
         success: false,
         feedback_processed: false,
-        user_message: 'Missing required feedback information',
-        error: 'fragrance_id and feedback_type are required',
+        user_message: validation.error!,
+        error: validation.error,
       };
     }
 
-    // Validate feedback type
-    const validFeedbackTypes = [
-      'like',
-      'dislike',
-      'rating',
-      'purchase_intent',
-      'love',
-      'maybe',
-      'dismiss',
-    ];
-
-    if (!validFeedbackTypes.includes(params.feedback_type)) {
-      return {
-        success: false,
-        feedback_processed: false,
-        user_message: 'Invalid feedback type',
-        error: 'Invalid feedback type',
-      };
-    }
+    const validatedParams = validation.data!;
 
     // Initialize AI feedback processor
     const feedbackProcessor = new FeedbackProcessor({
@@ -147,19 +81,19 @@ export async function processFeedback(
       enableRealTimeInvalidation: true,
     });
 
-    // Create feedback event
+    // Create feedback event using validated parameters
     const feedbackEvent: FeedbackEvent = {
       user_id: user.id,
-      fragrance_id: params.fragrance_id,
-      feedback_type: params.feedback_type,
-      rating_value: params.rating_value,
-      confidence: params.confidence || 0.8,
-      reason: params.reason,
+      fragrance_id: validatedParams.fragrance_id,
+      feedback_type: validatedParams.feedback_type,
+      rating_value: validatedParams.rating_value,
+      confidence: validatedParams.confidence,
+      reason: validatedParams.reason,
       context: {
-        recommendation_id: params.recommendation_id,
-        recommendation_source: params.source || 'unknown',
-        recommendation_position: params.position,
-        ...params.context,
+        recommendation_id: validatedParams.recommendation_id,
+        recommendation_source: validatedParams.source || 'unknown',
+        recommendation_position: validatedParams.position,
+        ...validatedParams.context,
       },
     };
 
@@ -172,17 +106,17 @@ export async function processFeedback(
     try {
       const thompsonService = createThompsonSamplingService(supabase);
 
-      // Convert to bandit feedback format
+      // Convert to bandit feedback format using validated parameters
       const banditFeedback: BanditFeedbackEvent = {
         user_id: user.id,
-        fragrance_id: params.fragrance_id,
-        algorithm_used: params.algorithm_used || 'hybrid', // Should be provided by frontend
-        action: mapFeedbackTypeToAction(params.feedback_type),
-        action_value: params.rating_value,
+        fragrance_id: validatedParams.fragrance_id,
+        algorithm_used: validatedParams.algorithm_used || 'hybrid', // Should be provided by frontend
+        action: mapFeedbackTypeToAction(validatedParams.feedback_type),
+        action_value: validatedParams.rating_value,
         immediate_reward: 0, // Will be calculated by processor
-        contextual_factors: extractContextualFactors(params.context || {}),
-        session_id: params.session_id || `session_${Date.now()}`,
-        time_to_action_seconds: params.time_to_action_seconds,
+        contextual_factors: extractContextualFactors(validatedParams.context || {}),
+        session_id: validatedParams.session_id || `session_${Date.now()}`,
+        time_to_action_seconds: validatedParams.time_to_action_seconds,
       };
 
       banditProcessingResult =
@@ -201,8 +135,8 @@ export async function processFeedback(
         const invalidationResult =
           await recommendationCache.invalidateUserCache(user.id, {
             type: 'feedback_received',
-            fragrance_id: params.fragrance_id,
-            rating: params.rating_value,
+            fragrance_id: validatedParams.fragrance_id,
+            rating: validatedParams.rating_value,
             impact_level:
               processingResult.learning_impact > 0.2 ? 'high' : 'medium',
           });
@@ -216,24 +150,24 @@ export async function processFeedback(
       }
     }
 
-    // Store interaction in new AI system format
-    const { error: interactionError } = await (supabase as any)
+    // Store interaction in new AI system format using validated parameters
+    const { error: interactionError } = await supabase
       .from('user_interactions')
       .insert({
         user_id: user.id,
-        fragrance_id: params.fragrance_id,
-        interaction_type: params.feedback_type,
+        fragrance_id: validatedParams.fragrance_id,
+        interaction_type: validatedParams.feedback_type,
         interaction_value:
-          params.rating_value ||
-          (params.feedback_type === 'like'
+          validatedParams.rating_value ||
+          (validatedParams.feedback_type === 'like'
             ? 1
-            : params.feedback_type === 'dislike'
+            : validatedParams.feedback_type === 'dislike'
               ? 0
               : 0.5),
         interaction_context: {
-          recommendation_context: params.context || {},
+          recommendation_context: validatedParams.context || {},
           feedback_source: 'explicit',
-          recommendation_id: params.recommendation_id,
+          recommendation_id: validatedParams.recommendation_id,
           processing_result: processingResult,
         },
       });
@@ -242,14 +176,14 @@ export async function processFeedback(
       console.warn('Error storing interaction:', interactionError.message);
     }
 
-    // Assess feedback quality for learning weight
+    // Assess feedback quality for learning weight using validated parameters
     const feedbackQuality = await feedbackProcessor.assessFeedbackQuality({
       user_id: user.id,
-      fragrance_id: params.fragrance_id,
-      feedback_type: params.feedback_type,
-      rating_value: params.rating_value,
-      time_spent_before_rating: params.time_spent_before_rating || 30,
-      previous_interactions: params.previous_interactions || 0,
+      fragrance_id: validatedParams.fragrance_id,
+      feedback_type: validatedParams.feedback_type,
+      rating_value: validatedParams.rating_value,
+      time_spent_before_rating: validatedParams.time_spent_before_rating || 30,
+      previous_interactions: validatedParams.previous_interactions || 0,
     });
 
     // Revalidate paths that use recommendation data
@@ -289,7 +223,7 @@ export async function processFeedback(
             processing_time_ms: banditProcessingResult.processing_time_ms,
           }
         : null,
-      user_message: getFeedbackMessage(params.feedback_type),
+      user_message: getFeedbackMessage(validatedParams.feedback_type),
       metadata: {
         processing_time_ms: Date.now() - startTime,
         ai_learning_applied: true,
@@ -384,4 +318,74 @@ function getTimeOfDay(): string {
   if (hour >= 12 && hour < 17) return 'afternoon';
   if (hour >= 17 && hour < 22) return 'evening';
   return 'night';
+}
+
+/**
+ * Simplified Server Action: Submit Recommendation Feedback
+ * 
+ * Clean, simple interface for submitting recommendation feedback.
+ * This wraps the comprehensive processFeedback function with a 
+ * simplified interface that matches the API specification requirements.
+ * 
+ * Replaces POST /api/recommendations/feedback API route.
+ */
+export async function submitRecommendationFeedback(
+  recommendationId: string,
+  feedback: {
+    rating: number;
+    helpful: boolean;
+    notes?: string;
+    feedback_type?: 'like' | 'dislike' | 'love' | 'maybe' | 'dismiss';
+    confidence?: number;
+    time_to_feedback_seconds?: number;
+    context?: Record<string, any>;
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+  feedback_id?: string;
+  learning_applied: boolean;
+  recommendations_refreshed: boolean;
+  message: string;
+}> {
+  try {
+    // Map the simplified interface to the comprehensive processFeedback params
+    const processFeedbackParams: FeedbackParams = {
+      fragrance_id: feedback.context?.fragrance_id || recommendationId, // Use recommendation context
+      feedback_type: feedback.feedback_type || (feedback.rating >= 4 ? 'like' : feedback.rating <= 2 ? 'dislike' : 'maybe'),
+      rating_value: feedback.rating,
+      confidence: feedback.confidence || (feedback.helpful ? 0.9 : 0.5),
+      reason: feedback.notes,
+      recommendation_id: recommendationId,
+      source: 'recommendation_feedback',
+      time_to_action_seconds: feedback.time_to_feedback_seconds,
+      context: {
+        helpful: feedback.helpful,
+        simplified_interface: true,
+        ...feedback.context,
+      },
+    };
+
+    // Call the comprehensive feedback processor
+    const result = await processFeedback(processFeedbackParams);
+
+    // Map the result to the simplified interface
+    return {
+      success: result.success,
+      error: result.error,
+      feedback_id: result.feedback_id,
+      learning_applied: result.metadata?.ai_learning_applied || false,
+      recommendations_refreshed: result.recommendation_refresh?.cache_invalidated || false,
+      message: result.user_message,
+    };
+  } catch (error) {
+    console.error('Error in submitRecommendationFeedback:', error);
+    return {
+      success: false,
+      error: 'Failed to submit recommendation feedback',
+      learning_applied: false,
+      recommendations_refreshed: false,
+      message: 'Failed to process your feedback',
+    };
+  }
 }

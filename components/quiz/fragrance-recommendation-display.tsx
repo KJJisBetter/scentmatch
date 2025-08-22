@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, ShoppingCart, Heart, Star } from 'lucide-react';
-import type { LegacyFragranceRecommendation as FragranceRecommendation } from '@/lib/ai-sdk/compatibility-layer';
+import type { RecommendationItem as FragranceRecommendation } from '@/lib/ai-sdk/unified-recommendation-engine';
 
 interface FragranceRecommendationDisplayProps {
   recommendations: FragranceRecommendation[];
@@ -56,7 +56,7 @@ export function FragranceRecommendationDisplay({
       <div className='grid gap-6 md:grid-cols-1 lg:grid-cols-3'>
         {top3Recommendations.map((recommendation, index) => (
           <Card
-            key={recommendation.id}
+            key={recommendation.fragrance_id}
             className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg group ${
               index === 0
                 ? 'ring-2 ring-purple-200 bg-gradient-to-br from-purple-50 to-pink-50'
@@ -101,7 +101,7 @@ export function FragranceRecommendationDisplay({
                 {/* Match Percentage */}
                 <div className='flex items-center justify-center space-x-2 mb-4'>
                   <Badge variant='secondary' className='text-lg px-3 py-1'>
-                    {recommendation.match_percentage}% Match
+                    {Math.round((recommendation.score || 0) * 100)}% Match
                   </Badge>
                   <Badge
                     className={`${
@@ -130,7 +130,7 @@ export function FragranceRecommendationDisplay({
                       Why This Matches You
                     </h4>
                     <p className='text-sm text-purple-700 leading-relaxed'>
-                      {recommendation.ai_insight}
+                      {recommendation.explanation}
                     </p>
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export function FragranceRecommendationDisplay({
               {/* Action Buttons */}
               <div className='space-y-3'>
                 <Button
-                  onClick={() => onSampleOrder?.(recommendation.id)}
+                  onClick={() => onSampleOrder?.(recommendation.fragrance_id)}
                   className={`w-full ${
                     index === 0
                       ? 'bg-purple-600 hover:bg-purple-700'
@@ -170,14 +170,14 @@ export function FragranceRecommendationDisplay({
                   <Button
                     variant='outline'
                     size='sm'
-                    onClick={() => onLearnMore?.(recommendation.id)}
+                    onClick={() => onLearnMore?.(recommendation.fragrance_id)}
                   >
                     Learn More
                   </Button>
                   <Button
                     variant='outline'
                     size='sm'
-                    onClick={() => onSaveToFavorites?.(recommendation.id)}
+                    onClick={() => onSaveToFavorites?.(recommendation.fragrance_id)}
                   >
                     <Heart className='w-3 h-3 mr-1' />
                     Save
@@ -192,7 +192,7 @@ export function FragranceRecommendationDisplay({
                     Why we recommended this
                   </summary>
                   <p className='mt-2 leading-relaxed'>
-                    {recommendation.reasoning}
+                    {recommendation.why_recommended}
                   </p>
                 </details>
               </div>
@@ -220,7 +220,7 @@ export function FragranceRecommendationDisplay({
                 <div className='font-semibold text-lg'>
                   {Math.round(
                     recommendations.reduce(
-                      (sum, r) => sum + r.match_percentage,
+                      (sum, r) => sum + (r.score || 0) * 100,
                       0
                     ) / recommendations.length
                   )}
@@ -232,7 +232,7 @@ export function FragranceRecommendationDisplay({
                 <div className='font-semibold text-lg'>
                   $
                   {recommendations.reduce(
-                    (sum, r) => sum + r.sample_price_usd,
+                    (sum, r) => sum + (r.sample_price_usd || 0),
                     0
                   )}
                 </div>

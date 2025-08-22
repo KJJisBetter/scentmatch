@@ -74,7 +74,7 @@ export function AdaptiveQuizInterface({
     },
   });
 
-  // Multiple selection form
+  // Multiple selection form  
   const multipleForm = useForm<{ selections: string[] }>({
     resolver: zodResolver(
       createQuestionValidation(
@@ -92,14 +92,19 @@ export function AdaptiveQuizInterface({
   useEffect(() => {
     singleForm.reset({ answer: '' });
     multipleForm.reset({ selections: [] });
-  }, [currentQuestionIndex, singleForm, multipleForm]);
+    setLocalSelections([]);
+  }, [currentQuestionIndex]);
 
   // Notify parent of progress updates
   useEffect(() => {
     if (onProgressUpdate) {
-      onProgressUpdate(progress);
+      const currentProgress = {
+        current: currentQuestionIndex + 1,
+        total: questions.length,
+      };
+      onProgressUpdate(currentProgress);
     }
-  }, [currentQuestionIndex, onProgressUpdate, progress]);
+  }, [currentQuestionIndex, questions.length, onProgressUpdate]);
 
   const proceedToNext = (newResponse: any) => {
     const updatedResponses = [...responses, newResponse];
@@ -167,8 +172,6 @@ export function AdaptiveQuizInterface({
   };
 
   const handleMultipleToggle = (answer: string, checked: boolean) => {
-    const currentSelections = multipleForm.getValues('selections') || [];
-
     if (!currentQuestion) return;
 
     const selectedOption = currentQuestion.options.find(
@@ -180,7 +183,9 @@ export function AdaptiveQuizInterface({
       const allOtherValues = currentQuestion.options
         .filter(opt => !opt.autoSelectAll)
         .map(opt => opt.value);
-      multipleForm.setValue('selections', [answer, ...allOtherValues]);
+      const newSelections = [answer, ...allOtherValues];
+      setLocalSelections(newSelections);
+      multipleForm.setValue('selections', newSelections);
       return;
     }
 
@@ -188,7 +193,7 @@ export function AdaptiveQuizInterface({
     let newSelections: string[];
     if (checked) {
       // Add selection
-      newSelections = [...currentSelections.filter(s => s !== answer), answer];
+      newSelections = [...localSelections.filter(s => s !== answer), answer];
 
       // Remove auto-select options if selecting non-auto option
       if (!selectedOption?.autoSelectAll) {
@@ -204,9 +209,10 @@ export function AdaptiveQuizInterface({
       }
     } else {
       // Remove selection
-      newSelections = currentSelections.filter(s => s !== answer);
+      newSelections = localSelections.filter(s => s !== answer);
     }
 
+    setLocalSelections(newSelections);
     multipleForm.setValue('selections', newSelections);
   };
 
@@ -253,7 +259,7 @@ export function AdaptiveQuizInterface({
     return null;
   }
 
-  const watchedSelections = multipleForm.watch('selections') || [];
+  const [localSelections, setLocalSelections] = useState<string[]>([]);
 
   return (
     <div className='max-w-2xl mx-auto'>
@@ -306,7 +312,7 @@ export function AdaptiveQuizInterface({
                       <FormControl>
                         <div className='space-y-4'>
                           {currentQuestion.options.map(option => {
-                            const isSelected = watchedSelections.includes(
+                            const isSelected = localSelections.includes(
                               option.value
                             );
 
@@ -358,16 +364,16 @@ export function AdaptiveQuizInterface({
                   <Button
                     type='submit'
                     disabled={
-                      watchedSelections.length <
+                      localSelections.length <
                       (currentQuestion.minSelections || 1)
                     }
                     className='px-8 py-3'
                   >
-                    Continue with {watchedSelections.length}{' '}
-                    {watchedSelections.length === 1 ? 'choice' : 'choices'}
+                    Continue with {localSelections.length}{' '}
+                    {localSelections.length === 1 ? 'choice' : 'choices'}
                   </Button>
                   <p className='text-xs text-muted-foreground mt-2'>
-                    {watchedSelections.length}/
+                    {localSelections.length}/
                     {currentQuestion.maxSelections || 3} selected
                     {currentQuestion.minSelections &&
                       ` (minimum ${currentQuestion.minSelections})`}

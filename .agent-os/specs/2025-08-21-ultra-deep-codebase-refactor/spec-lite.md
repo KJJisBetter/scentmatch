@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Perform comprehensive codebase refactor to eliminate 40-60% of existing code (10,000+ lines) and modernize ScentMatch architecture using 2025 best practices. Transform 2,472 type definitions into 200-300 Zod-inferred types, convert 24 API routes to Server Actions, complete shadcn/ui component migration, and implement streaming architecture with Suspense boundaries. Expected outcomes include 300% performance improvement (First Contentful Paint <1.2s), 50% bundle reduction, and 3x faster development velocity through simplified, modern patterns.

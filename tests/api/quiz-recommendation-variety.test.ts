@@ -8,13 +8,15 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { WorkingRecommendationEngine } from '../../lib/quiz/working-recommendation-engine';
+import { UnifiedRecommendationEngine } from '../../lib/ai-sdk/unified-recommendation-engine';
+import { createServerSupabase } from '../../lib/supabase';
 
 describe('Quiz Recommendation Variety and Bias Prevention', () => {
-  let engine: WorkingRecommendationEngine;
+  let engine: UnifiedRecommendationEngine;
 
-  beforeEach(() => {
-    engine = new WorkingRecommendationEngine();
+  beforeEach(async () => {
+    const supabase = await createServerSupabase();
+    engine = new UnifiedRecommendationEngine(supabase, 'hybrid');
   });
 
   describe('Task 2.1: Different preference combinations produce different results', () => {

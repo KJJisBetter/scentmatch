@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
@@ -16,7 +16,8 @@ import {
   FormItem,
   FormMessage,
 } from '@/components/ui/form';
-import { DirectDatabaseEngine as DirectRecommendationEngine } from '@/lib/ai-sdk/compatibility-layer';
+import { UnifiedRecommendationEngine } from '@/lib/ai-sdk/unified-recommendation-engine';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { ConversionFlow } from './conversion-flow';
 import {
   singleQuestionSchema,
@@ -44,13 +45,13 @@ export function QuizInterface() {
     `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   );
 
-  // Form for each question
-  const form = useForm<SingleQuestionFormData>({
+  // Form for each question - memoized to prevent recreations
+  const form = useMemo(() => useForm<SingleQuestionFormData>({
     resolver: zodResolver(singleQuestionSchema),
     defaultValues: {
       answer: '',
     },
-  });
+  }), []);
 
   // MVP Quiz Questions (5 essential questions)
   const mvpQuestions = [
@@ -172,7 +173,7 @@ export function QuizInterface() {
   // Reset form when question changes
   React.useEffect(() => {
     form.reset({ answer: '' });
-  }, [currentQuestion, form]);
+  }, [currentQuestion]);
 
   const handleAnswerSubmit = async (data: SingleQuestionFormData) => {
     const currentQ = mvpQuestions[currentQuestion];
@@ -221,27 +222,36 @@ export function QuizInterface() {
     setIsAnalyzing(true);
 
     try {
-      // Generate direct recommendations (no personality profiling)
-      const engine = new DirectRecommendationEngine();
-      const result = await engine.generateRecommendations(
-        allResponses,
-        quizSessionToken
-      );
+      // Generate recommendations using modern UnifiedRecommendationEngine
+      const supabase = await createServerSupabase();
+      const engine = new UnifiedRecommendationEngine(supabase as any, 'hybrid');
+      
+      const result = await engine.generateRecommendations({
+        strategy: 'hybrid',
+        quizResponses: allResponses.map(r => ({
+          question_id: r.question_id,
+          answer: r.answer_value,
+          timestamp: r.timestamp,
+        })),
+        sessionToken: quizSessionToken,
+        limit: 10,
+      });
 
       if (result.success && result.recommendations.length >= 3) {
         // Prepare simplified data for conversion flow (exactly 3 recommendations)
         setPersonalityResults({
           quiz_session_token: quizSessionToken,
-          recommendations: result.recommendations, // Exactly 3 recommendations with AI insights
-          processing_time_ms: result.total_processing_time_ms,
-          recommendation_method: 'direct_matching',
+          recommendations: result.recommendations.slice(0, 3), // Take top 3 recommendations
+          processing_time_ms: result.processing_time_ms,
+          recommendation_method: result.recommendation_method,
+          personality_analysis: result.personality_analysis,
         });
       } else {
         // Fallback if direct recommendations fail
         setPersonalityResults({
           quiz_session_token: quizSessionToken,
           recommendations: result.recommendations, // Fallback recommendations
-          processing_time_ms: result.total_processing_time_ms,
+          processing_time_ms: result.processing_time_ms,
           recommendation_method: 'fallback',
         });
       }

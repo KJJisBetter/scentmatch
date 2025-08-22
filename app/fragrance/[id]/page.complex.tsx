@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { createServerSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { FragranceDetailPage } from '@/components/fragrance/fragrance-detail-page';
 import { InteractionTracker } from '@/components/fragrance/interaction-tracker';
 

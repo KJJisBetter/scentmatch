@@ -2,44 +2,223 @@
 
 import { revalidatePath } from 'next/cache';
 import { unstable_rethrow } from 'next/navigation';
-import { createServerSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
+import {
+  CollectionActionParams,
+  CollectionActionResult,
+  CollectionItem,
+  GetCollectionResult,
+  CollectionActionParamsSchema,
+  validateCollectionAction,
+} from '@/lib/schemas/entities';
+
+// Export types from schemas for backward compatibility
+export type { 
+  CollectionActionParams,
+  CollectionActionResult,
+  CollectionItem,
+  GetCollectionResult,
+};
 
 export type CollectionActionType = 'add' | 'remove';
 
-export interface CollectionActionParams {
-  fragrance_id: string;
-  action: CollectionActionType;
-}
-
-export interface CollectionActionResult {
+/**
+ * Unified Server Action: Update User Collection
+ * 
+ * Replaces all collection API routes with a single, comprehensive Server Action.
+ * Handles add, remove, rate, and update operations in one unified interface.
+ * This eliminates the duplicate API routes and consolidates collection management.
+ */
+export async function updateUserCollection(
+  action: 'add' | 'remove' | 'rate' | 'update',
+  fragranceId: string,
+  metadata?: {
+    rating?: number;
+    notes?: string;
+    tags?: string[];
+  }
+): Promise<{
   success: boolean;
-  in_collection: boolean;
-  message: string;
   error?: string;
-}
-
-export interface CollectionItem {
-  id: string;
-  collection_type: string;
-  rating: number | null;
-  notes: string | null;
-  added_at: string;
-  fragrance: {
-    id: string;
-    name: string;
-    brand: string;
-    scent_family: string | null;
-    gender: string | null;
-    sample_available: boolean | null;
-    sample_price_usd: number | null;
+  data?: {
+    id?: string;
+    in_collection: boolean;
+    action_performed: 'add' | 'remove' | 'rate' | 'update';
+    message: string;
   };
-}
+}> {
+  try {
+    // Validate inputs using our Zod schemas
+    const validation = validateCollectionAction({
+      fragrance_id: fragranceId,
+      action: action === 'rate' || action === 'update' ? 'add' : action,
+    });
 
-export interface GetCollectionResult {
-  success: boolean;
-  collection?: CollectionItem[];
-  total?: number;
-  error?: string;
+    if (!validation.success) {
+      return {
+        success: false,
+        error: validation.error,
+      };
+    }
+
+    const supabase = await createServerSupabase();
+
+    // Check user authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'Authentication required',
+      };
+    }
+
+    // Verify fragrance exists - handle both UUID and slug formats
+    const { data: fragrance, error: fragranceError } = await supabase
+      .from('fragrances')
+      .select('id, name')
+      .or(`id.eq.${inputFragranceId},slug.eq.${inputFragranceId}`)
+      .single();
+
+    if (fragranceError || !fragrance) {
+      console.log('Fragrance lookup failed:', fragranceError);
+      return {
+        success: false,
+        error: 'Fragrance not found',
+      };
+    }
+
+    // Use the actual fragrance ID from database (UUID format)
+    const actualFragranceId = fragrance.id;
+    console.log('Found fragrance:', fragrance.name, 'with ID:', actualFragranceId);
+
+    let result: any;
+    let in_collection = false;
+    let message = '';
+
+    if (action === 'add') {
+      // Check if already in collection
+      const { data: existing } = await supabase
+        .from('user_collections')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('fragrance_id', actualFragranceId)
+        .eq('collection_type', 'owned')
+        .single();
+
+      if (existing) {
+        return {
+          success: true,
+          data: {
+            in_collection: true,
+            action_performed: 'add',
+            message: `"${fragrance.name}" is already in your collection`,
+          },
+        };
+      }
+
+      // Add to collection
+      const { data, error } = await supabase
+        .from('user_collections')
+        .insert({
+          user_id: user.id,
+          fragrance_id: actualFragranceId,
+          collection_type: 'owned',
+          rating: metadata?.rating || null,
+          notes: metadata?.notes || null,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding to collection:', error);
+        return {
+          success: false,
+          error: 'Failed to add to collection',
+        };
+      }
+
+      result = data;
+      in_collection = true;
+      message = `Added "${fragrance.name}" to your collection`;
+
+    } else if (action === 'remove') {
+      // Remove from collection
+      const { error } = await supabase
+        .from('user_collections')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('fragrance_id', actualFragranceId)
+        .eq('collection_type', 'owned');
+
+      if (error) {
+        console.error('Error removing from collection:', error);
+        return {
+          success: false,
+          error: 'Failed to remove from collection',
+        };
+      }
+
+      in_collection = false;
+      message = `Removed "${fragrance.name}" from your collection`;
+
+    } else if (action === 'rate' || action === 'update') {
+      // Update existing collection item with rating/notes
+      const { data, error } = await supabase
+        .from('user_collections')
+        .update({
+          rating: metadata?.rating,
+          notes: metadata?.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('fragrance_id', actualFragranceId)
+        .eq('collection_type', 'owned')
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`Error ${action === 'rate' ? 'rating' : 'updating'} collection item:`, error);
+        return {
+          success: false,
+          error: `Failed to ${action === 'rate' ? 'rate' : 'update'} collection item`,
+        };
+      }
+
+      result = data;
+      in_collection = true;
+      message = action === 'rate' 
+        ? `Updated rating for "${fragrance.name}"`
+        : `Updated "${fragrance.name}" in your collection`;
+    }
+
+    // Revalidate paths that display collection data
+    revalidatePath('/collection');
+    revalidatePath('/dashboard');
+    revalidatePath('/recommendations');
+
+    return {
+      success: true,
+      data: {
+        id: result?.id,
+        in_collection,
+        action_performed: action,
+        message,
+      },
+    };
+  } catch (error) {
+    console.error('Collection update error:', error);
+    unstable_rethrow(error);
+
+    return {
+      success: false,
+      error: 'Internal server error',
+    };
+  }
 }
 
 /**
@@ -52,27 +231,22 @@ export async function toggleCollection(
   params: CollectionActionParams
 ): Promise<CollectionActionResult> {
   try {
-    const { fragrance_id, action } = params;
-
-    // Validate required fields
-    if (!fragrance_id || !action) {
+    // Debug: Log the incoming params
+    console.log('toggleCollection called with params:', params);
+    
+    // Validate input using Zod schema
+    const validation = validateCollectionAction(params);
+    if (!validation.success) {
+      console.log('Validation failed:', validation.error);
       return {
         success: false,
         in_collection: false,
-        message: 'Missing required fields: fragrance_id, action',
-        error: 'Missing required fields: fragrance_id, action',
+        message: validation.error!,
+        error: validation.error,
       };
     }
 
-    // Validate action type
-    if (!['add', 'remove'].includes(action)) {
-      return {
-        success: false,
-        in_collection: false,
-        message: 'Action must be "add" or "remove"',
-        error: 'Action must be "add" or "remove"',
-      };
-    }
+    const { fragrance_id: inputFragranceId, action } = validation.data!;
 
     const supabase = await createServerSupabase();
 
@@ -80,7 +254,7 @@ export async function toggleCollection(
     const {
       data: { user },
       error: authError,
-    } = await (supabase as any).auth.getUser();
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -91,11 +265,11 @@ export async function toggleCollection(
       };
     }
 
-    // Verify fragrance exists
-    const { data: fragrance, error: fragranceError } = await (supabase as any)
+    // Verify fragrance exists - handle both UUID and slug formats
+    const { data: fragrance, error: fragranceError } = await supabase
       .from('fragrances')
       .select('id, name')
-      .eq('id', fragrance_id)
+      .or(`id.eq.${fragrance_id},slug.eq.${fragrance_id}`)
       .single();
 
     if (fragranceError || !fragrance) {
@@ -107,15 +281,18 @@ export async function toggleCollection(
       };
     }
 
+    // Use the actual fragrance ID from database (UUID format)
+    const actualFragranceId = fragrance.id;
+
     let in_collection = false;
 
     if (action === 'add') {
       // Check if already in collection
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from('user_collections')
         .select('id')
         .eq('user_id', user.id)
-        .eq('fragrance_id', fragrance_id)
+        .eq('fragrance_id', actualFragranceId)
         .eq('collection_type', 'owned')
         .single();
 
@@ -128,11 +305,11 @@ export async function toggleCollection(
       }
 
       // Add to collection
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('user_collections')
         .insert({
           user_id: user.id,
-          fragrance_id,
+          fragrance_id: actualFragranceId,
           collection_type: 'owned',
           created_at: new Date().toISOString(),
         })
@@ -152,11 +329,11 @@ export async function toggleCollection(
       in_collection = true;
     } else if (action === 'remove') {
       // Remove from collection
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('user_collections')
         .delete()
         .eq('user_id', user.id)
-        .eq('fragrance_id', fragrance_id)
+        .eq('fragrance_id', actualFragranceId)
         .eq('collection_type', 'owned');
 
       if (error) {
@@ -212,7 +389,7 @@ export async function getUserCollection(): Promise<GetCollectionResult> {
     const {
       data: { user },
       error: authError,
-    } = await (supabase as any).auth.getUser();
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -222,7 +399,7 @@ export async function getUserCollection(): Promise<GetCollectionResult> {
     }
 
     // Get user's collection with fragrance details
-    const { data: collection, error } = await (supabase as any)
+    const { data: collection, error } = await supabase
       .from('user_collections')
       .select(
         `
@@ -311,7 +488,7 @@ export async function isInCollection(
     const {
       data: { user },
       error: authError,
-    } = await (supabase as any).auth.getUser();
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -321,12 +498,30 @@ export async function isInCollection(
       };
     }
 
+    // First, verify fragrance exists and get actual ID
+    const { data: fragrance, error: fragranceError } = await supabase
+      .from('fragrances')
+      .select('id, name')
+      .or(`id.eq.${fragrance_id},slug.eq.${fragrance_id}`)
+      .single();
+
+    if (fragranceError || !fragrance) {
+      return {
+        success: false,
+        in_collection: false,
+        error: 'Fragrance not found',
+      };
+    }
+
+    // Use the actual fragrance ID from database (UUID format)
+    const actualFragranceId = fragrance.id;
+
     // Check if fragrance is in collection
-    const { data: existing, error } = await (supabase as any)
+    const { data: existing, error } = await supabase
       .from('user_collections')
       .select('id')
       .eq('user_id', user.id)
-      .eq('fragrance_id', fragrance_id)
+      .eq('fragrance_id', actualFragranceId)
       .eq('collection_type', 'owned')
       .single();
 

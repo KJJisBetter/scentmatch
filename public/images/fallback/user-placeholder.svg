@@ -1,0 +1,7 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- User profile icon -->
+  <circle cx="60" cy="60" r="50" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="2" />
+  <circle cx="60" cy="45" r="15" fill="#E5E7EB" />
+  <path d="M35 85c0-15 10-25 25-25s25 10 25 25" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round" />
+  <text x="60" y="125" text-anchor="middle" fill="#9CA3AF" font-family="system-ui" font-size="10">User</text>
+</svg>

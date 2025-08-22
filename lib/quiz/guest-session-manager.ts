@@ -1,5 +1,5 @@
 import { createClientSupabase } from '@/lib/supabase-client';
-import { createServerSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
 import type { QuizSession } from '@/types/quiz';
 
 /**

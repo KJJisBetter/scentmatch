@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**

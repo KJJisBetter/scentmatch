@@ -19,7 +19,7 @@ import {
   Settings,
   Sparkles,
 } from 'lucide-react';
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 import { ViewSwitcher } from './view-switcher';
 import { CollectionFilters } from './collection-filters';
 import { GridView } from './grid-view';

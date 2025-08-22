@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Heart, Plus, Check, Settings } from 'lucide-react';
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 import { InteractionTracker } from './interaction-tracker';
 import { cn } from '@/lib/utils';
 

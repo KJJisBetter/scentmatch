@@ -9,7 +9,7 @@ import {
   ExperienceLevelSelector,
   type ExperienceLevel,
 } from './experience-level-selector';
-import { AdaptiveQuizInterface } from './adaptive-quiz-interface';
+import { StableQuizInterface } from './stable-quiz-interface';
 import { getNaturalQuizData } from '@/lib/quiz/natural-quiz-data';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
 import { QuizResultsStreaming } from './quiz-results-streaming';
@@ -102,7 +102,7 @@ export function EnhancedQuizFlow({
       ];
 
       // Generate recommendations using API endpoint (database-backed)
-      const response = await fetch('/api/quiz/analyze', {
+      const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,7 +208,7 @@ export function EnhancedQuizFlow({
   if (currentStep === 'quiz' && experienceLevel) {
     return (
       <div className='max-w-4xl mx-auto'>
-        <AdaptiveQuizInterface
+        <StableQuizInterface
           mode={experienceLevel}
           onQuizComplete={handleQuizComplete}
           onProgressUpdate={progress => {

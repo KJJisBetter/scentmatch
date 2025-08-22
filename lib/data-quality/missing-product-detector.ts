@@ -4,7 +4,7 @@
  * Addresses Linear issue SCE-50: "Coach For Men" not found destroys trust
  */
 
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { FragranceNormalizer } from './fragrance-normalizer';
 
 export interface AlternativeSuggestion {
@@ -40,8 +40,11 @@ export interface ProductAnalysis {
 }
 
 export class MissingProductDetector {
-  private supabase = createServiceSupabase();
   private normalizer = new FragranceNormalizer();
+
+  private async getSupabase() {
+    return await createServerSupabase();
+  }
 
   // Known brand patterns for extraction
   private readonly BRAND_PATTERNS: Record<string, RegExp> = {

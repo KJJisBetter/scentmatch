@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { testSupabaseConnection } from '@/lib/supabase';
+import { testSupabaseConnection } from '@/lib/supabase/server';
 import { authTestSetup } from '../setup/auth-test-setup';
 import mockSupabaseClient from '../mocks/supabase';
 

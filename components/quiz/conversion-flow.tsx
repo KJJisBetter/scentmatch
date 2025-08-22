@@ -18,7 +18,7 @@ import {
   ArrowLeft,
   ExternalLink,
 } from 'lucide-react';
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 import { FragranceRecommendationDisplay } from './fragrance-recommendation-display';
 import { convertToAccount } from '@/lib/actions';
 

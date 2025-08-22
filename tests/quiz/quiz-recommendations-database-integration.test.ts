@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach } from 'vitest';
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase/server';
 import { WorkingRecommendationEngine } from '@/lib/quiz/working-recommendation-engine';
 import type { QuizResponse } from '@/lib/quiz/working-recommendation-engine';
 

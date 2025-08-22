@@ -18,17 +18,7 @@ export {
   type RecommendationItem,
 } from './unified-recommendation-engine';
 
-// Compatibility layer for existing code
-export {
-  DirectDatabaseEngine,
-  DatabaseRecommendationEngine,
-  WorkingRecommendationEngine,
-  QuizEngine,
-  createDirectDatabaseEngine,
-  createDatabaseRecommendationEngine,
-  createWorkingRecommendationEngine,
-  createQuizEngine,
-} from './compatibility-layer';
+// Legacy compatibility layer removed - all code now uses UnifiedRecommendationEngine
 
 // Embedding service
 export {

@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect, beforeAll } from 'vitest';
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase/server';
 
 const API_BASE_URL = 'http://localhost:3000';
 

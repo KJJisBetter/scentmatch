@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WorkingRecommendationEngine } from '@/lib/quiz/working-recommendation-engine';
+import { UnifiedRecommendationEngine } from '@/lib/ai-sdk/unified-recommendation-engine';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { getNaturalQuizData } from '@/lib/quiz/natural-quiz-data';
 
 // Mock quiz responses for different experience levels

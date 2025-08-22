@@ -12,7 +12,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase/server';
 import type { Database } from '@/types/database';
 
 describe('Quiz Database Functions Integration', () => {

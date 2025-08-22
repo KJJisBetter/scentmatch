@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 
 interface CollectionManagerProps {
   userId: string;

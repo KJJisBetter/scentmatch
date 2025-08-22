@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 describe('Database Integration Validation - Schema & Migration Status', () => {

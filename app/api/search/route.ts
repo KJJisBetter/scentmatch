@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
 import {
   getBrandFamilyVariations,
   normalizeBrandName,
@@ -9,11 +9,20 @@ import { MissingProductDetector } from '@/lib/data-quality/missing-product-detec
 import { withRateLimit } from '@/lib/rate-limit';
 
 /**
- * GET /api/search
- *
+ * Unified Search API - Consolidates 5 search routes into one
+ * 
+ * GET /api/search?mode=enhanced&type=suggestions&smart=true&filters=true
+ * 
+ * Replaces and consolidates:
+ * - /api/search/enhanced/route.ts (196 lines) - Fuse.js fuzzy search
+ * - /api/search/smart/route.ts (356 lines) - Smart search with AI
+ * - /api/search/filters/route.ts (253 lines) - Filter options
+ * - /api/search/suggestions/route.ts (183 lines) - Search suggestions
+ * - /api/search/suggestions/enhanced/route.ts (additional suggestions)
+ * 
+ * Total consolidation: 988+ lines → 1 unified endpoint
  * Enhanced database-integrated search with canonical fragrance system
  * Handles malformed names and missing products intelligently
- * Maintains backward compatibility with existing UI
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();

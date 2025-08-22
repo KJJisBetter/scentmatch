@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createServiceSupabase } from '@/lib/supabase'
+import { createServiceSupabase } from '@/lib/supabase/server'
 
 // Test data setup
 let testCanonicalId: string

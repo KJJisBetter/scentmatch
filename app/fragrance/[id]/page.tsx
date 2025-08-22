@@ -1,4 +1,4 @@
-import { createServerSupabase } from '@/lib/supabase';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { ShoppingCart, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';

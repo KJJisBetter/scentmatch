@@ -20,7 +20,7 @@ import {
   Sparkles,
   Table2,
 } from 'lucide-react';
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 import {
   CollectionDataTable,
   type CollectionItem,

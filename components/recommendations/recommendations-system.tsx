@@ -14,7 +14,7 @@ import {
   Snowflake,
   RefreshCw,
 } from 'lucide-react';
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 import { PreferenceRefinement } from './preference-refinement';
 import { ThemedSections } from './themed-sections';
 import { RecommendationFeedback } from './recommendation-feedback';
@@ -304,6 +304,7 @@ export function RecommendationsSystem({
         const result = await processFeedback({
           fragrance_id: item.fragrance_id,
           feedback_type: feedbackType as any,
+          confidence: 0.8, // Default confidence for UI feedback
           context: {
             section: context,
             position: 0, // Would calculate actual position

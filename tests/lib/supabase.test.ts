@@ -18,7 +18,7 @@ import {
   testAuthConnection,
   authHelpers,
   dbHelpers,
-} from '@/lib/supabase';
+} from '@/lib/supabase/server';
 
 // Import validation functions
 import {

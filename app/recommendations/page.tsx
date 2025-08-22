@@ -1,9 +1,17 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import { createServerSupabase } from '@/lib/supabase';
-import { RecommendationsSystem } from '@/components/recommendations/recommendations-system';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { RecommendationSkeleton } from '@/components/ui/skeletons';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for large recommendations system (750 lines) - significant bundle reduction
+const RecommendationsSystem = dynamic(
+  () => import('@/components/recommendations/recommendations-system').then(mod => ({ default: mod.RecommendationsSystem })),
+  {
+    loading: () => <RecommendationSkeleton variant='analysis' count={4} />,
+  }
+);
 
 /**
  * AI-Powered Recommendations Page
@@ -45,107 +53,166 @@ export const metadata: Metadata = {
   },
 };
 
-async function getUserRecommendationData() {
+// Streaming Server Components for Progressive Loading
+async function UserQuickStats({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
+  
+  // Fast collection count query
+  const { data: collectionStats } = await (supabase as any)
+    .from('user_collections')
+    .select('collection_type')
+    .eq('user_id', userId);
 
-  try {
-    // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await (supabase as any).auth.getUser();
+  const totalOwned = collectionStats?.filter((c: any) => c.collection_type === 'owned')?.length || 0;
+  const totalWishlist = collectionStats?.filter((c: any) => c.collection_type === 'wishlist')?.length || 0;
+  
+  return (
+    <div className='flex items-center justify-center space-x-8 mt-6 text-sm text-muted-foreground'>
+      <div className='flex items-center space-x-2'>
+        <div className='w-2 h-2 bg-green-500 rounded-full' />
+        <span>AI Confidence: High</span>
+      </div>
+      <div className='flex items-center space-x-2'>
+        <div className='w-2 h-2 bg-blue-500 rounded-full' />
+        <span>Collection: {totalOwned} fragrances</span>
+      </div>
+      <div className='flex items-center space-x-2'>
+        <div className='w-2 h-2 bg-purple-500 rounded-full' />
+        <span>Wishlist: {totalWishlist} items</span>
+      </div>
+    </div>
+  );
+}
 
-    if (authError || !user) {
-      redirect('/auth/signin?redirect=/recommendations');
-    }
+async function ColdStartExperience({ userId }: { userId: string }) {
+  const supabase = await createServerSupabase();
+  
+  // Check if user has any collection items
+  const { data: hasItems } = await (supabase as any)
+    .from('user_collections')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1)
+    .single();
 
-    // Fetch user profile and collection for personalization context
-    const { data: userProfile, error: profileError } = await (supabase as any)
-      .from('user_profiles')
-      .select(
-        `
-        id,
-        email,
-        experience_level,
-        favorite_accords,
-        disliked_accords,
-        privacy_settings
-      `
-      )
-      .eq('id', user.id)
-      .single();
-
-    // Get collection stats for recommendation tuning
-    const { data: collectionStats, error: statsError } = await (
-      supabase as any
-    ).rpc('get_collection_insights', {
-      target_user_id: user.id,
-    });
-
-    // Get user preferences from interactions for initial personalization
-    const { data: recentInteractions, error: interactionsError } = await (
-      supabase as any
-    )
-      .from('user_fragrance_interactions')
-      .select(
-        `
-        fragrance_id,
-        interaction_type,
-        created_at
-      `
-      )
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    // Get initial recommendations (cached if available)
-    const { data: initialRecommendations, error: recError } = await (
-      supabase as any
-    ).rpc('get_personalized_recommendations', {
-      target_user_id: user.id,
-      max_results: 20,
-      include_owned: false,
-    });
-
-    if (profileError && profileError.code !== 'PGRST116') {
-      console.error('Error fetching user profile:', profileError);
-    }
-
-    if (statsError && statsError.code !== '42883') {
-      console.error('Error fetching collection stats:', statsError);
-    }
-
-    return {
-      user,
-      userProfile,
-      collectionStats: collectionStats || {
-        total_fragrances: 0,
-        diversity_score: 0,
-        dominant_families: [],
-      },
-      recentInteractions: recentInteractions || [],
-      initialRecommendations: initialRecommendations || [],
-    };
-  } catch (error) {
-    console.error('Error fetching recommendation data:', error);
-    redirect('/auth/signin?redirect=/recommendations');
+  if (hasItems) {
+    return null; // Don't show cold start if user has items
   }
+
+  return (
+    <div className='mb-12 p-8 bg-gradient-to-r from-amber-100 to-orange-100 rounded-xl text-center'>
+      <div className='text-4xl mb-4'>🌟</div>
+      <h2 className='text-2xl font-bold mb-4'>Welcome to ScentMatch!</h2>
+      <p className='text-lg text-muted-foreground mb-6'>
+        Let us help you discover your signature scent. Our AI will learn
+        your preferences as you explore.
+      </p>
+      <div className='flex flex-col sm:flex-row gap-4 justify-center'>
+        <button className='px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90'>
+          Take Fragrance Quiz
+        </button>
+        <button className='px-6 py-3 border border-border rounded-lg font-medium hover:bg-accent'>
+          Browse Popular Fragrances
+        </button>
+      </div>
+    </div>
+  );
+}
+
+async function StreamingRecommendationsSystem({ userId }: { userId: string }) {
+  const supabase = await createServerSupabase();
+  
+  // Get user profile and preferences for personalization
+  const { data: userProfile } = await (supabase as any)
+    .from('user_profiles')
+    .select(`
+      id,
+      email,
+      experience_level,
+      favorite_accords,
+      disliked_accords,
+      privacy_settings
+    `)
+    .eq('id', userId)
+    .single();
+
+  // Get recent interactions for AI learning context
+  const { data: recentInteractions } = await (supabase as any)
+    .from('user_fragrance_interactions')
+    .select(`
+      fragrance_id,
+      interaction_type,
+      created_at
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  // Get initial recommendations (this will be the slowest query)
+  const { data: initialRecommendations } = await (supabase as any).rpc('get_personalized_recommendations', {
+    target_user_id: userId,
+    max_results: 20,
+    include_owned: false,
+  });
+
+  return (
+    <RecommendationsSystem
+      userId={userId}
+      userProfile={userProfile}
+      collectionStats={{
+        total_fragrances: 0,
+        diversity_score: 0.5,
+        dominant_families: [],
+      }}
+      recentInteractions={recentInteractions || []}
+      initialRecommendations={initialRecommendations || []}
+    />
+  );
+}
+
+// Skeleton Components for Progressive Loading
+function QuickStatsSkeleton() {
+  return (
+    <div className='flex items-center justify-center space-x-8 mt-6 text-sm text-muted-foreground'>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className='flex items-center space-x-2'>
+          <div className='w-2 h-2 bg-gray-300 animate-pulse rounded-full' />
+          <div className='h-4 bg-gray-200 animate-pulse rounded w-20'></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ColdStartSkeleton() {
+  return (
+    <div className='mb-12 p-8 bg-gray-100 animate-pulse rounded-xl text-center'>
+      <div className='h-12 w-12 bg-gray-300 rounded-full mx-auto mb-4'></div>
+      <div className='h-6 bg-gray-300 rounded w-1/2 mx-auto mb-4'></div>
+      <div className='h-4 bg-gray-300 rounded w-3/4 mx-auto mb-6'></div>
+      <div className='flex flex-col sm:flex-row gap-4 justify-center'>
+        <div className='h-12 bg-gray-300 rounded w-40'></div>
+        <div className='h-12 bg-gray-300 rounded w-40'></div>
+      </div>
+    </div>
+  );
 }
 
 export default async function RecommendationsPage() {
-  const {
-    user,
-    userProfile,
-    collectionStats,
-    recentInteractions,
-    initialRecommendations,
-  } = await getUserRecommendationData();
+  const supabase = await createServerSupabase();
+  
+  // Only verify authentication - don't load heavy data blocking the page
+  const { data: { user }, error: authError } = await (supabase as any).auth.getUser();
+
+  if (authError || !user) {
+    redirect('/auth/signin?redirect=/recommendations');
+  }
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-purple-50 via-cream-50 to-amber-50'>
       {/* Page Container */}
       <div className='container mx-auto px-4 py-6 max-w-7xl'>
-        {/* Page Header */}
+        {/* Page Header - loads immediately */}
         <div className='mb-8 text-center'>
           <h1 className='text-4xl font-serif font-bold text-foreground mb-4'>
             Your Personal Recommendations
@@ -155,61 +222,20 @@ export default async function RecommendationsPage() {
             advanced AI recommendation engine
           </p>
 
-          {/* Quick Stats */}
-          <div className='flex items-center justify-center space-x-8 mt-6 text-sm text-muted-foreground'>
-            <div className='flex items-center space-x-2'>
-              <div className='w-2 h-2 bg-green-500 rounded-full' />
-              <span>
-                AI Confidence:{' '}
-                {Math.round((collectionStats.diversity_score || 0.5) * 100)}%
-              </span>
-            </div>
-            <div className='flex items-center space-x-2'>
-              <div className='w-2 h-2 bg-blue-500 rounded-full' />
-              <span>
-                Collection: {collectionStats.total_fragrances || 0} fragrances
-              </span>
-            </div>
-            <div className='flex items-center space-x-2'>
-              <div className='w-2 h-2 bg-purple-500 rounded-full' />
-              <span>
-                Learning from {recentInteractions.length} recent interactions
-              </span>
-            </div>
-          </div>
+          {/* Quick Stats - stream in first (fast query) */}
+          <Suspense fallback={<QuickStatsSkeleton />}>
+            <UserQuickStats userId={user.id} />
+          </Suspense>
         </div>
 
-        {/* Cold Start Experience */}
-        {(!collectionStats || collectionStats.total_fragrances === 0) && (
-          <div className='mb-12 p-8 bg-gradient-to-r from-amber-100 to-orange-100 rounded-xl text-center'>
-            <div className='text-4xl mb-4'>🌟</div>
-            <h2 className='text-2xl font-bold mb-4'>Welcome to ScentMatch!</h2>
-            <p className='text-lg text-muted-foreground mb-6'>
-              Let us help you discover your signature scent. Our AI will learn
-              your preferences as you explore.
-            </p>
-            <div className='flex flex-col sm:flex-row gap-4 justify-center'>
-              <button className='px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90'>
-                Take Fragrance Quiz
-              </button>
-              <button className='px-6 py-3 border border-border rounded-lg font-medium hover:bg-accent'>
-                Browse Popular Fragrances
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Cold Start Experience - stream in second (medium query) */}
+        <Suspense fallback={<ColdStartSkeleton />}>
+          <ColdStartExperience userId={user.id} />
+        </Suspense>
 
-        {/* Main Recommendations System */}
-        <Suspense
-          fallback={<RecommendationSkeleton variant='analysis' count={4} />}
-        >
-          <RecommendationsSystem
-            userId={user.id}
-            userProfile={userProfile}
-            collectionStats={collectionStats}
-            recentInteractions={recentInteractions}
-            initialRecommendations={initialRecommendations}
-          />
+        {/* Main Recommendations System - stream in last (slowest AI query) */}
+        <Suspense fallback={<RecommendationSkeleton variant='analysis' count={4} />}>
+          <StreamingRecommendationsSystem userId={user.id} />
         </Suspense>
 
         {/* Trust and Transparency Footer */}
