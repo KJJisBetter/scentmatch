@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Star,
 } from 'lucide-react';
+import { DarkModeToggle } from '@/components/ui/dark-mode-toggle';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -143,6 +144,7 @@ export default function HomePage() {
             </nav>
 
             <div className='hidden md:flex items-center space-x-4'>
+              <DarkModeToggle />
               <Button variant='ghost' asChild className='hidden sm:inline-flex'>
                 <Link href='/auth/login'>Sign In</Link>
               </Button>
@@ -156,101 +158,101 @@ export default function HomePage() {
           </div>
         </header>
 
-        {/* Hero Section - Optimized for Core Web Vitals */}
-        <section className='relative overflow-hidden'>
-          {/* Background gradient - optimized for paint performance */}
-          <div className='absolute inset-0 bg-gradient-to-br from-cream-50 via-background to-plum-50/30' />
+        {/* Hero Section - 2025 Design: Editorial + Organic */}
+        <section className='fragrance-hero texture-grain'>
+          {/* Floating fragrance molecules */}
+          <div className='scent-molecule w-16 h-16 top-20 left-10' style={{ animationDelay: '0s' }} />
+          <div className='scent-molecule w-12 h-12 top-40 right-20' style={{ animationDelay: '5s' }} />
+          <div className='scent-molecule w-20 h-20 bottom-32 left-1/4' style={{ animationDelay: '10s' }} />
+          <div className='scent-molecule w-8 h-8 top-1/3 right-1/3' style={{ animationDelay: '15s' }} />
 
-          {/* Preload critical content for LCP optimization */}
-          <div className='container relative'>
-            <div className='grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-16 sm:py-20 lg:py-32'>
-              {/* Hero Content */}
-              <div className='flex flex-col space-y-6 lg:space-y-8 text-center lg:text-left'>
-                <div className='space-y-4'>
-                  <div className='inline-flex items-center space-x-2 bg-accent/10 text-accent-foreground px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mx-auto lg:mx-0'>
-                    <Sparkles className='h-3 w-3 sm:h-4 sm:w-4' />
-                    <span>AI-Powered Fragrance Discovery</span>
-                  </div>
-
-                  <h1 className='font-serif text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-foreground'>
-                    Find Your Perfect{' '}
-                    <span className='text-gradient-primary'>Fragrance</span>
+          <div className='container relative z-10'>
+            <div className='grid lg:grid-cols-12 gap-8 lg:gap-12 items-center py-20 lg:py-32'>
+              {/* Hero Content - Big Typography Trend */}
+              <div className='lg:col-span-7 space-y-8 text-center lg:text-left'>
+                <div className='space-y-6'>
+                  {/* 2025: Big Typography with Editorial Feel */}
+                  <h1 className='hero-title-2025'>
+                    Find Your
+                    <br />
+                    Signature
+                    <br />
+                    <span className='editorial-title bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent'>
+                      Scent
+                    </span>
                   </h1>
 
-                  <p className='text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl lg:max-w-lg leading-relaxed mx-auto lg:mx-0'>
-                    Stop guessing. Start discovering. Our AI learns your
-                    preferences to recommend fragrances you'll love—all through
-                    affordable samples first.
-                  </p>
+                  <div className='editorial-body max-w-2xl lg:max-w-lg mx-auto lg:mx-0'>
+                    Stop the guesswork. Our AI understands your fragrance personality 
+                    to recommend scents you'll genuinely love—discoverable through 
+                    affordable samples, not expensive mistakes.
+                  </div>
                 </div>
 
-                <div className='flex flex-col sm:flex-row gap-3 lg:gap-4'>
-                  <Button
-                    size='lg'
-                    className='text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14 animate-pulse-soft'
-                    asChild
+                {/* 2025: Organic Button Design */}
+                <div className='flex flex-col sm:flex-row gap-4 lg:gap-6 justify-center lg:justify-start'>
+                  <Link
+                    href='/quiz'
+                    className='btn-organic text-base font-semibold group'
+                    data-analytics='hero-cta-quiz'
                   >
-                    <Link href='/quiz' data-analytics='hero-cta-quiz'>
-                      Start Finding Your Scent
-                      <ArrowRight className='ml-2 h-4 w-4 lg:h-5 lg:w-5' />
-                    </Link>
-                  </Button>
+                    <span className='relative z-10'>Discover Your Scent</span>
+                    <ArrowRight className='ml-3 h-5 w-5 relative z-10 group-hover:translate-x-1 transition-transform' />
+                  </Link>
                   <Button
                     variant='outline'
                     size='lg'
-                    className='text-sm sm:text-base px-6 lg:px-8 h-12 lg:h-14'
+                    className='h-14 px-8 border-2 hover:bg-accent/5'
                     asChild
                   >
                     <Link href='/browse' data-analytics='hero-cta-browse'>
-                      Browse Fragrances
+                      Browse Collection
                     </Link>
                   </Button>
                 </div>
 
-                {/* Social Proof - Conversion Optimized */}
-                <div className='flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-3 sm:space-y-0 sm:space-x-6 text-xs sm:text-sm text-muted-foreground'>
-                  <div className='flex items-center space-x-2'>
-                    <div
-                      className='flex -space-x-1.5 sm:-space-x-2'
-                      role='img'
-                      aria-label='User avatars'
-                    >
-                      <div className='h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-r from-plum-400 to-plum-600 border-2 border-background' />
-                      <div className='h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-r from-gold-400 to-gold-600 border-2 border-background' />
-                      <div className='h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-r from-cream-400 to-cream-600 border-2 border-background' />
+                {/* Enhanced Social Proof */}
+                <div className='flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-8'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='flex -space-x-2' role='img' aria-label='User avatars'>
+                      <div className='h-8 w-8 rounded-full bg-gradient-to-r from-accent to-primary border-2 border-background' />
+                      <div className='h-8 w-8 rounded-full bg-gradient-to-r from-primary to-accent border-2 border-background' />
+                      <div className='h-8 w-8 rounded-full bg-gradient-to-r from-secondary to-accent border-2 border-background' />
                     </div>
-                    <span>
-                      Trusted by <strong>10,000+</strong> fragrance lovers
-                    </span>
+                    <div className='text-sm'>
+                      <div className='font-semibold'>10,000+ users</div>
+                      <div className='text-muted-foreground text-xs'>found their signature scent</div>
+                    </div>
                   </div>
-                  <div className='flex items-center space-x-1'>
-                    <Star className='h-3 w-3 sm:h-4 sm:w-4 fill-gold-400 text-gold-400' />
-                    <span>
-                      <strong>4.9/5</strong> rating
-                    </span>
+                  <div className='flex items-center space-x-2'>
+                    <div className='flex space-x-0.5'>
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className='h-4 w-4 fill-accent text-accent' />
+                      ))}
+                    </div>
+                    <span className='text-sm font-medium'>4.9/5 rating</span>
                   </div>
                 </div>
               </div>
 
-              {/* Hero Image */}
-              <div className='relative order-first lg:order-last'>
-                <div className='relative aspect-square lg:aspect-[4/5] max-w-xs sm:max-w-md lg:max-w-lg mx-auto'>
-                  <div className='absolute inset-0 bg-gradient-to-br from-plum-100 via-cream-100 to-gold-100 rounded-2xl lg:rounded-3xl rotate-3' />
-                  <div className='absolute inset-2 bg-white rounded-2xl lg:rounded-3xl shadow-strong'>
-                    {/* Optimized hero image placeholder with proper dimensions */}
-                    <div className='h-full w-full rounded-2xl lg:rounded-3xl bg-gradient-to-br from-plum-50 to-cream-50 flex items-center justify-center p-6'>
-                      <div className='text-center space-y-3 lg:space-y-4'>
-                        <div className='h-16 w-16 lg:h-20 lg:w-20 mx-auto rounded-full bg-gradient-to-br from-plum-600 to-plum-800 flex items-center justify-center'>
-                          <TestTube className='h-8 w-8 lg:h-10 lg:w-10 text-white' />
-                        </div>
-                        <div className='space-y-1 lg:space-y-2'>
-                          <p className='font-medium text-plum-900 text-sm lg:text-base'>
-                            Sample Discovery
-                          </p>
-                          <p className='text-xs lg:text-sm text-plum-600'>
-                            Try before you buy
-                          </p>
-                        </div>
+              {/* Hero Visual - Fluid Forms */}
+              <div className='lg:col-span-5 relative'>
+                <div className='relative max-w-md mx-auto'>
+                  {/* Main fluid shape */}
+                  <div className='fluid-shape w-80 h-80 mx-auto' />
+                  
+                  {/* Overlaid content */}
+                  <div className='absolute inset-8 rounded-3xl bg-card/80 backdrop-blur-md border border-border/30 p-8 flex flex-col justify-center items-center text-center'>
+                    <div className='scent-profile-visual w-24 h-24 mb-6' />
+                    <div className='space-y-3'>
+                      <h3 className='text-xl font-bold'>AI Scent Matching</h3>
+                      <p className='text-sm text-muted-foreground'>
+                        Advanced algorithms analyze thousands of fragrance notes 
+                        to find your perfect matches
+                      </p>
+                      <div className='flex items-center justify-center space-x-2 text-xs text-accent font-medium'>
+                        <div className='w-2 h-2 rounded-full bg-accent animate-pulse' />
+                        <span>97% accuracy rate</span>
                       </div>
                     </div>
                   </div>
@@ -260,116 +262,111 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Feature Highlights */}
-        <section className='py-16 sm:py-20 lg:py-32 border-t border-border/40'>
+        {/* Features - 2025 Bento Grid Layout */}
+        <section className='py-20 lg:py-32 relative overflow-hidden'>
           <div className='container'>
-            <div className='text-center space-y-4 mb-12 lg:mb-16'>
-              <h2 className='font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight'>
-                Why Choose ScentMatch?
+            <div className='text-center space-y-6 mb-16'>
+              <h2 className='section-title-2025 max-w-4xl mx-auto'>
+                Why fragrance lovers choose ScentMatch
               </h2>
-              <p className='text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto'>
-                We're revolutionizing fragrance discovery with AI-powered
-                personalization, affordable sampling, and expert guidance.
+              <p className='editorial-body max-w-3xl mx-auto'>
+                We're revolutionizing scent discovery through AI-powered personalization, 
+                affordable sampling, and community-driven insights.
               </p>
             </div>
 
-            <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8'>
-              {/* AI Personalization */}
-              <Card className='card-interactive text-center'>
-                <CardHeader className='pb-4'>
-                  <div className='h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-xl lg:rounded-2xl bg-gradient-to-br from-plum-600 to-plum-800 flex items-center justify-center mb-3 lg:mb-4'>
-                    <Sparkles className='h-6 w-6 sm:h-8 sm:w-8 text-white' />
+            {/* Bento Grid - Major 2025 Trend */}
+            <div className='bento-grid' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+              
+              {/* Large feature - AI Personalization */}
+              <div className='bento-item interactive-2025 p-8 md:col-span-2 lg:col-span-2'>
+                <div className='flex items-start space-x-6'>
+                  <div className='p-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20'>
+                    <Sparkles className='h-8 w-8 text-primary' />
                   </div>
-                  <CardTitle className='text-lg lg:text-xl'>
-                    AI-Powered Personalization
-                  </CardTitle>
-                  <CardDescription className='text-sm lg:text-base'>
-                    Unlike generic recommendations, our AI learns your unique
-                    preferences to suggest fragrances you'll actually love.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='text-xs sm:text-sm text-muted-foreground space-y-2 text-left'>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-plum-600 flex-shrink-0' />
-                      <span>Analyzes your collection and ratings</span>
-                    </li>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-plum-600 flex-shrink-0' />
-                      <span>Learns from your feedback over time</span>
-                    </li>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-plum-600 flex-shrink-0' />
-                      <span>Explains why each fragrance matches you</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
+                  <div className='flex-1 space-y-4'>
+                    <h3 className='text-2xl font-bold'>AI-Powered Personalization</h3>
+                    <p className='text-muted-foreground leading-relaxed'>
+                      Unlike generic recommendations, our AI understands your unique 
+                      fragrance personality to suggest scents you'll genuinely love.
+                    </p>
+                    <div className='grid sm:grid-cols-2 gap-4 mt-6'>
+                      <div className='flex items-center space-x-3'>
+                        <div className='w-3 h-3 rounded-full bg-primary/60' />
+                        <span className='text-sm'>Analyzes your scent preferences</span>
+                      </div>
+                      <div className='flex items-center space-x-3'>
+                        <div className='w-3 h-3 rounded-full bg-primary/60' />
+                        <span className='text-sm'>Learns from your feedback</span>
+                      </div>
+                      <div className='flex items-center space-x-3'>
+                        <div className='w-3 h-3 rounded-full bg-primary/60' />
+                        <span className='text-sm'>Explains each recommendation</span>
+                      </div>
+                      <div className='flex items-center space-x-3'>
+                        <div className='w-3 h-3 rounded-full bg-primary/60' />
+                        <span className='text-sm'>Improves over time</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              {/* Sample-First Philosophy */}
-              <Card className='card-interactive text-center'>
-                <CardHeader className='pb-4'>
-                  <div className='h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-xl lg:rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center mb-3 lg:mb-4'>
-                    <TestTube className='h-6 w-6 sm:h-8 sm:w-8 text-white' />
-                  </div>
-                  <CardTitle className='text-lg lg:text-xl'>
-                    Sample-First Discovery
-                  </CardTitle>
-                  <CardDescription className='text-sm lg:text-base'>
-                    Try affordable samples and travel sizes before committing to
-                    full bottles. Perfect for beginners and budget-conscious
-                    buyers.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='text-xs sm:text-sm text-muted-foreground space-y-2 text-left'>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-gold-600 flex-shrink-0' />
-                      <span>$3-15 samples vs $50-200 bottles</span>
-                    </li>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-gold-600 flex-shrink-0' />
-                      <span>Curated sample sets by preference</span>
-                    </li>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-gold-600 flex-shrink-0' />
-                      <span>Risk-free fragrance exploration</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
+              {/* Sample Discovery */}
+              <div className='bento-item interactive-2025 p-6 text-center'>
+                <div className='p-3 rounded-full bg-gradient-to-br from-accent/20 to-secondary/20 w-fit mx-auto mb-4'>
+                  <TestTube className='h-6 w-6 text-accent' />
+                </div>
+                <h3 className='text-xl font-bold mb-3'>Sample-First</h3>
+                <p className='text-sm text-muted-foreground mb-4'>
+                  Try affordable samples before committing to full bottles
+                </p>
+                <div className='space-y-2 text-left'>
+                  <div className='text-xs text-muted-foreground'>$3-15 samples vs $50-200 bottles</div>
+                  <div className='text-xs text-muted-foreground'>Risk-free exploration</div>
+                </div>
+              </div>
 
-              {/* Interactive Testing */}
-              <Card className='card-interactive text-center sm:col-span-2 lg:col-span-1'>
-                <CardHeader className='pb-4'>
-                  <div className='h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-xl lg:rounded-2xl bg-gradient-to-br from-cream-400 to-cream-600 flex items-center justify-center mb-3 lg:mb-4'>
-                    <Heart className='h-6 w-6 sm:h-8 sm:w-8 text-white' />
+              {/* Community Insights */}
+              <div className='bento-item interactive-2025 p-6 text-center'>
+                <div className='p-3 rounded-full bg-gradient-to-br from-secondary/20 to-accent/20 w-fit mx-auto mb-4'>
+                  <Heart className='h-6 w-6 text-secondary' />
+                </div>
+                <h3 className='text-xl font-bold mb-3'>Community Driven</h3>
+                <p className='text-sm text-muted-foreground mb-4'>
+                  Real reviews from verified fragrance enthusiasts
+                </p>
+                <div className='space-y-2 text-left'>
+                  <div className='text-xs text-muted-foreground'>Authentic user experiences</div>
+                  <div className='text-xs text-muted-foreground'>Expert curation</div>
+                </div>
+              </div>
+
+              {/* Stats Block */}
+              <div className='bento-item p-6 bg-gradient-to-br from-primary/5 to-accent/5'>
+                <div className='text-center space-y-4'>
+                  <h4 className='text-lg font-bold'>Trusted Results</h4>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <div className='text-2xl font-bold text-primary'>97%</div>
+                      <div className='text-xs text-muted-foreground'>Match Accuracy</div>
+                    </div>
+                    <div>
+                      <div className='text-2xl font-bold text-accent'>10k+</div>
+                      <div className='text-xs text-muted-foreground'>Happy Users</div>
+                    </div>
+                    <div>
+                      <div className='text-2xl font-bold text-secondary'>2min</div>
+                      <div className='text-xs text-muted-foreground'>Quiz Time</div>
+                    </div>
+                    <div>
+                      <div className='text-2xl font-bold text-primary'>$3</div>
+                      <div className='text-xs text-muted-foreground'>Min Sample</div>
+                    </div>
                   </div>
-                  <CardTitle className='text-lg lg:text-xl'>
-                    Interactive Testing
-                  </CardTitle>
-                  <CardDescription className='text-sm lg:text-base'>
-                    Guided blind testing experiences help you discover your true
-                    preferences without visual bias or marketing influence.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='text-xs sm:text-sm text-muted-foreground space-y-2 text-left'>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-cream-600 flex-shrink-0' />
-                      <span>Structured testing protocols</span>
-                    </li>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-cream-600 flex-shrink-0' />
-                      <span>Solo and group testing options</span>
-                    </li>
-                    <li className='flex items-center space-x-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-cream-600 flex-shrink-0' />
-                      <span>Unbiased preference discovery</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -635,6 +632,7 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
+
       </main>
     </>
   );

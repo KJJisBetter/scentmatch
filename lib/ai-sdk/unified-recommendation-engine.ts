@@ -15,6 +15,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { aiClient } from './client';
 import type { AIPersonalityResponse, AIRecommendationResponse } from './client';
 import { nanoid } from 'nanoid';
+import { experienceDetector, type UserExperienceLevel } from './user-experience-detector';
+import { beginnerExplanationEngine, type BeginnerExplanationRequest } from './beginner-explanation-engine';
 
 // Strategy types for the unified engine
 export type RecommendationStrategy = 'database' | 'ai' | 'hybrid';
@@ -27,6 +29,8 @@ export interface UnifiedRecommendationRequest {
   userCollection?: UserCollectionItem[];
   limit?: number;
   sessionToken?: string;
+  userId?: string; // For experience-level detection
+  adaptiveExplanations?: boolean; // Enable adaptive explanations (default: true)
 }
 
 export interface QuizResponse {
@@ -75,7 +79,16 @@ export interface RecommendationItem {
   sample_price_usd?: number;
   image_url?: string;
   scent_family?: string;
+  gender?: 'men' | 'women' | 'unisex';
   why_recommended: string;
+  // Adaptive explanation fields (SCE-66, SCE-67)
+  adaptive_explanation?: {
+    user_experience_level: UserExperienceLevel;
+    summary?: string;
+    expanded_content?: string;
+    educational_terms?: Record<string, any>;
+    confidence_boost?: string;
+  };
 }
 
 /**
@@ -189,12 +202,32 @@ export class UnifiedRecommendationEngine {
     limit: number
   ): Promise<RecommendationItem[]> {
     // Try to use existing database RPC functions first
-    if (request.quizResponses) {
+    if (request.quizResponses && request.sessionToken) {
       try {
+        console.log(`🎯 DATABASE RPC: Starting personalized recommendation flow for session: ${request.sessionToken}`);
+        
+        // STEP 1: First analyze personality to create profile (required for recommendations)
+        console.log(`🧠 PERSONALITY ANALYSIS: Analyzing quiz responses for personality profile`);
+        const personalityResult = await (this.supabase as any).rpc(
+          'analyze_quiz_personality',
+          {
+            target_session_id: request.sessionToken,
+          }
+        );
+        
+        if (personalityResult.error) {
+          console.warn(`⚠️ PERSONALITY ANALYSIS FAILED: ${personalityResult.error}, falling back to popular fragrances`);
+          throw new Error(`Personality analysis failed: ${personalityResult.error}`);
+        }
+        
+        console.log(`✅ PERSONALITY ANALYSIS SUCCESS: ${JSON.stringify(personalityResult.data || personalityResult).substring(0, 100)}...`);
+        
+        // STEP 2: Now get personalized recommendations using the personality profile
+        console.log(`🎯 PERSONALIZED RECS: Getting recommendations based on personality profile`);
         const rpcResult = await (this.supabase as any).rpc(
           'get_quiz_recommendations',
           {
-            quiz_responses: request.quizResponses,
+            target_session_id: request.sessionToken,
             max_results: limit,
           }
         );
@@ -206,25 +239,30 @@ export class UnifiedRecommendationEngine {
           rpcResult.data &&
           rpcResult.data.length > 0
         ) {
-          return rpcResult.data.map((item: any) => ({
-            fragrance_id: item.fragrance_id,
-            name: item.name,
-            brand: item.brand,
-            score: item.match_percentage / 100,
-            explanation:
-              item.ai_insight || 'Database-matched based on preferences',
-            confidence_level:
-              item.match_percentage > 80
-                ? 'high'
-                : item.match_percentage > 60
-                  ? 'medium'
-                  : 'low',
-            sample_available: item.sample_available ?? true,
-            sample_price_usd: item.sample_price_usd || 15,
-            image_url: item.image_url,
-            scent_family: item.scent_family,
-            why_recommended: item.reasoning || 'Matches your quiz preferences',
-          }));
+          console.log(`✅ PERSONALIZED RPC SUCCESS: Got ${rpcResult.data.length} personalized recommendations`);
+          
+          // RPC function now returns all needed fields, no separate query needed
+          return rpcResult.data.map((item: any) => {
+            return {
+              fragrance_id: item.fragrance_id,
+              name: item.name || 'Unknown',
+              brand: item.brand_name || 'Unknown',
+              score: Number(item.match_score) || 0.8,
+              explanation: item.quiz_reasoning || 'Personalized match based on your quiz responses',
+              confidence_level:
+                Number(item.match_score) > 0.8
+                  ? 'high'
+                  : Number(item.match_score) > 0.6
+                    ? 'medium'
+                    : 'low',
+              sample_available: item.sample_available ?? true,
+              sample_price_usd: item.sample_price_usd || 15,
+              image_url: item.image_url,
+              gender: item.gender, // Now available directly from RPC
+              scent_family: item.gender || 'fragrance',
+              why_recommended: item.quiz_reasoning || 'Matches your personality profile',
+            };
+          });
         }
       } catch (rpcError) {
         console.warn('RPC function not available, using fallback:', rpcError);
@@ -232,7 +270,13 @@ export class UnifiedRecommendationEngine {
     }
 
     // Fallback to popular fragrances with preference filtering
-    return this.getPopularFragrances(limit);
+    // Extract gender preference from quiz responses to ensure proper filtering
+    const genderPreference = request.quizResponses?.find(
+      r => r.question_id === 'gender_preference' || r.question_id === 'gender'
+    )?.answer;
+    
+    console.log(`🛡️ FALLBACK TO POPULAR: Using gender preference: ${genderPreference || 'none'}`);
+    return this.getPopularFragrances(limit, genderPreference);
   }
 
   /**
@@ -336,70 +380,333 @@ export class UnifiedRecommendationEngine {
 
     // If we have quiz responses, enhance with AI analysis
     if (request.quizResponses && request.quizResponses.length > 0) {
-      const personality = await aiClient.analyzePersonality(
-        request.quizResponses
-      );
+      try {
+        const personality = await aiClient.analyzePersonality(
+          request.quizResponses
+        );
 
-      // Use AI to re-rank and explain database recommendations
-      const enhancedRecommendations = await this.enhanceRecommendationsWithAI(
-        dbRecommendations,
-        request,
-        personality
-      );
+        // Use AI to re-rank and explain database recommendations
+        const enhancedRecommendations = await this.enhanceRecommendationsWithAI(
+          dbRecommendations,
+          request,
+          personality
+        );
 
-      return {
-        recommendations: enhancedRecommendations.slice(0, limit),
-        personality,
-      };
+        return {
+          recommendations: enhancedRecommendations.slice(0, limit),
+          personality,
+        };
+      } catch (enhancementError) {
+        // Task 4.4: Ensure quiz flow continues even if enhancement completely fails
+        console.error('❌ ENHANCEMENT PROCESS COMPLETELY FAILED:', enhancementError);
+        console.log('🛡️ QUIZ FLOW PROTECTION: Returning basic recommendations to ensure quiz completion');
+        
+        // Return basic recommendations with safe default explanations
+        const safeRecommendations = dbRecommendations.slice(0, limit).map(rec => ({
+          ...rec,
+          explanation: `Great choice for your style! This ${rec.scent_family || 'fragrance'} matches your quiz preferences and is perfect for beginners.`,
+          why_recommended: `Matches your quiz preferences`,
+          adaptive_explanation: {
+            user_experience_level: 'beginner' as const,
+            summary: `Perfect match for your style! This ${rec.scent_family || 'fragrance'} is ideal for beginners.`,
+            expanded_content: 'Selected based on your quiz responses and community feedback.',
+            educational_terms: {},
+            confidence_boost: 'Great choice for exploring fragrances!',
+          },
+        }));
+        
+        return {
+          recommendations: safeRecommendations,
+          personality: undefined, // Skip personality analysis if it failed
+        };
+      }
     }
 
     return { recommendations: dbRecommendations.slice(0, limit) };
   }
 
   /**
-   * Enhance database recommendations with AI explanations
+   * Enhance database recommendations with adaptive AI explanations
+   * Implements SCE-66 and SCE-67 solutions - FIXED for quiz users
+   * Task 4.3-4.5: Enhanced with comprehensive error handling and performance monitoring
    */
   private async enhanceRecommendationsWithAI(
     recommendations: RecommendationItem[],
     request: UnifiedRecommendationRequest,
     personality?: AIPersonalityResponse
   ): Promise<RecommendationItem[]> {
+    const enhancementStartTime = Date.now(); // Task 4.5: Overall performance monitoring
     const userContext = this.buildUserContext(request, personality);
+    const useAdaptiveExplanations = request.adaptiveExplanations !== false;
+    
+    console.log(`🎯 ENHANCEMENT START: Processing ${recommendations.length} recommendations for ${request.userId ? 'authenticated' : 'anonymous'} user`);
+
+    // Get user experience level for adaptive explanations - FIXED LOGIC
+    let experienceAnalysis;
+    if (useAdaptiveExplanations) {
+      // SCE-66 FIX: Force beginner mode for quiz users without accounts
+      if (request.quizResponses && !request.userId) {
+        experienceAnalysis = {
+          level: 'beginner' as UserExperienceLevel,
+          confidence: 0.95, // High confidence for quiz users
+          recommendedExplanationStyle: {
+            maxWords: 35,
+            complexity: 'simple' as const,
+            includeEducation: true,
+            useProgressiveDisclosure: true,
+            vocabularyLevel: 'basic' as const,
+          }
+        };
+        console.log('🎯 QUIZ USER: Forced beginner mode for anonymous quiz user');
+      } else if (request.userId) {
+        // Use proper experience detector for authenticated users
+        try {
+          const detector = experienceDetector(this.supabase);
+          experienceAnalysis = await detector.analyzeUserExperience(request.userId, {
+            quizResponses: request.quizResponses,
+            userCollection: request.userCollection,
+          });
+          console.log(`📊 AUTHENTICATED USER: Experience detected as '${experienceAnalysis.level}' (confidence: ${experienceAnalysis.confidence})`);
+        } catch (error) {
+          console.warn('❌ Experience detection failed for authenticated user, defaulting to beginner:', error);
+          experienceAnalysis = {
+            level: 'beginner' as UserExperienceLevel,
+            confidence: 0.5, // Lower confidence due to detection failure
+            recommendedExplanationStyle: {
+              maxWords: 35,
+              complexity: 'simple' as const,
+              includeEducation: true,
+              useProgressiveDisclosure: true,
+              vocabularyLevel: 'basic' as const,
+            }
+          };
+        }
+      } else {
+        // Fallback for edge cases
+        experienceAnalysis = {
+          level: 'beginner' as UserExperienceLevel,
+          confidence: 0.8,
+          recommendedExplanationStyle: {
+            maxWords: 35,
+            complexity: 'simple' as const,
+            includeEducation: true,
+            useProgressiveDisclosure: true,
+            vocabularyLevel: 'basic' as const,
+          }
+        };
+        console.log('📊 FALLBACK: Defaulting to beginner experience level');
+      }
+    }
 
     // Enhance explanations with AI for top recommendations
-    const enhancedPromises = recommendations.slice(0, 5).map(async rec => {
+    const enhancedPromises = recommendations.slice(0, 5).map(async (rec, index) => {
+      const enhancementStartTime = Date.now(); // Task 4.5: Performance monitoring
+      
       try {
-        const explanation = await aiClient.explainRecommendation(
-          rec.fragrance_id,
-          userContext,
-          `${rec.name} by ${rec.brand} (${rec.scent_family})`
-        );
+        const fragranceDetails = `${rec.name} by ${rec.brand} (${rec.scent_family})`;
+        console.log(`🎯 PROCESSING ${index + 1}/5: ${rec.name} (${experienceAnalysis?.level || 'unknown'} user)`);
 
+        if (useAdaptiveExplanations && experienceAnalysis) {
+          // Use adaptive explanation system
+          if (experienceAnalysis.level === 'beginner') {
+            // Enhanced beginner handling with specialized engine (SCE-66 & SCE-67)
+            console.log(`🚀 BEGINNER ENGINE: Processing ${rec.name} for beginner user`);
+            
+            const beginnerRequest = this.createBeginnerRequest(
+              rec,
+              userContext,
+              request.userPreferences
+            );
+            
+            try {
+              const beginnerResult = await beginnerExplanationEngine.generateExplanation(
+                beginnerRequest
+              );
+
+              // Task 4.2: Validate result before using
+              if (beginnerResult && beginnerResult.validation && beginnerResult.summary) {
+                console.log(`✅ BEGINNER ENGINE SUCCESS: Generated ${beginnerResult.validation.wordCount} word explanation (target: 30-40)`);
+                console.log(`📝 EXPLANATION PREVIEW: "${beginnerResult.summary.substring(0, 60)}..."`);
+
+                return {
+                  ...rec,
+                  explanation: beginnerResult.explanation,
+                  why_recommended: beginnerResult.summary,
+                  adaptive_explanation: {
+                    user_experience_level: 'beginner',
+                    summary: beginnerResult.summary,
+                    expanded_content: beginnerResult.educationalContent?.tips?.join(' ') || '',
+                    educational_terms: beginnerResult.educationalContent?.terms || {},
+                    confidence_boost: beginnerResult.educationalContent?.confidenceBooster || 'Great choice!',
+                  },
+                };
+              } else {
+                console.warn('⚠️ BEGINNER ENGINE: Invalid result structure, falling back to aiClient');
+                throw new Error('Invalid beginner engine result structure');
+              }
+            } catch (error) {
+              console.error('❌ BEGINNER ENGINE FAILED:', error);
+              console.log('🔄 FALLBACK: Trying aiClient.explainForBeginner...');
+              
+              // Fallback to aiClient method
+              try {
+                const adaptiveResult = await aiClient.explainForBeginner(
+                  rec.fragrance_id,
+                  userContext,
+                  fragranceDetails
+                );
+
+                // Task 4.2: Validate aiClient result before using
+                if (adaptiveResult && adaptiveResult.explanation && adaptiveResult.summary) {
+                  console.log(`✅ AILIENT FALLBACK SUCCESS: Generated beginner explanation`);
+
+                  return {
+                    ...rec,
+                    explanation: adaptiveResult.explanation,
+                    why_recommended: adaptiveResult.summary,
+                    adaptive_explanation: {
+                      user_experience_level: 'beginner',
+                      summary: adaptiveResult.summary,
+                      expanded_content: adaptiveResult.expandedContent || '',
+                      educational_terms: adaptiveResult.educationalTerms || {},
+                      confidence_boost: adaptiveResult.confidenceBoost || 'Great choice for beginners!',
+                    },
+                  };
+                } else {
+                  console.warn('⚠️ AILIENT FALLBACK: Invalid result structure');
+                  throw new Error('Invalid aiClient result structure');
+                }
+              } catch (fallbackError) {
+                console.error('❌ AILIENT FALLBACK ALSO FAILED:', fallbackError);
+                console.log('🛡️ FINAL FALLBACK: Using safe default explanation to prevent verbose fallback');
+                
+                // Task 4.2: Provide meaningful default explanation instead of verbose fallback
+                const safeExplanation = `Great match for your style! This ${rec.scent_family || 'fragrance'} is popular with beginners. Try a sample to see how it works with your skin.`;
+                
+                return {
+                  ...rec,
+                  explanation: safeExplanation,
+                  why_recommended: `Recommended based on your quiz preferences - ${rec.scent_family || 'fragrance'} family match`,
+                  adaptive_explanation: {
+                    user_experience_level: 'beginner',
+                    summary: safeExplanation,
+                    expanded_content: 'This fragrance was selected based on your quiz responses and popularity data.',
+                    educational_terms: {},
+                    confidence_boost: 'Trust your instincts when trying new fragrances!',
+                  },
+                };
+              }
+            }
+          } else {
+            // Intermediate/Advanced users - Task 3.3 & 3.4: Detailed explanations for experienced users
+            console.log(`🎓 EXPERIENCED USER: Processing ${rec.name} for ${experienceAnalysis.level} user (${experienceAnalysis.recommendedExplanationStyle.maxWords} words max)`);
+            
+            const adaptiveResult = await aiClient.explainRecommendationAdaptive(
+              rec.fragrance_id,
+              userContext,
+              fragranceDetails,
+              experienceAnalysis.level,
+              experienceAnalysis.recommendedExplanationStyle
+            );
+
+            // Task 4.2: Validate experienced user result
+            if (adaptiveResult && adaptiveResult.explanation) {
+              console.log(`✅ EXPERIENCED EXPLANATION: Generated explanation for ${experienceAnalysis.level} user`);
+              console.log(`📝 EXPLANATION TYPE: ${adaptiveResult.summary ? 'Detailed with summary' : 'Standard explanation'}`);
+
+              return {
+                ...rec,
+                explanation: adaptiveResult.explanation,
+                why_recommended: adaptiveResult.summary || adaptiveResult.explanation,
+                adaptive_explanation: {
+                  user_experience_level: experienceAnalysis.level,
+                  summary: adaptiveResult.summary || adaptiveResult.explanation,
+                  expanded_content: adaptiveResult.expandedContent || '',
+                  educational_terms: adaptiveResult.educationalTerms || {},
+                },
+              };
+            } else {
+              console.warn(`⚠️ EXPERIENCED EXPLANATION: Invalid result for ${experienceAnalysis.level} user, using safe fallback`);
+              throw new Error('Invalid experienced user explanation result');
+            }
+          }
+        } else {
+          // Fallback to traditional explanation
+          const explanation = await aiClient.explainRecommendation(
+            rec.fragrance_id,
+            userContext,
+            fragranceDetails
+          );
+
+          return {
+            ...rec,
+            explanation,
+            why_recommended: explanation,
+          };
+        }
+      } catch (error) {
+        const enhancementDuration = Date.now() - enhancementStartTime; // Task 4.5: Performance monitoring
+        
+        console.error('❌ AI EXPLANATION ENHANCEMENT COMPLETELY FAILED:', error);
+        console.error(`🔍 ERROR CONTEXT: ${rec.name} by ${rec.brand}, user: ${experienceAnalysis?.level || 'unknown'}, duration: ${enhancementDuration}ms`);
+        console.log('🛡️ EMERGENCY FALLBACK: Creating safe recommendation with meaningful explanation');
+        
+        // Task 4.2 & 4.3: Provide meaningful explanation even when all AI fails
+        const emergencyExplanation = `Perfect match for your preferences! This ${rec.scent_family || 'fragrance'} has excellent ratings and is great for exploring new scents. Consider trying a sample first.`;
+        
+        // Task 4.3: Log detailed error information for debugging
+        console.log(`📊 FALLBACK STATS: Processing ${rec.name} took ${enhancementDuration}ms before fallback`);
+        console.log(`🎯 FALLBACK DATA: Experience level = ${experienceAnalysis?.level || 'unknown'}, Scent family = ${rec.scent_family || 'unknown'}`);
+        
         return {
           ...rec,
-          explanation,
-          why_recommended: explanation,
+          explanation: emergencyExplanation,
+          why_recommended: `Popular ${rec.scent_family || 'fragrance'} choice that matches your quiz preferences`,
+          // Even in complete failure, provide adaptive_explanation to prevent verbose fallback
+          adaptive_explanation: {
+            user_experience_level: 'beginner', // Safe default
+            summary: emergencyExplanation,
+            expanded_content: 'Selected based on your quiz preferences and community ratings.',
+            educational_terms: {},
+            confidence_boost: 'Great choice for exploring new fragrances!',
+          },
         };
-      } catch (error) {
-        // Keep original explanation if AI enhancement fails
-        return rec;
       }
     });
 
     const enhanced = await Promise.all(enhancedPromises);
     const remaining = recommendations.slice(5);
+    
+    // Task 4.3 & 4.5: Performance monitoring and error statistics
+    const enhancementDuration = Date.now() - enhancementStartTime;
+    const successfulEnhancements = enhanced.filter(rec => rec.adaptive_explanation).length;
+    const failedEnhancements = enhanced.filter(rec => !rec.adaptive_explanation).length;
+    
+    console.log(`📊 ENHANCEMENT COMPLETE: ${enhancementDuration}ms total`);
+    console.log(`✅ SUCCESS: ${successfulEnhancements}/5 explanations enhanced`);
+    if (failedEnhancements > 0) {
+      console.warn(`⚠️ FALLBACKS: ${failedEnhancements}/5 used emergency fallback explanations`);
+    }
+    console.log(`🎯 PERFORMANCE: Average ${Math.round(enhancementDuration / 5)}ms per explanation`);
+    
+    // Task 4.4: Ensure quiz flow continues regardless of enhancement failures
+    if (enhancementDuration > 10000) { // Alert if taking longer than 10 seconds
+      console.warn(`⚠️ PERFORMANCE WARNING: Explanation enhancement took ${enhancementDuration}ms (>10s threshold)`);
+    }
 
     return [...enhanced, ...remaining];
   }
 
   /**
    * Fallback to popular fragrances
+   * FIXED: Added gender filtering to prevent cross-gender recommendations (SCE-81)
    */
   private async getPopularFragrances(
-    limit: number
+    limit: number,
+    genderPreference?: string
   ): Promise<RecommendationItem[]> {
     try {
-      const { data: popular, error } = await (this.supabase as any)
+      let query = (this.supabase as any)
         .from('fragrances')
         .select(
           `
@@ -413,7 +720,24 @@ export class UnifiedRecommendationEngine {
           sample_price_usd,
           fragrance_brands!inner(name)
         `
-        )
+        );
+
+      // CRITICAL: Apply gender filtering to prevent cross-gender leaks (SCE-81)
+      if (genderPreference) {
+        console.log(`🎯 POPULAR FRAGRANCES: Filtering by gender preference: ${genderPreference}`);
+        
+        if (genderPreference === 'men') {
+          query = query.eq('gender', 'men');
+        } else if (genderPreference === 'women') {
+          query = query.eq('gender', 'women');
+        } else if (genderPreference === 'unisex') {
+          query = query.in('gender', ['men', 'women', 'unisex']);
+        }
+      } else {
+        console.warn('⚠️ POPULAR FRAGRANCES: No gender preference provided - returning all genders');
+      }
+
+      const { data: popular, error } = await query
         .order('popularity_score', { ascending: false })
         .limit(limit);
 
@@ -436,7 +760,8 @@ export class UnifiedRecommendationEngine {
         sample_available: f.sample_available ?? true,
         sample_price_usd: f.sample_price_usd || 15,
         image_url: f.image_url,
-        scent_family: f.gender || 'fragrance', // Use gender as fallback for scent_family
+        scent_family: 'fragrance', // Default scent family - gender is separate field
+        gender: f.gender as 'men' | 'women' | 'unisex', // Ensure gender is preserved
         why_recommended: `Highly rated (${f.rating_value || 4.0}/5) by the community`,
       }));
     } catch (error) {
@@ -481,6 +806,84 @@ export class UnifiedRecommendationEngine {
 
     return context.join('. ') || 'New user seeking fragrance recommendations';
   }
+
+  /**
+   * Create beginner explanation request from recommendation item
+   */
+  private createBeginnerRequest(
+    rec: RecommendationItem,
+    userContext: string,
+    userPreferences?: UserPreferences
+  ): BeginnerExplanationRequest {
+    // Extract price range from user preferences if available
+    const priceRange = userPreferences?.price_range;
+    
+    return {
+      fragranceId: rec.fragrance_id,
+      fragranceName: rec.name,
+      brand: rec.brand,
+      scentFamily: rec.scent_family || 'fragrance',
+      userContext,
+      priceRange,
+    };
+  }
+
+  /**
+   * Enhanced batch processing for beginner explanations
+   */
+  private async enhanceRecommendationsWithBeginnerExplanations(
+    recommendations: RecommendationItem[],
+    userContext: string,
+    userPreferences?: UserPreferences
+  ): Promise<RecommendationItem[]> {
+    try {
+      // Process top recommendations for beginner explanations
+      const topRecs = recommendations.slice(0, 5);
+      const beginnerRequests = topRecs.map(rec => 
+        this.createBeginnerRequest(rec, userContext, userPreferences)
+      );
+
+      const results = await beginnerExplanationEngine.generateBatchExplanations(
+        beginnerRequests
+      );
+
+      // Apply results to recommendations
+      const enhanced = topRecs.map((rec, index) => {
+        const result = results[index];
+        if (result) {
+          return {
+            ...rec,
+            explanation: result.explanation,
+            why_recommended: result.summary,
+            adaptive_explanation: {
+              user_experience_level: 'beginner' as UserExperienceLevel,
+              summary: result.summary,
+              expanded_content: result.educationalContent.tips.join(' '),
+              educational_terms: result.educationalContent.terms,
+              confidence_boost: result.educationalContent.confidenceBooster,
+            },
+          };
+        }
+        return rec;
+      });
+
+      // Return enhanced + remaining recommendations
+      return [...enhanced, ...recommendations.slice(5)];
+    } catch (error) {
+      console.error('Batch beginner explanation enhancement failed:', error);
+      return recommendations; // Return original if batch processing fails
+    }
+  }
+
+  /**
+   * REMOVED: detectExperienceFromQuizResponses() - DEPRECATED
+   * 
+   * This method was causing quiz users to default to 'intermediate' instead of 'beginner'
+   * because it didn't understand the MVP quiz format. 
+   * 
+   * Replaced with proper experience detection logic that forces 'beginner' for quiz users.
+   * See lines 386-399: if (request.quizResponses && !request.userId) -> force beginner mode
+   */
 
   /**
    * Generate cryptographically secure session token

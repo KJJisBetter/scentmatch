@@ -16,6 +16,9 @@ import {
   AIEmbeddingResponse,
   AIError,
 } from './config';
+import { adaptivePromptEngine, type AdaptivePromptConfig } from './adaptive-prompts';
+import type { UserExperienceLevel, ExplanationStyle } from './user-experience-detector';
+import { beginnerExplanationEngine, type BeginnerExplanationRequest, type BeginnerExplanationResult } from './beginner-explanation-engine';
 
 // Validation schemas for AI responses
 const RecommendationSchema = z.object({
@@ -169,6 +172,7 @@ export class VercelAIClient {
   /**
    * Generate explanations for recommendations
    * Provides transparent AI reasoning for user trust
+   * @deprecated Use explainRecommendationAdaptive for experience-level aware explanations
    */
   async explainRecommendation(
     fragranceId: string,
@@ -203,6 +207,238 @@ export class VercelAIClient {
         error as Error
       );
     }
+  }
+
+  /**
+   * Generate adaptive explanations based on user experience level
+   * Solves SCE-66 (verbose explanations) and SCE-67 (beginner education)
+   */
+  async explainRecommendationAdaptive(
+    fragranceId: string,
+    userProfile: string,
+    fragranceDetails: string,
+    experienceLevel: UserExperienceLevel,
+    explanationStyle: ExplanationStyle
+  ): Promise<{
+    explanation: string;
+    summary?: string;
+    expandedContent?: string;
+    educationalTerms?: Record<string, any>;
+  }> {
+    try {
+      // Generate adaptive prompt
+      const prompt = adaptivePromptEngine.generateExplanationPrompt({
+        experienceLevel,
+        explanationStyle,
+        fragranceDetails,
+        userContext: userProfile,
+      });
+
+      // Generate explanation with experience-appropriate complexity
+      const { text } = await generateText({
+        model: AI_MODELS.RECOMMENDATION,
+        prompt,
+        maxTokens: this.calculateMaxTokens(explanationStyle.maxWords),
+      });
+
+      // Adapt vocabulary for experience level
+      const adaptedText = adaptivePromptEngine.adaptVocabulary(text, experienceLevel);
+
+      // Build result object with conditional properties
+      const disclosure = explanationStyle.useProgressiveDisclosure 
+        ? adaptivePromptEngine.generateProgressiveDisclosureSummary(adaptedText)
+        : null;
+
+      const terms = explanationStyle.includeEducation
+        ? this.extractFragranceTerms(fragranceDetails + ' ' + adaptedText)
+        : null;
+
+      const educationalTerms = terms 
+        ? adaptivePromptEngine.generateEducationalContent(terms)
+        : null;
+
+      const result: any = {
+        explanation: adaptedText,
+        ...(disclosure && {
+          summary: disclosure.summary,
+          expandedContent: disclosure.expandedContent,
+        }),
+        ...(educationalTerms && {
+          educationalTerms,
+        }),
+      };
+
+      return result;
+    } catch (error) {
+      throw new AIError(
+        'Failed to generate adaptive explanation',
+        'ADAPTIVE_EXPLANATION_FAILED',
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * Generate beginner-friendly explanations with education
+   * Specific implementation for SCE-66 (30-40 word limit)
+   * Uses specialized BeginnerExplanationEngine for optimal results
+   */
+  async explainForBeginner(
+    fragranceId: string,
+    userProfile: string,
+    fragranceDetails: string,
+    includeEducation: boolean = true
+  ): Promise<{
+    explanation: string;
+    summary: string;
+    expandedContent?: string;
+    educationalTerms?: Record<string, any>;
+    confidenceBoost: string;
+  }> {
+    try {
+      // Parse fragrance details
+      const { name, brand, scentFamily } = this.parseFragranceDetails(fragranceDetails);
+      
+      const request: BeginnerExplanationRequest = {
+        fragranceId,
+        fragranceName: name,
+        brand,
+        scentFamily,
+        userContext: userProfile,
+      };
+
+      const result = await beginnerExplanationEngine.generateExplanation(request);
+
+      return {
+        explanation: result.explanation,
+        summary: result.summary,
+        expandedContent: result.educationalContent.tips.join(' '),
+        educationalTerms: result.educationalContent.terms,
+        confidenceBoost: result.educationalContent.confidenceBooster,
+      };
+    } catch (error) {
+      console.error('BeginnerExplanationEngine failed, falling back to adaptive method:', error);
+      
+      // Fallback to previous method
+      return this.explainForBeginnerFallback(fragranceId, userProfile, fragranceDetails, includeEducation);
+    }
+  }
+
+  /**
+   * Fallback beginner explanation method (uses adaptive prompts)
+   */
+  private async explainForBeginnerFallback(
+    fragranceId: string,
+    userProfile: string,
+    fragranceDetails: string,
+    includeEducation: boolean = true
+  ): Promise<{
+    explanation: string;
+    summary: string;
+    expandedContent?: string;
+    educationalTerms?: Record<string, any>;
+    confidenceBoost: string;
+  }> {
+    const explanationStyle: ExplanationStyle = {
+      maxWords: 35,
+      complexity: 'simple',
+      includeEducation,
+      useProgressiveDisclosure: true,
+      vocabularyLevel: 'basic',
+    };
+
+    const adaptiveResult = await this.explainRecommendationAdaptive(
+      fragranceId,
+      userProfile,
+      fragranceDetails,
+      'beginner',
+      explanationStyle
+    );
+
+    // Generate confidence-building message
+    const confidenceBoost = await this.generateConfidenceBoost(userProfile);
+
+    return {
+      ...adaptiveResult,
+      confidenceBoost,
+    };
+  }
+
+  /**
+   * Generate confidence-building message for beginners
+   */
+  private async generateConfidenceBoost(userProfile: string): Promise<string> {
+    const prompt = `
+      Generate a short, encouraging message for someone new to fragrances.
+      Maximum 15 words. Focus on building confidence in their fragrance exploration.
+      
+      User context: ${userProfile}
+      
+      Examples:
+      - "Trust your instincts - everyone's fragrance journey is unique!"
+      - "You're building great taste - every scent teaches you something new!"
+      - "Perfect starting point - you'll discover what you love through trying!"
+    `;
+
+    const { text } = await generateText({
+      model: AI_MODELS.FAST,
+      prompt,
+      maxTokens: 50,
+    });
+
+    return text.trim();
+  }
+
+  /**
+   * Parse fragrance details string into components
+   */
+  private parseFragranceDetails(fragranceDetails: string): {
+    name: string;
+    brand: string;
+    scentFamily: string;
+  } {
+    // Parse format: "Name by Brand (Family)"
+    const match = fragranceDetails.match(/(.*?)\s+by\s+(.*?)\s*\(([^)]+)\)/);
+    
+    if (match) {
+      return {
+        name: match[1].trim(),
+        brand: match[2].trim(),
+        scentFamily: match[3].trim(),
+      };
+    }
+    
+    // Fallback parsing
+    const parts = fragranceDetails.split(' ');
+    return {
+      name: parts[0] || 'Unknown',
+      brand: parts[parts.length - 1] || 'Unknown',
+      scentFamily: 'fragrance',
+    };
+  }
+
+  /**
+   * Extract fragrance-related terms from text for education
+   */
+  private extractFragranceTerms(text: string): string[] {
+    const fragranceKeywords = [
+      'edp', 'edt', 'parfum', 'notes', 'projection', 'longevity', 'sillage', 
+      'dry down', 'scent family', 'fresh', 'floral', 'woody', 'oriental',
+      'concentration', 'olfactory', 'accord', 'facet', 'composition'
+    ];
+
+    const lowerText = text.toLowerCase();
+    return fragranceKeywords.filter(keyword => 
+      lowerText.includes(keyword.toLowerCase())
+    );
+  }
+
+  /**
+   * Calculate max tokens based on word count target
+   */
+  private calculateMaxTokens(maxWords: number): number {
+    // Rough conversion: 1 token ≈ 0.75 words
+    return Math.ceil(maxWords / 0.75) + 20; // Add buffer for prompt overhead
   }
 
   /**
@@ -285,7 +521,53 @@ export class VercelAIClient {
   }
 
   /**
-   * Health check for AI services
+   * Generate explanations in batch for multiple fragrances (beginner-optimized)
+   */
+  async generateBeginnerExplanationsBatch(
+    requests: Array<{
+      fragranceId: string;
+      userProfile: string;
+      fragranceDetails: string;
+    }>
+  ): Promise<Array<{
+    fragranceId: string;
+    explanation: string;
+    summary: string;
+    educationalTerms?: Record<string, any>;
+    confidenceBoost: string;
+  }>> {
+    try {
+      const beginnerRequests: BeginnerExplanationRequest[] = requests.map(req => {
+        const { name, brand, scentFamily } = this.parseFragranceDetails(req.fragranceDetails);
+        return {
+          fragranceId: req.fragranceId,
+          fragranceName: name,
+          brand,
+          scentFamily,
+          userContext: req.userProfile,
+        };
+      });
+
+      const results = await beginnerExplanationEngine.generateBatchExplanations(beginnerRequests);
+
+      return results.map((result, index) => ({
+        fragranceId: requests[index].fragranceId,
+        explanation: result.explanation,
+        summary: result.summary,
+        educationalTerms: result.educationalContent.terms,
+        confidenceBoost: result.educationalContent.confidenceBooster,
+      }));
+    } catch (error) {
+      throw new AIError(
+        'Failed to generate batch beginner explanations',
+        'BATCH_BEGINNER_EXPLANATION_FAILED',
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * Health check for AI services including beginner explanation engine
    * Verifies that AI models are accessible and working
    */
   async healthCheck(): Promise<{
@@ -312,6 +594,22 @@ export class VercelAIClient {
       checks.text_generation = result.text.toLowerCase().includes('ok');
     } catch {
       checks.text_generation = false;
+    }
+
+    try {
+      // Test beginner explanation engine
+      const testRequest: BeginnerExplanationRequest = {
+        fragranceId: 'test',
+        fragranceName: 'Test Fragrance',
+        brand: 'Test Brand',
+        scentFamily: 'fresh',
+        userContext: 'new fragrance explorer',
+      };
+      
+      const result = await beginnerExplanationEngine.generateExplanation(testRequest);
+      checks.beginner_explanations = result.explanation.length > 0;
+    } catch {
+      checks.beginner_explanations = false;
     }
 
     const healthyCount = Object.values(checks).filter(Boolean).length;

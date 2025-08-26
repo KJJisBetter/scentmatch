@@ -38,8 +38,9 @@ export function MobileNavSheet() {
           <Button
             variant='ghost'
             size='icon'
-            className='touch-target'
+            className='touch-target touch-feedback touch-accessible'
             aria-label='Open navigation menu'
+            data-testid='mobile-nav-trigger'
           >
             <Menu className='h-5 w-5' />
           </Button>
@@ -52,26 +53,26 @@ export function MobileNavSheet() {
             </SheetDescription>
           </SheetHeader>
 
-          <nav className='mt-8 space-y-8'>
+          <nav className='mt-8 space-y-8' data-testid='nav-items'>
             {/* Discover Section */}
             <div className='space-y-4'>
               <h3 className='font-medium text-foreground'>Discover</h3>
-              <div className='space-y-3 pl-4'>
+              <div className='touch-spacing pl-4'>
                 <button
                   onClick={() => handleNavigation('/browse')}
-                  className='block w-full text-left text-muted-foreground hover:text-foreground transition-colors touch-target py-2'
+                  className='block w-full text-left text-muted-foreground hover:text-foreground touch-target touch-feedback-subtle py-3 px-2 rounded-md'
                 >
                   Browse Fragrances
                 </button>
                 <button
                   onClick={() => handleNavigation('/quiz')}
-                  className='block w-full text-left text-muted-foreground hover:text-foreground transition-colors touch-target py-2'
+                  className='block w-full text-left text-muted-foreground hover:text-foreground touch-target touch-feedback-subtle py-3 px-2 rounded-md'
                 >
                   Find Your Match
                 </button>
                 <button
-                  onClick={() => handleNavigation('/samples')}
-                  className='block w-full text-left text-muted-foreground hover:text-foreground transition-colors touch-target py-2'
+                  onClick={() => handleNavigation('/browse?category=samples')}
+                  className='block w-full text-left text-muted-foreground hover:text-foreground touch-target touch-feedback-subtle py-3 px-2 rounded-md'
                 >
                   Sample Sets
                 </button>
@@ -81,16 +82,16 @@ export function MobileNavSheet() {
             {/* Learn Section */}
             <div className='space-y-4'>
               <h3 className='font-medium text-foreground'>Learn</h3>
-              <div className='space-y-3 pl-4'>
+              <div className='touch-spacing pl-4'>
                 <button
                   onClick={() => handleNavigation('/quiz')}
-                  className='block w-full text-left text-muted-foreground hover:text-foreground transition-colors touch-target py-2'
+                  className='block w-full text-left text-muted-foreground hover:text-foreground touch-target touch-feedback-subtle py-3 px-2 rounded-md'
                 >
                   Take Quiz
                 </button>
                 <button
                   onClick={() => handleNavigation('/recommendations')}
-                  className='block w-full text-left text-muted-foreground hover:text-foreground transition-colors touch-target py-2'
+                  className='block w-full text-left text-muted-foreground hover:text-foreground touch-target touch-feedback-subtle py-3 px-2 rounded-md'
                 >
                   Recommendations
                 </button>
@@ -98,11 +99,11 @@ export function MobileNavSheet() {
             </div>
 
             {/* Authentication Section */}
-            <div className='pt-6 border-t border-border/40 space-y-4'>
+            <div className='pt-6 border-t border-border/40 touch-spacing'>
               <Button
                 onClick={() => handleNavigation('/auth/signup')}
                 size='lg'
-                className='w-full'
+                className='w-full touch-target-xl touch-feedback'
               >
                 Get Started
               </Button>
@@ -110,7 +111,7 @@ export function MobileNavSheet() {
                 onClick={() => handleNavigation('/auth/login')}
                 variant='outline'
                 size='lg'
-                className='w-full'
+                className='w-full touch-target-xl touch-feedback'
               >
                 Sign In
               </Button>

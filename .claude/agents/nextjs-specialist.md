@@ -1,7 +1,7 @@
 ---
 name: nextjs-specialist
 description: Use proactively for Next.js App Router features, Server Actions, performance optimization, and deployment. Specialist for implementing pages, layouts, routing, caching strategies, and production deployments.
-tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebFetch, mcp__vercel__*, mcp__playwright__*
+tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebFetch, mcp__vercel__search_vercel_documentation, mcp__vercel__list_projects, mcp__vercel__get_project, mcp__vercel__list_deployments, mcp__vercel__get_deployment, mcp__vercel__get_deployment_events, mcp__vercel__get_access_to_vercel_url, mcp__vercel__web_fetch_vercel_url, mcp__vercel__list_teams, mcp__playwright__browser_close, mcp__playwright__browser_resize, mcp__playwright__browser_console_messages, mcp__playwright__browser_handle_dialog, mcp__playwright__browser_evaluate, mcp__playwright__browser_file_upload, mcp__playwright__browser_install, mcp__playwright__browser_press_key, mcp__playwright__browser_type, mcp__playwright__browser_navigate, mcp__playwright__browser_navigate_back, mcp__playwright__browser_navigate_forward, mcp__playwright__browser_network_requests, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_drag, mcp__playwright__browser_hover, mcp__playwright__browser_select_option, mcp__playwright__browser_tab_list, mcp__playwright__browser_tab_new, mcp__playwright__browser_tab_select, mcp__playwright__browser_tab_close, mcp__playwright__browser_wait_for
 model: sonnet
 color: blue
 ---

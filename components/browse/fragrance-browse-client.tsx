@@ -15,6 +15,9 @@ import {
   extractConcentration,
 } from '@/lib/brand-utils';
 import { toggleCollection, toggleWishlist } from '@/lib/actions';
+import { SearchResultHierarchy } from '@/components/search/search-result-hierarchy';
+import { ProgressiveSearchResults } from '@/components/search/progressive-search-results';
+import { CompactSocialValidation } from '@/components/social/social-validation-suite';
 import {
   Search,
   Star,
@@ -26,6 +29,8 @@ import {
   Package,
   ExternalLink,
   CheckCircle,
+  Users,
+  TrendingUp,
 } from 'lucide-react';
 
 interface FragranceResult {
@@ -162,9 +167,9 @@ export function FragranceBrowseClient({
 
   return (
     <div className='container mx-auto px-4 py-8'>
-      {/* Search Bar */}
+      {/* Search Bar - Touch Optimized */}
       <div className='mb-8'>
-        <form onSubmit={handleSearch} className='flex gap-2 max-w-2xl mx-auto'>
+        <form onSubmit={handleSearch} className='flex gap-3 max-w-2xl mx-auto touch-spacing-x'>
           <div className='relative flex-1'>
             <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
             <Input
@@ -172,10 +177,18 @@ export function FragranceBrowseClient({
               placeholder='Search fragrances by name, brand, or accords...'
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className='pl-10'
+              className='pl-10 touch-target h-12 text-base' // Larger touch target for mobile
+              autoComplete='off'
+              autoCapitalize='none'
+              autoCorrect='off'
             />
           </div>
-          <Button type='submit' disabled={isLoading}>
+          <Button 
+            type='submit' 
+            disabled={isLoading}
+            size='lg'
+            className='touch-target-lg touch-feedback px-6'
+          >
             {isLoading ? (
               <RefreshCw className='h-4 w-4 animate-spin' />
             ) : (
@@ -200,7 +213,7 @@ export function FragranceBrowseClient({
                 setSearchQuery('');
                 router.push('/browse');
               }}
-              className='mt-1 text-xs'
+              className='mt-2 text-xs touch-target-lg touch-feedback-subtle'
             >
               Clear search
             </Button>
@@ -247,7 +260,10 @@ export function FragranceBrowseClient({
                 We're having trouble loading fragrances right now. Please try
                 again.
               </p>
-              <Button onClick={() => window.location.reload()}>
+              <Button 
+                onClick={() => window.location.reload()}
+                className='touch-target-lg touch-feedback'
+              >
                 <RefreshCw className='h-4 w-4 mr-2' />
                 Try again
               </Button>
@@ -264,13 +280,14 @@ export function FragranceBrowseClient({
             <p className='text-muted-foreground mb-4'>
               Try different search terms or browse our collection.
             </p>
-            <div className='space-x-2'>
+            <div className='touch-spacing-x'>
               <Button
                 variant='outline'
                 onClick={() => {
                   setSearchQuery('');
                   router.push('/browse');
                 }}
+                className='touch-target-lg touch-feedback'
               >
                 Clear search
               </Button>
@@ -297,20 +314,31 @@ export function FragranceBrowseClient({
           </div>
         )}
 
-        {/* Fragrance Grid */}
-        {hasResults && !isLoading && (
-          <div
-            className='grid md:grid-cols-2 lg:grid-cols-3 gap-6'
-            data-testid='fragrance-grid'
-          >
-            {fragrances.fragrances.map((fragrance, index) => (
-              <FragranceCard
-                key={fragrance.id || fragrance.fragrance_id || index}
-                fragrance={fragrance}
-              />
-            ))}
-          </div>
-        )}
+        {/* Progressive Search Results */}
+        <ProgressiveSearchResults
+          query={searchQuery}
+          results={fragrances.fragrances || []}
+          isLoading={isLoading}
+          error={fragrances.fallback ? fragrances.message : null}
+          total={fragrances.total}
+          onResultSelect={(fragrance) => {
+            // Navigate to fragrance detail page
+            const fragranceId = String(fragrance.id || 'unknown');
+            router.push(`/fragrance/${fragranceId}`);
+          }}
+          onPerformanceMetric={(metric) => {
+            console.log('Search performance metric:', metric);
+            // Track performance metrics
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+              (window as any).gtag('event', 'search_performance', {
+                metric_name: metric.name,
+                metric_value: metric.value,
+                search_query: searchQuery
+              });
+            }
+          }}
+          variant="grid"
+        />
 
         {/* Empty State for Browse Page */}
         {!hasResults && !hasQuery && !isLoading && !fragrances.fallback && (
@@ -428,8 +456,8 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
   };
 
   return (
-    <Link href={`/fragrance/${fragranceId}`} className='block'>
-      <Card className='group hover:shadow-medium transition-all duration-300 overflow-hidden cursor-pointer'>
+    <Link href={`/fragrance/${fragranceId}`} className='block touch-action-area'>
+      <Card className='group hover:shadow-medium transition-all duration-300 overflow-hidden cursor-pointer touch-feedback-subtle'>
         <CardContent className='p-0'>
           {/* Image */}
           <div className='relative aspect-square overflow-hidden bg-muted'>
@@ -492,6 +520,21 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
                 )}
               </div>
 
+              {/* Social Proof Elements */}
+              <div className='flex items-center gap-2 text-xs'>
+                {/* Quick social indicators */}
+                <div className='flex items-center gap-1 text-blue-600'>
+                  <Users className='h-3 w-3' />
+                  <span>Popular with 18-24</span>
+                </div>
+                {mockRating > 4.2 && (
+                  <div className='flex items-center gap-1 text-green-600'>
+                    <TrendingUp className='h-3 w-3' />
+                    <span>Trending</span>
+                  </div>
+                )}
+              </div>
+
               {/* Family and Rating */}
               <div className='flex items-center justify-between text-sm'>
                 <Badge variant='secondary'>{scentFamily}</Badge>
@@ -505,13 +548,13 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
               </div>
 
               {/* Primary Actions - Collection Management */}
-              <div className='flex gap-2 pt-1'>
+              <div className='flex gap-2 pt-1 touch-spacing-x'>
                 <Button
                   size='sm'
                   variant={inCollection ? 'default' : 'outline'}
                   onClick={e => handleCollectionAction(e)}
                   disabled={collectionLoading || isPending}
-                  className='flex-1'
+                  className='flex-1 touch-target touch-feedback text-xs'
                 >
                   {collectionLoading ? (
                     <RefreshCw className='h-3 w-3 animate-spin' />
@@ -533,7 +576,7 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
                   variant={inWishlist ? 'secondary' : 'outline'}
                   onClick={e => handleWishlistAction(e)}
                   disabled={wishlistLoading || isPending}
-                  className='flex-1'
+                  className='flex-1 touch-target touch-feedback text-xs'
                 >
                   {wishlistLoading ? (
                     <RefreshCw className='h-3 w-3 animate-spin' />
@@ -552,9 +595,9 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
               </div>
 
               {/* Secondary Actions - Discrete Purchase Assistance */}
-              <div className='flex gap-4 text-xs text-muted-foreground pt-1'>
+              <div className='flex gap-4 text-xs text-muted-foreground pt-1 touch-spacing-x'>
                 <button
-                  className='flex items-center gap-1 hover:text-foreground transition-colors'
+                  className='flex items-center gap-1 hover:text-foreground transition-colors touch-target touch-feedback-subtle p-2 -m-2 rounded'
                   onClick={async e => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -572,7 +615,7 @@ function FragranceCard({ fragrance }: { fragrance: FragranceResult }) {
                   Find Samples
                 </button>
                 <button
-                  className='flex items-center gap-1 hover:text-foreground transition-colors'
+                  className='flex items-center gap-1 hover:text-foreground transition-colors touch-target touch-feedback-subtle p-2 -m-2 rounded'
                   onClick={e => {
                     e.preventDefault();
                     e.stopPropagation();

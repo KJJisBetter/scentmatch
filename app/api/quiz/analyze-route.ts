@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DirectDatabaseEngine } from '@/lib/ai-sdk/compatibility-layer';
+import { UnifiedRecommendationEngine } from '@/lib/ai-sdk/unified-recommendation-engine';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
 import { withRateLimit } from '@/lib/rate-limit';
 
@@ -34,12 +35,17 @@ export async function POST(request: NextRequest) {
     // Use session token or generate one (cryptographically secure)
     const sessionToken = body.session_token || `quiz-${nanoid(10)}`;
 
-    // Use direct database engine (working RPC functions)
-    const engine = new DirectDatabaseEngine();
-    const result = await engine.generateRecommendations(
-      body.responses,
-      sessionToken
+    // Use unified recommendation engine with database strategy
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    const engine = new UnifiedRecommendationEngine(supabase, 'database');
+    const result = await engine.generateRecommendations({
+      strategy: 'database',
+      quizResponses: body.responses,
+      sessionToken,
+    });
 
     if (!result.success) {
       return NextResponse.json(
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
           error: 'Unable to generate recommendations',
           recommendations: result.recommendations || [],
           quiz_session_token: sessionToken,
-          processing_time_ms: result.total_processing_time_ms,
+          processing_time_ms: result.processing_time_ms,
         },
         { status: 422 }
       );
@@ -59,7 +65,7 @@ export async function POST(request: NextRequest) {
         analysis_complete: true,
         recommendations: result.recommendations,
         quiz_session_token: result.quiz_session_token,
-        processing_time_ms: result.total_processing_time_ms,
+        processing_time_ms: result.processing_time_ms,
         recommendation_method: result.recommendation_method,
         personality_analysis: result.personality_analysis,
         next_steps: {

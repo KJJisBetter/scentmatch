@@ -29,9 +29,14 @@ interface ConversionFlowProps {
     processing_time_ms?: number;
     recommendation_method?: string;
     error?: string;
+    collection_context?: {
+      saved: boolean;
+      size: number;
+    };
   };
   onAccountCreated: (userData: any) => void;
   onConversionComplete: (result: any) => void;
+  collectionFirst?: boolean; // Flag for collection-first flow
 }
 
 /**
@@ -48,11 +53,12 @@ export function ConversionFlow({
   quizResults,
   onAccountCreated,
   onConversionComplete,
+  collectionFirst = false,
 }: ConversionFlowProps) {
   const router = useRouter();
   const [step, setStep] = useState<
     'quiz_results' | 'account_form' | 'conversion_success' | 'guest_limitations'
-  >('quiz_results');
+  >(collectionFirst ? 'account_form' : 'quiz_results');
   const [accountData, setAccountData] = useState({
     email: '',
     password: '',
@@ -188,8 +194,14 @@ export function ConversionFlow({
             // Handle sample order
             console.log('Sample order for:', fragranceId);
           }}
-          onLearnMore={fragranceId => {
-            router.push(`/fragrance/${fragranceId}`);
+          onLearnMore={async fragranceId => {
+            // Use safe navigation to prevent 404s (SCE-71 fix)
+            const { safeNavigateToFragrance } = await import('@/lib/services/fragrance-validation-client');
+            
+            await safeNavigateToFragrance(fragranceId, () => {
+              console.error(`❌ NAVIGATION FAILED: Fragrance ${fragranceId} not found in ConversionFlow`);
+              alert(`This fragrance is temporarily unavailable. Please try another recommendation!`);
+            });
           }}
           onSaveToFavorites={fragranceId => {
             // Handle save to favorites
@@ -282,19 +294,37 @@ export function ConversionFlow({
         <Card>
           <CardContent className='py-8'>
             <div className='text-center mb-6'>
-              <h2 className='text-2xl font-bold mb-2'>
-                Create Your ScentMatch Account
-              </h2>
-              <p className='text-muted-foreground'>
-                Unlock all your personalized matches
-              </p>
+              {collectionFirst && quizResults.collection_context?.saved ? (
+                <>
+                  <div className='text-4xl mb-4'>🎉</div>
+                  <h2 className='text-2xl font-bold mb-2'>
+                    Enhance Your Collection Experience
+                  </h2>
+                  <p className='text-muted-foreground'>
+                    Your {quizResults.collection_context.size} fragrances are saved! 
+                    Create an account to unlock advanced collection features.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className='text-2xl font-bold mb-2'>
+                    Create Your ScentMatch Account
+                  </h2>
+                  <p className='text-muted-foreground'>
+                    Unlock all your personalized matches
+                  </p>
+                </>
+              )}
             </div>
 
-            {/* Quiz Data Preservation Indicator */}
+            {/* Collection Context Indicator */}
             <Alert className='mb-6' variant='default'>
               <CheckCircle className='w-4 h-4' />
               <AlertDescription>
-                Your quiz results and recommendations will be saved
+                {collectionFirst && quizResults.collection_context?.saved 
+                  ? `Your collection of ${quizResults.collection_context.size} fragrances is secure and will be linked to your account`
+                  : 'Your quiz results and recommendations will be saved'
+                }
               </AlertDescription>
             </Alert>
 
@@ -377,6 +407,8 @@ export function ConversionFlow({
                     <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
                     <span>Creating Account...</span>
                   </div>
+                ) : collectionFirst && quizResults.collection_context?.saved ? (
+                  'Create Account & Enhance Collection'
                 ) : (
                   'Create Account & Unlock All Matches'
                 )}
@@ -408,7 +440,10 @@ export function ConversionFlow({
             <div className='text-4xl mb-4'>🎉</div>
             <h2 className='text-3xl font-bold mb-4'>Welcome to ScentMatch!</h2>
             <p className='text-lg text-muted-foreground mb-6'>
-              Your account is ready and your quiz results have been saved
+              {collectionFirst && quizResults.collection_context?.saved
+                ? `Your account is ready and your collection of ${quizResults.collection_context.size} fragrances is now enhanced with premium features`
+                : 'Your account is ready and your quiz results have been saved'
+              }
             </p>
 
             {/* Immediate Benefits Display */}
@@ -440,12 +475,19 @@ export function ConversionFlow({
               <Button
                 size='lg'
                 className='w-full bg-purple-600 hover:bg-purple-700 font-semibold py-4'
-                onClick={() =>
-                  router.push('/recommendations?quiz_completed=true')
-                }
+                onClick={() => {
+                  if (collectionFirst && quizResults.collection_context?.saved) {
+                    router.push('/collection?source=account_creation&enhanced=true');
+                  } else {
+                    router.push('/recommendations?quiz_completed=true');
+                  }
+                }}
               >
                 <ExternalLink className='w-5 h-5 mr-2' />
-                View All 15 Recommendations
+                {collectionFirst && quizResults.collection_context?.saved
+                  ? 'Manage Your Collection'
+                  : 'View All 15 Recommendations'
+                }
               </Button>
 
               <Button

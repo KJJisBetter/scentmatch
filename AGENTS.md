@@ -16,11 +16,12 @@ npm run build             # Production build
 ```
 
 ## Agent Usage Rules
-- **nextjs-specialist**: Complete Next.js features (pages, components, Server Actions)
-- **database-specialist**: All Supabase operations (queries, migrations, RLS)
-- **component-specialist**: UI implementation with shadcn/ui patterns
-- **api-specialist**: Complex search/AI endpoints requiring optimization
-- **ai-vector-researcher**: AI architecture decisions only
+- **database-operations-expert**: Supabase MCP (queries, migrations, RLS)
+- **qa-specialist**: Playwright MCP (browser testing, screenshots, validation)
+- **react-component-expert**: shadcn/ui components + testing
+- **devops-engineer**: Vercel MCP + GitHub CLI (deployments, infrastructure)
+- **market-researcher**: Exa/Firecrawl MCP (data research, competitive analysis)
+- **project-manager**: Linear MCP (issue tracking, task management)
 
 ## Code Standards
 - Files under 200 lines
@@ -30,7 +31,8 @@ npm run build             # Production build
 - Browser testing required for UI work
 
 ## Performance Rules
-- Delegate feature building to avoid main context hangs
-- Keep main Claude for orchestration only
-- Use agents when context window shows performance warning
+- Delegate feature building to MCP-equipped agents
+- Keep main Claude for orchestration and planning only
+- Use agents when context >30k tokens or need specialized tools
+- Always use GitHub CLI (gh) for GitHub operations
 - Return focused, actionable results from agents

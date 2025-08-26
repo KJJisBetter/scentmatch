@@ -2,6 +2,8 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { ShoppingCart, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { SocialValidationSuite } from '@/components/social/social-validation-suite';
+import { socialContextService } from '@/lib/services/social-context';
 
 interface FragrancePageProps {
   params: Promise<{
@@ -9,51 +11,57 @@ interface FragrancePageProps {
   }>;
 }
 
-// Simple fragrance page using working API route
+// Direct Supabase fragrance page using @supabase/ssr pattern
 export default async function SimpleFragrancePage({ params }: FragrancePageProps) {
   const { id } = await params;
+  const supabase = await createServerSupabase();
 
-  if (!id || id.trim() === '') {
+  // Direct ID lookup - URL slug matches database ID exactly
+  const { data: fragranceData, error } = await supabase
+    .from('fragrances')
+    .select(`
+      id,
+      name,
+      brand_id,
+      gender,
+      fragrance_family,
+      sample_available,
+      sample_price_usd,
+      fragrance_brands:brand_id (
+        id,
+        name,
+        slug
+      )
+    `)
+    .eq('id', id)
+    .single();
+
+  // Handle database errors
+  if (error || !fragranceData) {
+    console.error('Fragrance fetch error:', error);
     notFound();
   }
 
-  // Use the working API route instead of direct database access
-  let fragrance = null;
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
-      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      : 'http://localhost:3000';
-      
-    const response = await fetch(`${baseUrl}/api/fragrances/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      const fragranceData = await response.json();
-      fragrance = {
-        id: fragranceData.id,
-        name: fragranceData.name,
-        brand: fragranceData.fragrance_brands?.name || 'Unknown Brand',
-        scent_family: fragranceData.fragrance_family || 'Unknown',
-        sample_available: fragranceData.sample_available || false,
-        sample_price_usd: fragranceData.sample_price_usd || 15.99,
-      };
-    } else {
-      console.error('Fragrance API failed:', response.status, response.statusText);
-    }
-  } catch (error) {
-    console.error('Fragrance fetching failed:', error);
-  }
-
-  if (!fragrance) {
-    notFound();
-  }
+  // Transform API data to component format with fallbacks
+  const fragrance = {
+    id: fragranceData.id,
+    name: fragranceData.name || 'Unknown Fragrance',
+    brand: fragranceData.fragrance_brands?.[0]?.name || 'Unknown Brand', 
+    scent_family: fragranceData.fragrance_family || 'Signature',
+    sample_available: fragranceData.sample_available ?? true, // Default to available
+    sample_price_usd: fragranceData.sample_price_usd || 15.99,
+  };
 
   // Generate AI-style description based on scent family
   const aiDescription = generateAIDescription(fragrance);
+
+  // Fetch social context for this fragrance
+  // TODO: Get actual user demographics from session
+  const socialContext = await socialContextService.getFragranceSocialContext(
+    fragrance.id,
+    "18-24", // Default age group for demo
+    "beginner" // Default experience level for demo
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,6 +104,18 @@ export default async function SimpleFragrancePage({ params }: FragrancePageProps
                 </div>
               </div>
             </div>
+
+            {/* Social Validation Section */}
+            {socialContext && (
+              <SocialValidationSuite
+                fragranceId={fragrance.id}
+                fragranceName={fragrance.name}
+                context={socialContext}
+                userAgeGroup="18-24" // TODO: Get from user session
+                userExperienceLevel="beginner" // TODO: Get from user session
+                className="my-8"
+              />
+            )}
 
             {/* Battle Points Preview */}
             <div className="space-y-4">

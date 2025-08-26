@@ -34,7 +34,7 @@ try {
  * This client automatically handles authentication state and session management
  */
 export function createClientSupabase() {
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+  return createBrowserClient<Database>(supabaseUrl!, supabaseAnonKey!, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,

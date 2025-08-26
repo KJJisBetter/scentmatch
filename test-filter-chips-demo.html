@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filter Chips Demo - ScentMatch</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .demo-section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #555;
+        }
+        
+        .filter-chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .filter-chip:hover {
+            transform: scale(1.05);
+            border-color: #3b82f6;
+        }
+        
+        .filter-chip.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .filter-chip.active:hover {
+            background: #2563eb;
+        }
+        
+        .chip-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: inherit;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .filter-chip:not(.active) .chip-count {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        
+        .remove-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            transition: background 0.2s;
+        }
+        
+        .remove-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .suggestions-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border: 1px dashed #c7d2fe;
+        }
+        
+        .suggestions-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6366f1;
+            margin-bottom: 12px;
+        }
+        
+        .ai-suggestion {
+            border: 1px dashed #c7d2fe;
+            background: white;
+        }
+        
+        .ai-suggestion:hover {
+            border-color: #6366f1;
+        }
+        
+        .metrics {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border: 1px solid #e0f2fe;
+        }
+        
+        .metric {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .metric-label {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        
+        .metric-value {
+            color: #334155;
+        }
+        
+        .animation-demo {
+            margin-top: 20px;
+        }
+        
+        .animate-out {
+            animation: chipRemove 200ms ease-out forwards;
+        }
+        
+        @keyframes chipRemove {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.95); }
+        }
+        
+        .loading-spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .filter-chips-container {
+                gap: 6px;
+            }
+            
+            .filter-chip {
+                min-height: 44px; /* Ensure mobile touch targets */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌸 ScentMatch Filter Chips Demo</h1>
+        
+        <div class="demo-section">
+            <div class="section-title">Basic Filter Chips</div>
+            <div class="filter-chips-container" role="group" aria-label="Filter chips">
+                <div class="filter-chip" data-testid="filter-chip-citrus" aria-pressed="false" onclick="toggleFilter('citrus', this)">
+                    <span>Citrus</span>
+                    <span class="chip-count">45</span>
+                </div>
+                
+                <div class="filter-chip" data-testid="filter-chip-woody" aria-pressed="false" onclick="toggleFilter('woody', this)">
+                    <span>Woody</span>
+                    <span class="chip-count">32</span>
+                </div>
+                
+                <div class="filter-chip active" data-testid="filter-chip-creed" aria-pressed="true">
+                    <span onclick="toggleFilter('creed', this.parentElement)">Creed</span>
+                    <span class="chip-count">28</span>
+                    <button class="remove-btn" onclick="removeFilter('creed', this.parentElement)" data-testid="remove-filter-creed" aria-label="Remove Creed filter">
+                        ✕
+                    </button>
+                </div>
+                
+                <div class="filter-chip" data-testid="filter-chip-office" aria-pressed="false" onclick="toggleFilter('office', this)">
+                    <span>Office</span>
+                    <span class="chip-count">15</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="suggestions-section">
+            <div class="suggestions-title">
+                ✨ People also filter by
+            </div>
+            <div class="filter-chips-container">
+                <div class="filter-chip ai-suggestion" onclick="selectSuggestion('fresh', this)">
+                    <span>Fresh</span>
+                    <span class="chip-count">22</span>
+                </div>
+                <div class="filter-chip ai-suggestion" onclick="selectSuggestion('summer', this)">
+                    <span>Summer</span>
+                    <span class="chip-count">18</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metrics">
+            <div class="section-title">Performance Metrics</div>
+            <div class="metric">
+                <span class="metric-label">Filter Update Time:</span> 
+                <span class="metric-value" id="update-time">< 100ms</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Result Count:</span> 
+                <span class="metric-value" id="result-count">1,234 fragrances</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">API Response:</span> 
+                <span class="metric-value" id="api-response">85ms</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Target Met:</span> 
+                <span class="metric-value" id="target-met">✅ Yes</span>
+            </div>
+        </div>
+        
+        <div class="animation-demo">
+            <div class="section-title">Test Animations</div>
+            <button onclick="testRemoveAnimation()" style="padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; background: white; cursor: pointer; margin-right: 10px;">
+                Test Remove Animation
+            </button>
+            <button onclick="testLoadingState()" style="padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; background: white; cursor: pointer;">
+                Test Loading State
+            </button>
+        </div>
+    </div>
+
+    <!-- Screen reader announcements -->
+    <div aria-live="polite" aria-atomic="true" style="position: absolute; left: -10000px;">
+        <span id="announcements"></span>
+    </div>
+
+    <script>
+        let activeFilters = new Set(['creed']);
+        let isLoading = false;
+        
+        function toggleFilter(id, element) {
+            const startTime = performance.now();
+            
+            if (activeFilters.has(id)) {
+                activeFilters.delete(id);
+                element.classList.remove('active');
+                element.setAttribute('aria-pressed', 'false');
+                
+                // Remove the remove button if it exists
+                const removeBtn = element.querySelector('.remove-btn');
+                if (removeBtn) {
+                    removeBtn.remove();
+                }
+                
+                announce(`${id} filter removed`);
+            } else {
+                activeFilters.add(id);
+                element.classList.add('active');
+                element.setAttribute('aria-pressed', 'true');
+                
+                // Add remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '✕';
+                removeBtn.setAttribute('data-testid', `remove-filter-${id}`);
+                removeBtn.setAttribute('aria-label', `Remove ${id} filter`);
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeFilter(id, element);
+                };
+                element.appendChild(removeBtn);
+                
+                announce(`${id} filter applied`);
+            }
+            
+            // Update metrics
+            const duration = performance.now() - startTime;
+            updateMetrics(duration);
+            
+            // Simulate debounced count update
+            setTimeout(() => {
+                updateResultCount();
+            }, 300);
+        }
+        
+        function removeFilter(id, element) {
+            const startTime = performance.now();
+            
+            // Start animation
+            element.classList.add('animate-out');
+            
+            // Complete removal after animation
+            setTimeout(() => {
+                activeFilters.delete(id);
+                element.classList.remove('active', 'animate-out');
+                element.setAttribute('aria-pressed', 'false');
+                
+                const removeBtn = element.querySelector('.remove-btn');
+                if (removeBtn) {
+                    removeBtn.remove();
+                }
+                
+                announce(`${id} filter removed`);
+                
+                const duration = performance.now() - startTime;
+                updateMetrics(duration);
+                updateResultCount();
+            }, 200);
+        }
+        
+        function selectSuggestion(id, element) {
+            // Add to main filters
+            const container = document.querySelector('.filter-chips-container:first-of-type');
+            const newChip = element.cloneNode(true);
+            newChip.classList.remove('ai-suggestion');
+            newChip.onclick = () => toggleFilter(id, newChip);
+            
+            // Make it active and add remove button
+            newChip.classList.add('active');
+            newChip.setAttribute('aria-pressed', 'true');
+            newChip.setAttribute('data-testid', `filter-chip-${id}`);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.innerHTML = '✕';
+            removeBtn.setAttribute('data-testid', `remove-filter-${id}`);
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeFilter(id, newChip);
+            };
+            newChip.appendChild(removeBtn);
+            
+            container.appendChild(newChip);
+            activeFilters.add(id);
+            
+            // Remove from suggestions
+            element.remove();
+            
+            announce(`${id} filter applied from suggestions`);
+            updateResultCount();
+        }
+        
+        function updateMetrics(duration) {
+            document.getElementById('update-time').textContent = `${Math.round(duration)}ms`;
+            document.getElementById('target-met').innerHTML = duration < 100 ? '✅ Yes' : '❌ No';
+        }
+        
+        function updateResultCount() {
+            // Simulate API call delay
+            const apiStart = performance.now();
+            
+            setTimeout(() => {
+                const apiDuration = performance.now() - apiStart + Math.random() * 50 + 50; // 50-100ms
+                const count = Math.floor(Math.random() * 500) + 800; // 800-1300
+                
+                document.getElementById('result-count').textContent = `${count.toLocaleString()} fragrances`;
+                document.getElementById('api-response').textContent = `${Math.round(apiDuration)}ms`;
+            }, Math.random() * 100 + 50); // 50-150ms delay
+        }
+        
+        function announce(message) {
+            const announcements = document.getElementById('announcements');
+            announcements.textContent = message;
+            
+            // Clear after a moment to allow for multiple announcements
+            setTimeout(() => {
+                announcements.textContent = '';
+            }, 1000);
+        }
+        
+        function testRemoveAnimation() {
+            const chips = document.querySelectorAll('.filter-chip.active');
+            if (chips.length > 0) {
+                const chip = chips[0];
+                chip.classList.add('animate-out');
+                
+                setTimeout(() => {
+                    chip.classList.remove('animate-out');
+                }, 200);
+            }
+        }
+        
+        function testLoadingState() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            const counts = document.querySelectorAll('.chip-count');
+            const originalContents = [];
+            
+            counts.forEach((count, index) => {
+                originalContents[index] = count.innerHTML;
+                count.innerHTML = '<div class="loading-spinner"></div>';
+            });
+            
+            setTimeout(() => {
+                counts.forEach((count, index) => {
+                    count.innerHTML = originalContents[index];
+                });
+                isLoading = false;
+            }, 2000);
+        }
+        
+        // Initialize
+        updateResultCount();
+    </script>
+</body>
+</html>

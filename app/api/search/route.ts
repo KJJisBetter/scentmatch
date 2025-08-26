@@ -9,6 +9,19 @@ import { MissingProductDetector } from '@/lib/data-quality/missing-product-detec
 import { withRateLimit } from '@/lib/rate-limit';
 
 /**
+ * Clean corrupted fragrance names that contain UUIDs
+ * Handles edge cases where database entries have UUID prefixes
+ */
+function cleanFragranceName(name: string): string {
+  if (!name) return name;
+  
+  // Remove UUID prefixes (36-char UUID pattern followed by space)
+  // Pattern: "12deed0a-fe15-45f1-b6e0-50f421f3bb7f Creed Aventus Oil"
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s+/i;
+  return name.replace(uuidPattern, '').trim();
+}
+
+/**
  * Unified Search API - Consolidates 5 search routes into one
  * 
  * GET /api/search?mode=enhanced&type=suggestions&smart=true&filters=true
@@ -75,12 +88,28 @@ export async function GET(request: NextRequest) {
           canonicalResults &&
           canonicalResults.length > 0
         ) {
+          // Map canonical UUIDs back to original fragrance IDs for proper linking
+          const canonicalIds = canonicalResults.map((r: any) => r.fragrance_id);
+          
+          const { data: fragranceMapping } = await supabase
+            .from('fragrances_canonical')
+            .select('id, metadata')
+            .in('id', canonicalIds);
+
+          const idMap = new Map();
+          fragranceMapping?.forEach((mapping: any) => {
+            const originalId = mapping.metadata?.migrated_from;
+            if (originalId) {
+              idMap.set(mapping.id, originalId);
+            }
+          });
+
           searchResults = {
             fragrances: canonicalResults.map((result: any) => ({
-              id: result.fragrance_id,
-              name: result.canonical_name,
+              id: idMap.get(result.fragrance_id) || result.fragrance_id, // Use original fragrance ID
+              name: cleanFragranceName(result.canonical_name),
               brand: result.brand_name,
-              brand_id: result.fragrance_id, // Compatibility
+              brand_id: result.brand_id || result.brand_name, // Use actual brand ID
               gender: 'unisex', // Default for canonical
               relevance_score: result.similarity_score,
               sample_available: true,
@@ -132,9 +161,9 @@ export async function GET(request: NextRequest) {
 
             return {
               id: result.fragrance_id,
-              name: result.name,
+              name: cleanFragranceName(result.name),
               brand: normalizedBrand.canonical_name,
-              brand_id: result.fragrance_id,
+              brand_id: result.brand_id || normalizedBrand.canonical_name,
               gender: 'unisex',
               relevance_score: result.relevance_score,
               sample_available: true,
@@ -254,7 +283,7 @@ export async function GET(request: NextRequest) {
 
           return {
             id: result.id,
-            name: result.name,
+            name: cleanFragranceName(result.name),
             brand: normalizedBrand.canonical_name,
             brand_id: result.brand_id,
             gender: result.gender || 'unisex',
@@ -299,12 +328,32 @@ export async function GET(request: NextRequest) {
 
         // If we have good alternatives, format them as search results
         if (missingProductResponse.alternatives.length > 0) {
+          // Check if alternatives have canonical UUIDs that need mapping
+          const alternativeIds = missingProductResponse.alternatives.map((alt: any) => alt.fragrance_id);
+          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const needsMapping = alternativeIds.some((id: string) => uuidPattern.test(id));
+          
+          const alternativeIdMap = new Map();
+          if (needsMapping) {
+            const { data: altMapping } = await supabase
+              .from('fragrances_canonical')
+              .select('id, metadata')
+              .in('id', alternativeIds.filter((id: string) => uuidPattern.test(id)));
+
+            altMapping?.forEach((mapping: any) => {
+              const originalId = mapping.metadata?.migrated_from;
+              if (originalId) {
+                alternativeIdMap.set(mapping.id, originalId);
+              }
+            });
+          }
+
           searchResults = {
             fragrances: missingProductResponse.alternatives.map((alt: any) => ({
-              id: alt.fragrance_id,
-              name: alt.name,
+              id: alternativeIdMap.get(alt.fragrance_id) || alt.fragrance_id, // Use original fragrance ID if available
+              name: cleanFragranceName(alt.name),
               brand: alt.brand,
-              brand_id: alt.fragrance_id,
+              brand_id: alt.brand_id || alt.brand,
               gender: 'unisex', // Default
               relevance_score: alt.similarity_score,
               sample_available: true,

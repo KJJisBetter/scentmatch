@@ -52,6 +52,7 @@ export function AdaptiveQuizInterface({
 }: AdaptiveQuizInterfaceProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
+  const [localSelections, setLocalSelections] = useState<string[]>([]);
 
   const quizData = getNaturalQuizData(mode);
   const questions = quizData.questions;
@@ -93,7 +94,7 @@ export function AdaptiveQuizInterface({
     singleForm.reset({ answer: '' });
     multipleForm.reset({ selections: [] });
     setLocalSelections([]);
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, singleForm, multipleForm]);
 
   // Notify parent of progress updates
   useEffect(() => {
@@ -258,8 +259,6 @@ export function AdaptiveQuizInterface({
   if (!currentQuestion) {
     return null;
   }
-
-  const [localSelections, setLocalSelections] = useState<string[]>([]);
 
   return (
     <div className='max-w-2xl mx-auto'>

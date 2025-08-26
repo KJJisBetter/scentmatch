@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (validatedParams.fragrance_id) {
-      query = query.eq('fragrance_id', validatedParams.fragrance_id);
+      query = query.eq('fragrance_id', parseInt(validatedParams.fragrance_id));
     }
 
     if (validatedParams.user_id) {
@@ -181,9 +181,25 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     
     // For updates, we need to identify the existing rating
-    const updateSchema = peerRatingSchema.extend({
-      rating_id: z.number().int().positive().optional()
-    });
+    const updateSchema = z.object({
+      rating_id: z.number().int().positive().optional(),
+      user_id: z.string().uuid().optional(),
+      guest_session_id: z.string().min(1).optional(),
+      fragrance_id: z.string().min(1, 'Fragrance ID is required'),
+      overall_rating: z.number().min(0).max(5, 'Rating must be between 0 and 5'),
+      would_recommend: z.boolean().default(false),
+      experience_rating: z.enum(['love', 'like', 'neutral', 'dislike', 'hate']),
+      usage_occasion: z.string().optional(),
+      wear_duration_hours: z.number().int().min(0).max(48).optional(),
+      experience_level_when_rated: z.enum(['beginner', 'intermediate', 'experienced', 'expert']),
+      confidence_in_rating: z.number().int().min(1).max(10).default(5),
+      quick_review: z.string().max(500).optional(),
+      is_verified_purchase: z.boolean().default(false),
+      is_sample_experience: z.boolean().default(true)
+    }).refine(
+      (data) => data.user_id || data.guest_session_id,
+      { message: "Either user_id or guest_session_id must be provided" }
+    );
 
     const validatedData = updateSchema.parse(body);
 

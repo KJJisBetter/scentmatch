@@ -3,6 +3,9 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { fontVariables } from '@/lib/fonts';
+import { BottomNav } from '@/components/navigation/bottom-nav';
+import { SkipLinks } from '@/components/accessibility/skip-links';
+import { ScreenReaderAnnouncements } from '@/components/accessibility/screen-reader-announcements';
 
 export const metadata: Metadata = {
   title: 'ScentMatch - AI-Powered Fragrance Discovery & Samples',
@@ -83,11 +86,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={fontVariables}>
       <head>
-        {/* Fonts handled automatically by next/font/google */}
-        
-        {/* Core Web Vitals optimization */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Fonts handled automatically by next/font/google - no manual preconnect needed */}
         
         {/* Theme color for mobile browsers */}
         <meta name="theme-color" content="#2d1b3d" />
@@ -130,7 +129,19 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <div id="root">{children}</div>
+        <SkipLinks />
+        <ScreenReaderAnnouncements />
+        
+        <div id="root" className="pb-20 md:pb-8">
+          <main id="main-content" tabIndex={-1} role="main">
+            {children}
+          </main>
+        </div>
+        
+        <nav id="main-navigation" aria-label="Bottom navigation">
+          <BottomNav />
+        </nav>
+        
         <Analytics />
         <SpeedInsights />
       </body>

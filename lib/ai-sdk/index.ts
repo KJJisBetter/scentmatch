@@ -18,6 +18,35 @@ export {
   type RecommendationItem,
 } from './unified-recommendation-engine';
 
+// Experience-level detection and adaptive prompts
+export {
+  UserExperienceDetector,
+  experienceDetector,
+  type UserExperienceLevel,
+  type ExperienceAnalysis,
+  type ExplanationStyle,
+} from './user-experience-detector';
+
+export {
+  AdaptivePromptEngine,
+  adaptivePromptEngine,
+  validateBeginnerExplanation,
+  FRAGRANCE_EDUCATION,
+  VOCABULARY_SIMPLIFICATION,
+  ADAPTIVE_PROMPT_TEMPLATES,
+  type AdaptivePromptConfig,
+  type FragranceEducationTerms,
+} from './adaptive-prompts';
+
+// Specialized beginner explanation engine (SCE-66 & SCE-67)
+export {
+  BeginnerExplanationEngine,
+  beginnerExplanationEngine,
+  generateBeginnerExplanation,
+  type BeginnerExplanationRequest,
+  type BeginnerExplanationResult,
+} from './beginner-explanation-engine';
+
 // Legacy compatibility layer removed - all code now uses UnifiedRecommendationEngine
 
 // Embedding service
@@ -81,19 +110,35 @@ export { openai } from '@ai-sdk/openai';
  * const embedding = await aiClient.generateEmbedding('fragrance description');
  * ```
  *
- * Generate recommendations:
+ * Generate beginner-friendly recommendations:
  * ```typescript
- * import { aiClient } from '@/lib/ai-sdk';
- * const recommendations = await aiClient.generateRecommendations(
- *   userPreferences,
- *   fragranceData,
- *   10
- * );
+ * import { createUnifiedEngine } from '@/lib/ai-sdk';
+ * const engine = await createUnifiedEngine(supabase);
+ * const result = await engine.generateRecommendations({
+ *   strategy: 'hybrid',
+ *   userId: 'user123',
+ *   adaptiveExplanations: true,
+ *   quizResponses: [...]
+ * });
  * ```
  *
- * Analyze personality:
+ * Generate specialized beginner explanations:
  * ```typescript
- * import { aiClient } from '@/lib/ai-sdk';
- * const personality = await aiClient.analyzePersonality(quizResponses);
+ * import { generateBeginnerExplanation } from '@/lib/ai-sdk';
+ * const explanation = await generateBeginnerExplanation({
+ *   fragranceId: 'fragrance123',
+ *   fragranceName: 'Sauvage',
+ *   brand: 'Dior',
+ *   scentFamily: 'fresh',
+ *   userContext: 'new to fragrances, likes fresh scents'
+ * });
+ * ```
+ *
+ * Experience-level detection:
+ * ```typescript
+ * import { experienceDetector } from '@/lib/ai-sdk';
+ * const detector = experienceDetector(supabase);
+ * const analysis = await detector.analyzeUserExperience('user123');
+ * console.log(analysis.level); // 'beginner' | 'intermediate' | 'advanced'
  * ```
  */

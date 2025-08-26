@@ -1,771 +1,454 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import React, { useState, useMemo, useTransition } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Grid,
-  List,
-  Circle,
-  Calendar,
-  Filter,
-  Search,
-  Download,
-  Plus,
-  Settings,
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Search, 
+  Grid, 
+  List, 
+  Calendar, 
+  TrendingUp,
+  BarChart3,
   Sparkles,
+  BookOpen,
+  Target
 } from 'lucide-react';
-import { createClientSupabase } from '@/lib/supabase';
-import { ViewSwitcher } from './view-switcher';
-import { CollectionFilters } from './collection-filters';
-import { GridView } from './grid-view';
-import { ListView } from './list-view';
-import { WheelView } from './wheel-view';
-import { CalendarView } from './calendar-view';
-import { AIInsights } from './ai-insights';
-import { CollectionManager } from './collection-manager';
-import { InteractionTracker } from '../fragrance/interaction-tracker';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  experience_level?: string;
-  favorite_accords?: string[];
-  disliked_accords?: string[];
-  privacy_settings?: any;
-}
-
-interface CollectionStats {
-  total_fragrances: number;
-  diversity_score: number;
-  dominant_families: string[];
-  average_rating?: number;
-  by_status?: any;
-  recent_additions?: any[];
-}
+import { CollectionGrid } from './collection-grid';
+import { CollectionStats } from './collection-stats';
+import { getCollectionStats } from '@/lib/actions/collection-analytics';
 
 interface CollectionDashboardProps {
-  userId: string;
-  userProfile?: UserProfile;
-  initialStats?: CollectionStats;
-  recentActivity?: any[];
+  user: {
+    id: string;
+    email: string | null | undefined;
+    firstName: string;
+  };
+  initialCollection: any[];
+  collectionStats: any;
+  engagementData: any;
+  searchParams: {
+    source?: string;
+    new_collection?: string;
+    enhanced?: string;
+    category?: string;
+    search?: string;
+  };
+  hasCollectionError?: boolean;
 }
 
-type ViewMode = 'grid' | 'list' | 'table' | 'wheel' | 'calendar';
-type ProgressiveView =
-  | 'currently-wearing'
-  | 'this-season'
-  | 'entire-collection';
+type ViewMode = 'grid' | 'list';
+type FilterCategory = 'all' | 'rated' | 'unrated' | 'recent' | 'favorites';
+type SortOption = 'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'name_az' | 'name_za';
 
 /**
- * CollectionDashboard Component
- *
- * Main collection management interface implementing research-backed UX patterns:
- * - Progressive disclosure to avoid cognitive overload
- * - Multiple visualization modes for different user preferences
- * - AI-powered insights with explainable transparency
- * - Mobile-first responsive design with thumb-zone optimization
- * - Performance optimization for large collections
+ * Collection Dashboard Component - Task 2.1 (Phase 1B)
+ * 
+ * Simplified collection dashboard focused on quiz-powered collection features.
+ * Integrates with the new collection analytics and quiz-to-collection flow.
  */
 export function CollectionDashboard({
-  userId,
-  userProfile,
-  initialStats,
-  recentActivity = [],
+  user,
+  initialCollection,
+  collectionStats: initialStats,
+  engagementData,
+  searchParams,
+  hasCollectionError,
 }: CollectionDashboardProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const [collection, setCollection] = useState(initialCollection);
+  const [searchTerm, setSearchTerm] = useState(searchParams.search || '');
+  const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showInsights, setShowInsights] = useState(false);
+  const [collectionStats, setCollectionStats] = useState(initialStats);
+  const [insights, setInsights] = useState<any>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  // Dashboard state management
-  const [currentView, setCurrentView] = useState<ViewMode>(
-    (searchParams.get('view') as ViewMode) || 'grid'
-  );
-  const [progressiveView, setProgressiveView] =
-    useState<ProgressiveView>('currently-wearing');
-  const [collection, setCollection] = useState<any[]>([]);
-  const [filteredCollection, setFilteredCollection] = useState<any[]>([]);
-  const [collectionStats, setCollectionStats] = useState<CollectionStats>(
-    initialStats || {
-      total_fragrances: 0,
-      diversity_score: 0,
-      dominant_families: [],
-    }
-  );
-
-  // UI state
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [filters, setFilters] = useState({
-    status: 'all',
-    family: 'all',
-    occasion: 'all',
-    season: 'all',
-    search: '',
-  });
-  const [showFilters, setShowFilters] = useState(false);
-  const [trackInteraction, setTrackInteraction] = useState<{
-    type: string;
-    context: string;
-    metadata?: any;
-  } | null>(null);
-
-  // Load collection data
-  useEffect(() => {
-    const loadCollection = async () => {
-      try {
-        setIsLoading(true);
-        const supabase = createClientSupabase();
-
-        // Fetch user's complete collection with basic details
-        const { data: collectionData, error } = await (supabase as any)
-          .from('user_collections')
-          .select(
-            `
-            id,
-            fragrance_id,
-            added_at,
-            fragrances:fragrance_id (
-              id,
-              name,
-              brand_id,
-              sample_available,
-              sample_price_usd,
-              fragrance_brands:brand_id (
-                name
-              )
-            )
-          `
-          )
-          .eq('user_id', userId)
-          .order('added_at', { ascending: false });
-
-        if (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Error loading collection:', error);
-          }
-          return;
-        }
-
-        setCollection(collectionData || []);
-
-        // Update stats if we have fresh data
-        if (collectionData && collectionData.length > 0) {
-          const stats = calculateCollectionStats(collectionData);
-          setCollectionStats(stats);
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error in loadCollection:', error);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCollection();
-  }, [userId]);
-
-  // Apply filters and progressive view logic
-  useEffect(() => {
+  const filteredCollection = useMemo(() => {
     let filtered = [...collection];
 
-    // Apply progressive view logic first
-    if (progressiveView === 'currently-wearing') {
-      // Show recently used or high-rating fragrances (max 5)
-      filtered = filtered
-        .filter(
-          item =>
-            item.usage_frequency === 'daily' ||
-            item.usage_frequency === 'weekly' ||
-            (item.rating && item.rating >= 4)
-        )
-        .slice(0, 5);
-    } else if (progressiveView === 'this-season') {
-      // Show current season fragrances (max 15)
-      const currentSeason = getCurrentSeason();
-      filtered = filtered
-        .filter(
-          item =>
-            !item.seasons ||
-            item.seasons.length === 0 ||
-            item.seasons.includes(currentSeason)
-        )
-        .slice(0, 15);
-    }
-    // 'entire-collection' shows all items
-
-    // Apply filters
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(item => item.status === filters.status);
-    }
-
-    if (filters.family !== 'all') {
-      filtered = filtered.filter(
-        item => item.fragrances?.scent_family === filters.family
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((item) => 
+        item.fragrances?.name?.toLowerCase().includes(searchLower) ||
+        item.fragrances?.fragrance_brands?.name?.toLowerCase().includes(searchLower) ||
+        item.fragrances?.scent_family?.toLowerCase().includes(searchLower) ||
+        item.notes?.toLowerCase().includes(searchLower)
       );
     }
 
-    if (filters.occasion !== 'all') {
-      filtered = filtered.filter(item =>
-        item.occasions?.includes(filters.occasion)
-      );
+    switch (filterCategory) {
+      case 'rated':
+        filtered = filtered.filter((item) => item.rating);
+        break;
+      case 'unrated':
+        filtered = filtered.filter((item) => !item.rating);
+        break;
+      case 'recent':
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        filtered = filtered.filter((item) => new Date(item.created_at) > weekAgo);
+        break;
+      case 'favorites':
+        filtered = filtered.filter((item) => item.rating >= 4);
+        break;
     }
 
-    if (filters.season !== 'all') {
-      filtered = filtered.filter(item =>
-        item.seasons?.includes(filters.season)
-      );
+    switch (sortOption) {
+      case 'oldest':
+        filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case 'rating_high':
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'rating_low':
+        filtered.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+        break;
+      case 'name_az':
+        filtered.sort((a, b) => (a.fragrances?.name || '').localeCompare(b.fragrances?.name || ''));
+        break;
+      case 'name_za':
+        filtered.sort((a, b) => (b.fragrances?.name || '').localeCompare(a.fragrances?.name || ''));
+        break;
+      default:
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
     }
 
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        item =>
-          item.fragrances?.name?.toLowerCase().includes(searchLower) ||
-          item.fragrances?.fragrance_brands?.name
-            ?.toLowerCase()
-            .includes(searchLower) ||
-          item.personal_notes?.toLowerCase().includes(searchLower)
-      );
-    }
+    return filtered;
+  }, [collection, searchTerm, filterCategory, sortOption]);
 
-    setFilteredCollection(filtered);
-  }, [collection, filters, progressiveView]);
+  const filterCounts = useMemo(() => {
+    const rated = collection.filter(item => item.rating).length;
+    const recent = collection.filter(item => {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      return new Date(item.created_at) > weekAgo;
+    }).length;
+    const favorites = collection.filter(item => item.rating >= 4).length;
 
-  // Handle view mode changes with URL sync
-  const handleViewChange = (view: ViewMode) => {
-    setCurrentView(view);
+    return {
+      all: collection.length,
+      rated,
+      unrated: collection.length - rated,
+      recent,
+      favorites,
+    };
+  }, [collection]);
 
-    // Track view change
-    setTrackInteraction({
-      type: 'view',
-      context: 'collection_dashboard',
-      metadata: { view_mode: view, collection_size: filteredCollection.length },
-    });
-
-    // Update URL without page reload
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('view', view);
-    router.replace(`/dashboard/collection?${newSearchParams.toString()}`);
+  const loadInsights = async () => {
+    // Insights functionality temporarily disabled
+    console.log('Collection insights feature coming soon');
   };
 
-  // Handle filter changes
-  const handleFilterChange = (newFilters: Partial<typeof filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    setSelectedItems([]); // Clear selection when filters change
-
-    // Track filter usage
-    setTrackInteraction({
-      type: 'view',
-      context: 'collection_filters',
-      metadata: { filters: { ...filters, ...newFilters } },
+  const refreshStats = async () => {
+    startTransition(async () => {
+      try {
+        const result = await getCollectionStats();
+        if (result.success) {
+          setCollectionStats(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to refresh stats:', error);
+      }
     });
   };
 
-  // Handle progressive view changes
-  const handleProgressiveViewChange = (view: ProgressiveView) => {
-    setProgressiveView(view);
-    setSelectedItems([]); // Clear selection on view change
-
-    setTrackInteraction({
-      type: 'view',
-      context: 'progressive_disclosure',
-      metadata: { progressive_view: view },
-    });
-  };
-
-  // Handle item selection for bulk operations
-  const handleItemSelect = (itemId: string, selected: boolean) => {
-    setSelectedItems(prev =>
-      selected ? [...prev, itemId] : prev.filter(id => id !== itemId)
+  const handleItemUpdate = (itemId: string, updates: any) => {
+    setCollection(prev => 
+      prev.map(item => 
+        item.id === itemId ? { ...item, ...updates } : item
+      )
     );
   };
 
-  // Handle collection updates
-  const handleCollectionChange = (newCollection: any[]) => {
-    setCollection(newCollection);
-
-    // Recalculate stats
-    const newStats = calculateCollectionStats(newCollection);
-    setCollectionStats(newStats);
-
-    // Clear selections
-    setSelectedItems([]);
+  const handleItemRemove = (itemId: string) => {
+    setCollection(prev => prev.filter(item => item.id !== itemId));
+    refreshStats();
   };
-
-  // Handle item clicks for navigation
-  const handleItemClick = (item: any) => {
-    // Track item interaction
-    setTrackInteraction({
-      type: 'view',
-      context: 'collection_item_click',
-      metadata: {
-        fragrance_id: item.fragrance_id,
-        status: item.status,
-        view_mode: currentView,
-      },
-    });
-
-    // Navigate to fragrance detail page
-    router.push(`/fragrance/${item.fragrance_id}`);
-  };
-
-  if (isLoading) {
-    return <CollectionDashboardSkeleton />;
-  }
 
   return (
-    <>
-      {trackInteraction && (
-        <InteractionTracker
-          fragranceId=''
-          interactionType={trackInteraction.type as any}
-          interactionContext={trackInteraction.context}
-          metadata={trackInteraction.metadata}
-        />
+    <div className="space-y-8">
+      {hasCollectionError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            There was an issue loading your collection.
+          </AlertDescription>
+        </Alert>
       )}
 
-      <div className='space-y-8'>
-        {/* Progressive Disclosure Navigation */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center space-x-2'>
-              <Sparkles className='h-5 w-5 text-amber-500' />
-              <span>Collection View</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs
-              value={progressiveView}
-              onValueChange={value =>
-                handleProgressiveViewChange(value as ProgressiveView)
-              }
-            >
-              <TabsList className='grid w-full grid-cols-3'>
-                <TabsTrigger value='currently-wearing' className='text-sm'>
-                  Currently Wearing
-                  <Badge variant='secondary' className='ml-2 text-xs'>
-                    {
-                      collection.filter(
-                        i =>
-                          i.usage_frequency === 'daily' ||
-                          i.usage_frequency === 'weekly' ||
-                          (i.rating && i.rating >= 4)
-                      ).length
-                    }
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value='this-season' className='text-sm'>
-                  This Season
-                  <Badge variant='secondary' className='ml-2 text-xs'>
-                    {
-                      collection.filter(i => {
-                        const currentSeason = getCurrentSeason();
-                        return (
-                          !i.seasons ||
-                          i.seasons.length === 0 ||
-                          i.seasons.includes(currentSeason)
-                        );
-                      }).length
-                    }
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value='entire-collection' className='text-sm'>
-                  Full Collection
-                  <Badge variant='secondary' className='ml-2 text-xs'>
-                    {collection.length}
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+      {searchParams.new_collection === 'true' && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-3">
+              <div className="text-3xl">🎉</div>
+              <div>
+                <h3 className="text-lg font-semibold text-green-800">
+                  Welcome to Your Collection, {user.firstName}!
+                </h3>
+                <p className="text-green-700">
+                  {searchParams.source === 'quiz_completion' 
+                    ? 'Your quiz recommendations have been saved.'
+                    : 'Your collection is ready to explore!'
+                  }
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Collection Controls */}
-        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
-          {/* View Mode Switcher */}
-          <ViewSwitcher
-            currentView={currentView}
-            onViewChange={handleViewChange}
-            viewOptions={['grid', 'list', 'wheel', 'calendar']}
-          />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <CollectionStats stats={collectionStats} />
+      </div>
 
-          {/* Filter and Search Controls */}
-          <div className='flex items-center space-x-3'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-              <input
-                type='text'
-                placeholder='Search collection...'
-                value={filters.search}
-                onChange={e => handleFilterChange({ search: e.target.value })}
-                className='pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent'
-              />
-            </div>
-
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={() => setShowFilters(!showFilters)}
-              className='flex items-center space-x-2'
-            >
-              <Filter className='h-4 w-4' />
-              <span>Filters</span>
-              {Object.values(filters).some(f => f !== 'all' && f !== '') && (
-                <Badge variant='accent' className='text-xs'>
-                  Active
-                </Badge>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Advanced Filters (Collapsible) */}
-        {showFilters && (
+      <div className="grid gap-8 lg:grid-cols-12">
+        <div className="lg:col-span-8 space-y-6">
           <Card>
-            <CardContent className='pt-6'>
-              <CollectionFilters
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                collection={collection}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Bulk Operations Bar */}
-        {selectedItems.length > 0 && (
-          <Card className='bg-accent border-accent'>
-            <CardContent className='py-4'>
-              <div className='flex items-center justify-between'>
-                <span className='font-medium'>
-                  {selectedItems.length} item
-                  {selectedItems.length > 1 ? 's' : ''} selected
-                </span>
-
-                <div className='flex items-center space-x-2'>
-                  <Button size='sm' variant='outline'>
-                    Mark as Tried
-                  </Button>
-                  <Button size='sm' variant='outline'>
-                    Add Tags
-                  </Button>
-                  <Button size='sm' variant='destructive'>
-                    Remove
-                  </Button>
-                  <Button
-                    size='sm'
-                    variant='ghost'
-                    onClick={() => setSelectedItems([])}
-                  >
-                    Clear
-                  </Button>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search fragrances, brands, or notes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Main Content Grid */}
-        <div className='grid lg:grid-cols-4 gap-8'>
-          {/* Collection Content (3/4 width) */}
-          <div className='lg:col-span-3 space-y-6'>
-            {/* Collection Empty State */}
-            {filteredCollection.length === 0 && !isLoading && (
-              <Card className='text-center py-12'>
-                <CardContent>
-                  <div className='text-muted-foreground'>
-                    {collection.length === 0 ? (
-                      <div>
-                        <Circle className='h-12 w-12 mx-auto mb-4 opacity-50' />
-                        <h3 className='text-lg font-semibold mb-2'>
-                          Start Your Collection
-                        </h3>
-                        <p className='mb-4'>
-                          Begin your fragrance journey by adding your first
-                          scent.
-                        </p>
-                        <Button
-                          onClick={() => router.push('/fragrances')}
-                          className='bg-gradient-to-r from-plum-600 to-plum-700'
-                        >
-                          <Plus className='h-4 w-4 mr-2' />
-                          Discover Fragrances
-                        </Button>
-                      </div>
-                    ) : (
-                      <div>
-                        <Filter className='h-8 w-8 mx-auto mb-3 opacity-50' />
-                        <p>No fragrances match your current filters.</p>
-                        <Button
-                          variant='outline'
-                          size='sm'
-                          onClick={() =>
-                            setFilters({
-                              status: 'all',
-                              family: 'all',
-                              occasion: 'all',
-                              season: 'all',
-                              search: '',
-                            })
-                          }
-                          className='mt-3'
-                        >
-                          Clear Filters
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Collection Content */}
-            {filteredCollection.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className='flex items-center justify-between'>
-                    <CardTitle>
-                      {progressiveView === 'currently-wearing' &&
-                        'Currently Wearing'}
-                      {progressiveView === 'this-season' &&
-                        `${getCurrentSeason()} Collection`}
-                      {progressiveView === 'entire-collection' &&
-                        'Complete Collection'}
-                      <Badge variant='outline' className='ml-3 text-xs'>
-                        {filteredCollection.length} item
-                        {filteredCollection.length > 1 ? 's' : ''}
-                      </Badge>
-                    </CardTitle>
-
-                    <div className='flex items-center space-x-2'>
-                      <Button variant='ghost' size='sm'>
-                        <Download className='h-4 w-4' />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      ['all', 'All'],
+                      ['rated', 'Rated'],
+                      ['unrated', 'Unrated'],
+                      ['recent', 'Recent'],
+                      ['favorites', 'Favorites'],
+                    ] as const).map(([value, label]) => (
+                      <Button
+                        key={value}
+                        variant={filterCategory === value ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFilterCategory(value)}
+                        className="text-xs"
+                      >
+                        {label}
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {filterCounts[value]}
+                        </Badge>
                       </Button>
-                      <Button variant='ghost' size='sm'>
-                        <Settings className='h-4 w-4' />
+                    ))}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={sortOption}
+                      onChange={(e) => setSortOption(e.target.value as SortOption)}
+                      className="text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="rating_high">Highest Rated</option>
+                      <option value="rating_low">Lowest Rated</option>
+                      <option value="name_az">Name A-Z</option>
+                      <option value="name_za">Name Z-A</option>
+                    </select>
+
+                    <div className="flex border border-gray-300 rounded-md">
+                      <Button
+                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('grid')}
+                        className="rounded-r-none"
+                      >
+                        <Grid className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === 'list' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('list')}
+                        className="rounded-l-none"
+                      >
+                        <List className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
-                </CardHeader>
+                </div>
 
-                <CardContent>
-                  {/* Render different view modes */}
-                  {currentView === 'grid' && (
-                    <GridView
-                      collection={filteredCollection}
-                      onItemClick={handleItemClick}
-                      onItemSelect={handleItemSelect}
-                      selectedItems={selectedItems}
-                    />
-                  )}
+                {(searchTerm || filterCategory !== 'all') && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <span>Showing {filteredCollection.length} of {collection.length} fragrances</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setFilterCategory('all');
+                      }}
+                      className="text-xs h-6 px-2"
+                    >
+                      Clear filters
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-                  {currentView === 'list' && (
-                    <ListView
-                      collection={filteredCollection}
-                      onItemClick={handleItemClick}
-                      onItemSelect={handleItemSelect}
-                      selectedItems={selectedItems}
-                    />
-                  )}
+          <CollectionGrid
+            collection={filteredCollection}
+            viewMode={viewMode}
+            onItemUpdate={handleItemUpdate}
+            onItemRemove={handleItemRemove}
+            isUpdating={isPending}
+          />
 
-                  {currentView === 'wheel' && (
-                    <WheelView
-                      collection={filteredCollection}
-                      onItemClick={handleItemClick}
-                    />
-                  )}
-
-                  {currentView === 'calendar' && (
-                    <CalendarView
-                      collection={filteredCollection}
-                      onItemClick={handleItemClick}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar: AI Insights and Quick Actions (1/4 width) */}
-          <div className='lg:col-span-1 space-y-6'>
-            {/* AI Collection Insights */}
-            <Suspense fallback={<AIInsightsSkeleton />}>
-              <AIInsights
-                userId={userId}
-                collectionStats={collectionStats}
-                privacyMode={
-                  userProfile?.privacy_settings?.ai_insights_disabled
-                }
-              />
-            </Suspense>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-lg'>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-3'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='w-full justify-start'
-                  onClick={() => router.push('/fragrances')}
-                >
-                  <Plus className='h-4 w-4 mr-2' />
-                  Add New Fragrance
-                </Button>
-
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='w-full justify-start'
-                  onClick={() => router.push('/recommendations')}
-                >
-                  <Sparkles className='h-4 w-4 mr-2' />
-                  Get Recommendations
-                </Button>
-
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='w-full justify-start'
-                >
-                  <Download className='h-4 w-4 mr-2' />
-                  Export Collection
-                </Button>
+          {filteredCollection.length === 0 && (
+            <Card className="text-center py-12">
+              <CardContent>
+                {collection.length === 0 ? (
+                  <div className="space-y-4">
+                    <div className="text-6xl">🌸</div>
+                    <h3 className="text-xl font-semibold">Start Your Collection</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Take our fragrance quiz to discover your perfect matches.
+                    </p>
+                    <Button asChild>
+                      <Link href="/quiz">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Take the Quiz
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-4xl">🔍</div>
+                    <h3 className="text-xl font-semibold">No Results Found</h3>
+                    <p className="text-muted-foreground">
+                      Try adjusting your search terms or filters.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          )}
+        </div>
 
-            {/* Recent Activity */}
-            {recentActivity.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className='text-lg'>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='space-y-3'>
-                    {recentActivity.slice(0, 5).map(activity => (
-                      <div
-                        key={activity.id}
-                        className='flex items-center space-x-3 text-sm'
-                      >
-                        <div className='w-2 h-2 rounded-full bg-green-500' />
-                        <div className='flex-1'>
-                          <p className='font-medium'>
-                            {(activity.fragrances as any)?.name || 'Fragrance'}
-                          </p>
-                          <p className='text-muted-foreground text-xs'>
-                            Added{' '}
-                            {new Date(activity.added_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Badge variant='outline' className='text-xs'>
-                          {activity.status}
-                        </Badge>
-                      </div>
-                    ))}
+        <div className="lg:col-span-4 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Target className="w-5 h-5 mr-2" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                onClick={loadInsights}
+                disabled={isLoadingInsights}
+                className="w-full justify-start"
+                variant={showInsights ? 'default' : 'outline'}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                {isLoadingInsights ? 'Loading...' : 'View Collection Insights'}
+              </Button>
+              
+              <Button asChild variant="outline" className="w-full justify-start">
+                <Link href="/quiz">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Get More Recommendations
+                </Link>
+              </Button>
+              
+              <Button asChild variant="outline" className="w-full justify-start">
+                <Link href="/fragrance/browse">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Browse All Fragrances
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {showInsights && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-blue-800">Collection insights coming soon! Advanced analytics will be available after account creation.</p>
+            </div>
+          )}
+
+          {engagementData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Your Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Engagement Level</span>
+                  <Badge variant={
+                    engagementData.engagement_level === 'expert' ? 'default' :
+                    engagementData.engagement_level === 'intermediate' ? 'secondary' :
+                    'outline'
+                  }>
+                    {engagementData.engagement_level}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Progress</span>
+                    <span>{engagementData.engagement_score_raw || 0}/1000</span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, ((engagementData.engagement_score_raw || 0) / 1000) * 100)}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Calendar className="w-5 h-5 mr-2" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {collection.slice(0, 3).map((item) => (
+                <div key={item.id} className="flex items-center space-x-3 py-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      Added {item.fragrances?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              
+              {collection.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No recent activity
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Collection Manager (Hidden - manages state) */}
-        <CollectionManager
-          userId={userId}
-          onCollectionChange={handleCollectionChange}
-          selectedItems={selectedItems}
-          onSelectionChange={setSelectedItems}
-        />
       </div>
-    </>
-  );
-}
-
-// Helper functions
-function getCurrentSeason(): string {
-  const month = new Date().getMonth();
-  if (month >= 2 && month <= 4) return 'spring';
-  if (month >= 5 && month <= 7) return 'summer';
-  if (month >= 8 && month <= 10) return 'fall';
-  return 'winter';
-}
-
-function calculateCollectionStats(collection: any[]): CollectionStats {
-  const total = collection.length;
-  const byStatus = collection.reduce((acc, item) => {
-    acc[item.status] = (acc[item.status] || 0) + 1;
-    return acc;
-  }, {});
-
-  const families = Array.from(
-    new Set(
-      collection.map(item => item.fragrances?.scent_family).filter(Boolean)
-    )
-  );
-
-  const diversityScore = total > 0 ? families.length / total : 0;
-
-  const ratings = collection.map(item => item.rating).filter(Boolean);
-  const averageRating =
-    ratings.length > 0
-      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
-      : undefined;
-
-  return {
-    total_fragrances: total,
-    diversity_score: Math.min(diversityScore, 1), // Cap at 1.0
-    dominant_families: families.slice(0, 5), // Top 5 families
-    average_rating: averageRating,
-    by_status: byStatus,
-  };
-}
-
-// Loading skeleton for dashboard
-function CollectionDashboardSkeleton() {
-  return (
-    <div className='space-y-8'>
-      <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className='h-20' />
-        ))}
-      </div>
-
-      <Card>
-        <CardContent className='pt-6'>
-          <Skeleton className='h-10 mb-4' />
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className='aspect-square' />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
-  );
-}
-
-function AIInsightsSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className='h-6 w-32' />
-      </CardHeader>
-      <CardContent>
-        <div className='space-y-3'>
-          <Skeleton className='h-4 w-full' />
-          <Skeleton className='h-4 w-3/4' />
-          <Skeleton className='h-4 w-1/2' />
-        </div>
-      </CardContent>
-    </Card>
   );
 }

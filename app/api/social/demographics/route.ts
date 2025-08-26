@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { socialContextService } from '@/lib/services/social-context';
 import { z } from 'zod';
 
-// Validation schema for demographics
-const demographicsSchema = z.object({
+// Base validation schema for demographics
+const baseDemographicsSchema = z.object({
   user_id: z.string().uuid().optional(),
   guest_session_id: z.string().min(1).optional(),
   age_group: z.enum(['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']),
@@ -13,7 +13,9 @@ const demographicsSchema = z.object({
   uniqueness_preference: z.number().min(1).max(10).default(5),
   style_preferences: z.array(z.string()).optional(),
   occasion_preferences: z.array(z.string()).optional()
-}).refine(
+});
+
+const demographicsSchema = baseDemographicsSchema.refine(
   (data) => data.user_id || data.guest_session_id,
   { message: "Either user_id or guest_session_id must be provided" }
 );
@@ -99,7 +101,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     
     // For partial updates, make most fields optional
-    const partialSchema = demographicsSchema.partial().extend({
+    const partialSchema = baseDemographicsSchema.partial().extend({
       user_id: z.string().uuid().optional(),
       guest_session_id: z.string().min(1).optional()
     }).refine(

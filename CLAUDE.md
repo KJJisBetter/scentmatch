@@ -18,10 +18,17 @@ Keep it simple. Use proven patterns. Test everything users touch. Ship quality c
 
 ## Rules
 - Files under 200 lines
-- Browser test all UI changes (Playwright MCP)
+- Browser test all UI changes (@qa-specialist)
 - Use proven libraries over custom code
 - Work on max 2 features at once
 - Feature branches only, never push to main
+
+## Agent Delegation
+- **Database**: @database-operations-expert (Supabase)
+- **Testing**: @qa-specialist (Playwright browser automation)
+- **Components**: @react-component-expert (shadcn/ui + testing)
+- **Deployment**: @devops-engineer (Vercel + GitHub CLI)
+- **Research**: @market-researcher (Exa/Firecrawl data)
 
 ## Current Working Code
 - Collections: lib/actions/collections.ts (Server Actions)

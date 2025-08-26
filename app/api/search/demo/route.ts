@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         intensity_score: 8,
         longevity_hours: 10,
         sample_available: false,
-        sample_price_usd: null,
+        sample_price_usd: undefined,
         popularity_score: 63,
         fragrance_family: 'fresh',
         recommended_occasions: ['evening', 'formal'],
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
         intensity_score: 7,
         longevity_hours: 8,
         sample_available: false,
-        sample_price_usd: null,
+        sample_price_usd: undefined,
         popularity_score: 25,
         fragrance_family: 'fresh',
         recommended_occasions: ['evening', 'vintage'],
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
         intensity_score: 3,
         longevity_hours: 3,
         sample_available: false,
-        sample_price_usd: null,
+        sample_price_usd: undefined,
         popularity_score: 15,
         fragrance_family: 'fresh',
         recommended_occasions: ['sport', 'summer'],
@@ -295,9 +295,9 @@ export async function GET(request: NextRequest) {
           'Helpful badges to guide selection'
         ],
         user_guidance: variantGroups.length > 0 ? [
-          `🏆 Start with "${variantGroups[0].primary_variant.name}" - the most popular choice`,
-          variantGroups[0].experience_recommendations.find(r => r.level === 'beginner')?.reasoning || 'Perfect for beginners',
-          `💡 ${variantGroups[0].related_variants.length} alternatives available if you want to explore`
+          `🏆 Start with "${variantGroups[0]?.primary_variant?.name}" - the most popular choice`,
+          variantGroups[0]?.experience_recommendations?.find(r => r.level === 'beginner')?.reasoning || 'Perfect for beginners',
+          `💡 ${variantGroups[0]?.related_variants?.length} alternatives available if you want to explore`
         ] : []
       }
     };

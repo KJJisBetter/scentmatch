@@ -1,7 +1,7 @@
 ---
 name: api-architect
 description: API development expert for RESTful design, performance optimization, and external integrations. Use proactively for API endpoint creation, rate limiting setup, caching strategies, and third-party service integrations.
-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, mcp__vercel__*
+tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, mcp__vercel__search_vercel_documentation, mcp__vercel__list_projects, mcp__vercel__get_project, mcp__vercel__list_deployments, mcp__vercel__get_deployment, mcp__vercel__get_deployment_events, mcp__vercel__get_access_to_vercel_url, mcp__vercel__web_fetch_vercel_url, mcp__vercel__list_teams
 color: blue
 model: sonnet
 ---

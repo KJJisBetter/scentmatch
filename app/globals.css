@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Inter:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -79,6 +80,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
@@ -86,6 +88,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    
+    /* 2025 Trend: Subtle organic background texture */
+    background-image: 
+      radial-gradient(circle at 20% 80%, hsl(var(--accent) / 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, hsl(var(--primary) / 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, hsl(var(--secondary) / 0.02) 0%, transparent 50%);
+    background-attachment: fixed;
   }
 
   /* Premium typography scale */
@@ -128,6 +137,149 @@
 
 /* Premium fragrance-focused utility classes */
 @layer utilities {
+  /* Progressive Loading Animations - Task 2.2 */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fade-in-down {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fade-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-in-from-top {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-in-from-bottom {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes bounce-subtle {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-8px);
+    }
+    60% {
+      transform: translateY(-4px);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+  
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+  
+  .animate-fade-in-down {
+    animation: fade-in-down 0.6s ease-out forwards;
+  }
+  
+  .animate-fade-in-right {
+    animation: fade-in-right 0.6s ease-out forwards;
+  }
+  
+  .animate-slide-in-from-top {
+    animation: slide-in-from-top 0.8s ease-out forwards;
+  }
+  
+  .animate-slide-in-from-bottom {
+    animation: slide-in-from-bottom 0.8s ease-out forwards;
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+  
+  /* Staggered animation utilities */
+  .animate-stagger-1 {
+    animation-delay: 0.1s;
+  }
+  
+  .animate-stagger-2 {
+    animation-delay: 0.2s;
+  }
+  
+  .animate-stagger-3 {
+    animation-delay: 0.3s;
+  }
+  
+  .animate-stagger-4 {
+    animation-delay: 0.4s;
+  }
+  
+  .animate-stagger-5 {
+    animation-delay: 0.5s;
+  }
+
+  /* Performance optimizations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  
+  /* Layout shift prevention */
+  .prevent-layout-shift {
+    min-height: 1px; /* Prevent collapse */
+  }
+  
+  .skeleton-preserve-height {
+    min-height: inherit;
+  }
   /* Gradient utilities using design system colors */
   .gradient-primary {
     background: var(--gradient-primary);
@@ -180,9 +332,89 @@
     @apply backdrop-blur-md bg-black/10 border border-black/20;
   }
 
-  /* Touch-optimized interactive elements */
+  /* TASK 2.3: Mobile Touch Optimization - Comprehensive Touch Utilities */
+  
+  /* Touch Target Size Standards */
   .touch-target {
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  .touch-target-lg {
+    @apply min-h-[48px] min-w-[48px] flex items-center justify-center;
+  }
+  
+  .touch-target-xl {
+    @apply min-h-[56px] min-w-[56px] flex items-center justify-center;
+  }
+  
+  /* Touch Element Spacing (8px minimum between interactive elements) */
+  .touch-spacing {
+    @apply space-y-2; /* 8px vertical spacing */
+  }
+  
+  .touch-spacing-x {
+    @apply space-x-2; /* 8px horizontal spacing */
+  }
+  
+  .touch-spacing-lg {
+    @apply space-y-3; /* 12px for better thumb navigation */
+  }
+  
+  /* Touch Feedback Animations */
+  .touch-feedback {
+    @apply transition-all duration-150 ease-out;
+    @apply hover:scale-[1.02] active:scale-[0.98];
+  }
+  
+  .touch-feedback-subtle {
+    @apply transition-all duration-100 ease-out;
+    @apply hover:bg-accent/10 active:bg-accent/20;
+  }
+  
+  .touch-feedback-strong {
+    @apply transition-all duration-200 ease-out;
+    @apply hover:scale-[1.05] active:scale-[0.95] hover:shadow-lg;
+  }
+  
+  /* One-Handed Use Optimization */
+  .thumb-zone-primary {
+    /* Easy reach area for right thumb (75% of users) */
+    @apply fixed bottom-4 right-4 z-50;
+  }
+  
+  .thumb-zone-secondary {
+    /* Comfortable reach area */
+    @apply sticky bottom-0 left-0 right-0 p-4;
+  }
+  
+  .thumb-friendly-grid {
+    /* Optimized for thumb navigation */
+    @apply grid gap-2 grid-cols-1 sm:grid-cols-2;
+  }
+  
+  /* Gesture-Friendly Interactions */
+  .swipe-safe {
+    /* Prevents interference with system swipe gestures */
+    @apply select-none;
+    touch-action: pan-y; /* Allow vertical scrolling only */
+  }
+  
+  .scroll-safe {
+    /* Ensures smooth scrolling with touch */
+    @apply overflow-auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Large Touch Areas for Complex Actions */
+  .touch-action-area {
+    @apply relative p-3 -m-3; /* Expand touch area without visual change */
+  }
+  
+  /* Accessible Touch States */
+  .touch-accessible {
+    @apply touch-target focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+    @apply hover:bg-accent/10 focus:bg-accent/10;
   }
 
   /* Premium card variants */
@@ -245,5 +477,507 @@
 
   .will-change-auto {
     will-change: auto;
+  }
+
+  /* ===== 2025 DESIGN SYSTEM ENHANCEMENTS ===== */
+  
+  /* BENTO GRID SYSTEM - Major 2025 Trend */
+  .bento-grid {
+    @apply grid gap-4 md:gap-6;
+  }
+  
+  .bento-item {
+    @apply relative overflow-hidden bg-card/90 backdrop-blur-sm border border-border/40;
+    
+    /* Organic, flowing border radius - avoid rigid rectangles */
+    border-radius: 20px 25px 20px 30px;
+    
+    /* Subtle morphism depth without neumorphism excess */
+    box-shadow: 
+      0 2px 20px -4px hsl(var(--primary) / 0.08),
+      0 0 0 1px hsl(var(--border) / 0.4),
+      inset 0 1px 0 hsl(var(--background) / 0.6);
+    
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .bento-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+      0 12px 40px -6px hsl(var(--primary) / 0.15),
+      0 0 0 1px hsl(var(--primary) / 0.2),
+      inset 0 1px 0 hsl(var(--background) / 0.8);
+  }
+  
+  /* BIG TYPOGRAPHY - 2025 Trend */
+  .hero-title-2025 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: 'SOFT' 100, 'WONK' 1;
+    @apply text-6xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tight;
+    
+    /* Editorial-style text treatment */
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--accent)) 40%,
+      hsl(var(--primary)) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    /* Subtle organic shadow */
+    filter: drop-shadow(0 4px 8px hsl(var(--primary) / 0.1));
+  }
+  
+  .section-title-2025 {
+    font-family: 'Fraunces', Georgia, serif;
+    @apply text-3xl md:text-5xl font-bold leading-tight;
+    font-variation-settings: 'SOFT' 75, 'WONK' 0;
+  }
+  
+  /* FLUID FORMS - Organic shapes */
+  .fluid-shape {
+    @apply relative;
+    
+    /* Organic, molecule-like background */
+    background: linear-gradient(
+      145deg,
+      hsl(var(--primary) / 0.06) 0%,
+      hsl(var(--accent) / 0.04) 50%,
+      hsl(var(--secondary) / 0.06) 100%
+    );
+    
+    /* Flowing, organic border radius */
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    
+    animation: fluid-morph 25s ease-in-out infinite;
+  }
+  
+  @keyframes fluid-morph {
+    0%, 100% {
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      transform: rotate(0deg);
+    }
+    25% {
+      border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+      transform: rotate(1deg);
+    }
+    50% {
+      border-radius: 70% 30% 50% 60% / 40% 70% 60% 30%;
+      transform: rotate(-0.5deg);
+    }
+    75% {
+      border-radius: 40% 70% 60% 30% / 70% 40% 50% 60%;
+      transform: rotate(0.5deg);
+    }
+  }
+  
+  /* INTERACTIVE OBJECTS - 2025 Trend */
+  .interactive-2025 {
+    @apply cursor-pointer transition-all duration-300 ease-out;
+    transform-style: preserve-3d;
+    
+    /* Custom cursor effect */
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23d4a574' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E"), pointer;
+  }
+  
+  .interactive-2025:hover {
+    transform: translateY(-6px) rotateX(8deg) rotateY(4deg);
+  }
+  
+  /* TEXTURED SURFACES - Organic feel */
+  .texture-grain {
+    position: relative;
+  }
+  
+  .texture-grain::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.025;
+    background-image: 
+      radial-gradient(circle, hsl(var(--foreground)) 0.5px, transparent 0.5px);
+    background-size: 12px 12px;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+  
+  /* FRAGRANCE MOLECULE ANIMATIONS */
+  .scent-molecule {
+    @apply absolute rounded-full opacity-15;
+    background: radial-gradient(
+      circle,
+      hsl(var(--primary) / 0.3) 0%,
+      hsl(var(--accent) / 0.2) 50%,
+      transparent 100%
+    );
+    animation: float-molecule 20s ease-in-out infinite;
+  }
+  
+  @keyframes float-molecule {
+    0%, 100% { 
+      transform: translateY(0px) translateX(0px) rotate(0deg) scale(1); 
+    }
+    25% { 
+      transform: translateY(-15px) translateX(10px) rotate(90deg) scale(1.1); 
+    }
+    50% { 
+      transform: translateY(-8px) translateX(-5px) rotate(180deg) scale(0.9); 
+    }
+    75% { 
+      transform: translateY(12px) translateX(-10px) rotate(270deg) scale(1.05); 
+    }
+  }
+  
+  /* LIGHTNING DARK MODE ENHANCEMENTS */
+  .dark .bento-item {
+    background: hsl(var(--card) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.2);
+    
+    /* Lightning effect with warm glow */
+    box-shadow: 
+      0 0 30px -10px hsl(var(--accent) / 0.2),
+      0 4px 24px -4px hsl(var(--primary) / 0.1),
+      inset 0 1px 0 hsl(var(--accent) / 0.05);
+  }
+  
+  .dark .bento-item:hover {
+    box-shadow: 
+      0 0 50px -10px hsl(var(--accent) / 0.3),
+      0 8px 40px -4px hsl(var(--primary) / 0.2),
+      inset 0 1px 0 hsl(var(--accent) / 0.1);
+  }
+
+  /* ===== HIGH CONTRAST MODE SUPPORT - WCAG 2.1 AA COMPLIANCE ===== */
+  
+  /* High contrast mode detection and styles */
+  @media (prefers-contrast: high) {
+    :root {
+      --background: 0 0% 100%; /* Pure white */
+      --foreground: 0 0% 0%; /* Pure black */
+      --card: 0 0% 100%;
+      --card-foreground: 0 0% 0%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 0 0% 0%;
+      --primary: 0 0% 0%; /* Pure black */
+      --primary-foreground: 0 0% 100%; /* Pure white */
+      --secondary: 0 0% 90%;
+      --secondary-foreground: 0 0% 0%;
+      --muted: 0 0% 90%;
+      --muted-foreground: 0 0% 20%;
+      --accent: 0 0% 20%;
+      --accent-foreground: 0 0% 100%;
+      --destructive: 0 100% 40%; /* High contrast red */
+      --destructive-foreground: 0 0% 100%;
+      --border: 0 0% 0%; /* Pure black borders */
+      --input: 0 0% 95%;
+      --ring: 0 0% 0%; /* Black focus rings */
+    }
+    
+    .dark {
+      --background: 0 0% 0%; /* Pure black */
+      --foreground: 0 0% 100%; /* Pure white */
+      --card: 0 0% 5%;
+      --card-foreground: 0 0% 100%;
+      --popover: 0 0% 5%;
+      --popover-foreground: 0 0% 100%;
+      --primary: 0 0% 100%; /* Pure white */
+      --primary-foreground: 0 0% 0%; /* Pure black */
+      --secondary: 0 0% 15%;
+      --secondary-foreground: 0 0% 100%;
+      --muted: 0 0% 15%;
+      --muted-foreground: 0 0% 85%;
+      --accent: 0 0% 85%;
+      --accent-foreground: 0 0% 0%;
+      --destructive: 0 100% 60%; /* High contrast red */
+      --destructive-foreground: 0 0% 0%;
+      --border: 0 0% 100%; /* Pure white borders */
+      --input: 0 0% 10%;
+      --ring: 0 0% 100%; /* White focus rings */
+    }
+  }
+
+  /* Manual high contrast mode class for testing */
+  .high-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --border: 0 0% 0%;
+    --ring: 0 0% 0%;
+  }
+
+  .high-contrast.dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --border: 0 0% 100%;
+    --ring: 0 0% 100%;
+  }
+
+  /* High contrast specific overrides */
+  @media (prefers-contrast: high) {
+    /* Ensure all interactive elements have visible borders */
+    button, 
+    input, 
+    select, 
+    textarea,
+    [role="button"] {
+      @apply border-2 border-solid;
+      border-color: hsl(var(--border));
+    }
+
+    /* Remove subtle effects that may not be visible */
+    .shadow-soft,
+    .shadow-medium,
+    .shadow-strong {
+      box-shadow: 0 2px 4px hsl(var(--foreground) / 0.8);
+    }
+
+    /* Ensure focus indicators are highly visible */
+    *:focus-visible {
+      outline: 3px solid hsl(var(--ring));
+      outline-offset: 2px;
+    }
+
+    /* Remove gradients that may reduce contrast */
+    .gradient-primary,
+    .gradient-accent,
+    .text-gradient-primary,
+    .text-gradient-accent {
+      background: hsl(var(--primary));
+      color: hsl(var(--primary-foreground));
+      background-clip: initial;
+      -webkit-background-clip: initial;
+      -webkit-text-fill-color: initial;
+    }
+  }
+
+  /* Manual high contrast class overrides */
+  .high-contrast button,
+  .high-contrast input,
+  .high-contrast select,
+  .high-contrast textarea,
+  .high-contrast [role="button"] {
+    @apply border-2 border-solid;
+    border-color: hsl(var(--border));
+  }
+
+  .high-contrast *:focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* ===== FRAGRANCE INDUSTRY SPECIFIC COMPONENTS ===== */
+  
+  .fragrance-hero {
+    @apply relative min-h-screen flex items-center justify-center overflow-hidden;
+    
+    /* Editorial magazine-style layout */
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--secondary)) 20%,
+      hsl(var(--background)) 100%
+    );
+  }
+  
+  .fragrance-card {
+    @apply bento-item interactive-2025 texture-grain;
+    
+    /* Unique fragrance bottle silhouette */
+    border-radius: 15px 15px 45px 15px;
+    
+    /* Subtle fragrance-inspired gradient */
+    background: linear-gradient(
+      145deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--accent) / 0.06) 100%
+    );
+  }
+  
+  .scent-profile-visual {
+    @apply relative w-full h-32 overflow-hidden;
+    
+    /* Flowing scent profile visualization */
+    background: conic-gradient(
+      from 0deg,
+      hsl(var(--primary) / 0.1),
+      hsl(var(--accent) / 0.1),
+      hsl(var(--secondary) / 0.1),
+      hsl(var(--primary) / 0.1)
+    );
+    
+    border-radius: 50% 50% 30% 70%;
+    animation: gentle-rotate 30s linear infinite;
+  }
+  
+  @keyframes gentle-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  /* EXPERIMENTAL NAVIGATION - 2025 */
+  .nav-2025 {
+    @apply relative backdrop-blur-md;
+    
+    /* Flowing navigation shape */
+    background: linear-gradient(
+      90deg,
+      hsl(var(--card) / 0.85) 0%,
+      hsl(var(--card) / 0.95) 50%,
+      hsl(var(--card) / 0.85) 100%
+    );
+    
+    border-radius: 50px 25px 50px 25px;
+    border: 1px solid hsl(var(--border) / 0.3);
+    
+    /* Subtle glow */
+    box-shadow: 
+      0 8px 32px -8px hsl(var(--primary) / 0.1),
+      inset 0 1px 0 hsl(var(--accent) / 0.1);
+  }
+  
+  /* ORGANIC BUTTONS */
+  .btn-organic {
+    @apply px-8 py-4 font-medium relative overflow-hidden;
+    
+    /* Organic button shape */
+    border-radius: 30px 35px 30px 40px;
+    
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--accent)) 100%
+    );
+    color: hsl(var(--primary-foreground));
+    
+    /* Natural button depth */
+    box-shadow: 
+      0 4px 16px hsl(var(--primary) / 0.3),
+      inset 0 1px 0 hsl(var(--primary-foreground) / 0.2);
+    
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-organic::before {
+    content: '';
+    @apply absolute inset-0 opacity-0;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--accent)) 0%,
+      hsl(var(--primary)) 100%
+    );
+    transition: opacity 0.3s ease;
+  }
+  
+  .btn-organic:hover::before {
+    opacity: 1;
+  }
+  
+  .btn-organic:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px hsl(var(--primary) / 0.4),
+      inset 0 1px 0 hsl(var(--primary-foreground) / 0.3);
+  }
+  
+  /* COLLECTION PREVIEW ENHANCEMENT */
+  .collection-preview-2025 {
+    @apply relative p-8 overflow-hidden;
+    
+    /* Sophisticated gradient inspired by fragrance bottles */
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card) / 0.95) 0%,
+      hsl(var(--accent) / 0.1) 30%,
+      hsl(var(--secondary) / 0.05) 70%,
+      hsl(var(--card) / 0.95) 100%
+    );
+    
+    /* Organic container shape */
+    border-radius: 25px 35px 25px 45px;
+    
+    /* Editorial-style border */
+    border: 2px solid hsl(var(--accent) / 0.2);
+    
+    /* Premium depth */
+    box-shadow: 
+      0 8px 40px -8px hsl(var(--primary) / 0.15),
+      inset 0 1px 0 hsl(var(--background) / 0.8);
+  }
+  
+  /* EDITORIAL TYPOGRAPHY - Fragrance magazine inspired */
+  .editorial-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'SOFT' 100, 'WONK' 1;
+    @apply text-4xl md:text-6xl font-black leading-[0.9] tracking-tight;
+    
+    /* Sophisticated text treatment */
+    background: linear-gradient(
+      120deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--primary)) 50%,
+      hsl(var(--foreground)) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .editorial-body {
+    font-family: 'Inter', sans-serif;
+    @apply text-base md:text-lg leading-relaxed text-muted-foreground;
+    font-weight: 400;
+  }
+  
+  /* QUIZ INTERFACE - 2025 STYLE */
+  .quiz-card-2025 {
+    @apply bento-item texture-grain p-8;
+    
+    /* Unique quiz card shape */
+    border-radius: 20px 40px 20px 30px;
+    
+    /* Warm, inviting background */
+    background: linear-gradient(
+      145deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--accent) / 0.08) 100%
+    );
+  }
+  
+  .quiz-progress-2025 {
+    @apply relative h-2 overflow-hidden;
+    
+    /* Organic progress bar shape */
+    border-radius: 8px 12px 8px 10px;
+    background: hsl(var(--muted));
+  }
+  
+  .quiz-progress-fill {
+    @apply h-full transition-all duration-500 ease-out;
+    
+    background: linear-gradient(
+      90deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--accent)) 100%
+    );
+    
+    border-radius: 8px 12px 8px 10px;
+    
+    /* Flowing progress animation */
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.4);
   }
 }

@@ -94,11 +94,11 @@ export function FragranceRecommendationDisplay({
                 <h3 className='text-lg font-semibold mb-1'>
                   {recommendation.name}
                 </h3>
-                <p className='text-muted-foreground text-sm mb-3'>
+                <p className='text-muted-foreground text-sm mb-2'>
                   {recommendation.brand}
                 </p>
 
-                {/* Match Percentage */}
+                {/* Gender and Match Info */}
                 <div className='flex items-center justify-center space-x-2 mb-4'>
                   <Badge variant='secondary' className='text-lg px-3 py-1'>
                     {Math.round((recommendation.score || 0) * 100)}% Match
@@ -119,19 +119,67 @@ export function FragranceRecommendationDisplay({
                         : 'Solid Choice'}
                   </Badge>
                 </div>
+
+                {/* Gender Display */}
+                <div className='flex justify-center mb-4'>
+                  <Badge 
+                    className={`text-xs px-2 py-1 font-semibold ${
+                      recommendation.gender === 'men' 
+                        ? 'bg-blue-100 text-blue-800 border-blue-200'
+                        : recommendation.gender === 'women'
+                          ? 'bg-pink-100 text-pink-800 border-pink-200'
+                          : 'bg-purple-100 text-purple-800 border-purple-200'
+                    }`}
+                  >
+                    {recommendation.gender === 'men' 
+                      ? '👨 Men'
+                      : recommendation.gender === 'women'
+                        ? '👩 Women'
+                        : '🌟 Unisex'}
+                  </Badge>
+                </div>
               </div>
 
-              {/* AI Insight Display - Task 3.4 */}
-              <div className='bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 mb-6'>
+              {/* AI Insight Display - Fixed Visual Integration */}
+              <div className='bg-white border border-gray-200 rounded-lg p-4 mb-6 shadow-sm overflow-hidden'>
                 <div className='flex items-start space-x-3'>
-                  <Sparkles className='w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0' />
-                  <div>
-                    <h4 className='text-sm font-medium text-purple-800 mb-2'>
-                      Why This Matches You
+                  <div className='bg-purple-100 p-2 rounded-full flex-shrink-0'>
+                    <Sparkles className='w-4 h-4 text-purple-600' />
+                  </div>
+                  <div className='flex-1 min-w-0'>
+                    <h4 className='text-sm font-semibold text-gray-800 mb-3 flex items-center flex-wrap'>
+                      Why This Matches Your Style
+                      {recommendation.adaptive_explanation?.user_experience_level === 'beginner' && (
+                        <span className='ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full whitespace-nowrap'>
+                          🎓 Educational
+                        </span>
+                      )}
                     </h4>
-                    <p className='text-sm text-purple-700 leading-relaxed'>
-                      {recommendation.explanation}
-                    </p>
+                    <div className='text-sm leading-relaxed'>
+                      {/* Show educational explanation if available */}
+                      {recommendation.adaptive_explanation?.user_experience_level === 'beginner' && 
+                       recommendation.adaptive_explanation?.summary ? (
+                        <div className='space-y-3'>
+                          <div className='bg-gray-50 border-l-4 border-purple-400 p-3 rounded-r overflow-hidden'>
+                            <p className='text-gray-800 font-medium break-words'>
+                              {recommendation.adaptive_explanation.summary}
+                            </p>
+                          </div>
+                          {recommendation.adaptive_explanation.confidence_boost && (
+                            <div className='bg-green-50 border border-green-200 px-3 py-2 rounded flex items-start overflow-hidden'>
+                              <span className='text-lg mr-2 flex-shrink-0'>💫</span>
+                              <p className='text-xs text-green-700 font-medium break-words'>
+                                {recommendation.adaptive_explanation.confidence_boost}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className='bg-gray-50 border-l-4 border-blue-400 p-3 rounded-r overflow-hidden'>
+                          <p className='text-gray-800 break-words'>{recommendation.explanation}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -185,16 +233,46 @@ export function FragranceRecommendationDisplay({
                 </div>
               </div>
 
-              {/* Recommendation Reasoning (Subtle) */}
+              {/* Recommendation Reasoning (Progressive Disclosure) */}
               <div className='mt-4 pt-4 border-t'>
-                <details className='text-xs text-muted-foreground'>
-                  <summary className='cursor-pointer hover:text-foreground'>
-                    Why we recommended this
-                  </summary>
-                  <p className='mt-2 leading-relaxed'>
-                    {recommendation.why_recommended}
-                  </p>
-                </details>
+                {recommendation.adaptive_explanation?.user_experience_level === 'beginner' ? (
+                  /* Enhanced beginner format with educational content */
+                  <details className='text-xs text-muted-foreground'>
+                    <summary className='cursor-pointer hover:text-foreground flex items-center'>
+                      <span>🎓 Learn more about this fragrance</span>
+                    </summary>
+                    <div className='mt-2 space-y-2'>
+                      {recommendation.adaptive_explanation.expanded_content && (
+                        <p className='leading-relaxed'>
+                          {recommendation.adaptive_explanation.expanded_content}
+                        </p>
+                      )}
+                      {recommendation.adaptive_explanation.educational_terms && 
+                       Object.keys(recommendation.adaptive_explanation.educational_terms).length > 0 && (
+                        <div className='bg-blue-50 p-2 rounded text-xs'>
+                          <strong className='text-blue-800'>Good to know:</strong>
+                          <ul className='mt-1 space-y-1'>
+                            {Object.entries(recommendation.adaptive_explanation.educational_terms).map(([term, info]: [string, any]) => (
+                              <li key={term} className='text-blue-700'>
+                                <strong>{info.term || term}:</strong> {info.beginnerExplanation || info.explanation}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                ) : (
+                  /* Standard format for experienced users */
+                  <details className='text-xs text-muted-foreground'>
+                    <summary className='cursor-pointer hover:text-foreground'>
+                      Why we recommended this
+                    </summary>
+                    <p className='mt-2 leading-relaxed'>
+                      {recommendation.why_recommended}
+                    </p>
+                  </details>
+                )}
               </div>
             </CardContent>
           </Card>

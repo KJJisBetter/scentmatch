@@ -1,0 +1,3 @@
+# Gender Filtering Verification - Lite Summary
+
+Fix the critical production blocker where women selecting "For Women" in quiz receive men's fragrances as recommendations, destroying user trust and making our AI personalization claim fraudulent. Verify and test the database RPC function get_quiz_recommendations() gender filtering logic works correctly to ensure women get only women's/unisex fragrances and men get only men's/unisex fragrances. Implement comprehensive automated testing to prevent regression of this trust-critical functionality.

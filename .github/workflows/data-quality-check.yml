@@ -1,0 +1,263 @@
+# Data Quality Check Workflow
+# Automated data integrity checks for SCE-62 and SCE-64
+# Spec: @.agent-os/specs/2025-08-22-beginner-experience-optimization/
+
+name: Data Quality Check
+
+on:
+  push:
+    branches: [ main, staging ]
+    paths:
+      - 'scripts/database/**'
+      - 'lib/data-validation/**'
+      - 'supabase/migrations/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'scripts/database/**' 
+      - 'lib/data-validation/**'
+      - 'supabase/migrations/**'
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '24.x'
+
+jobs:
+  data-quality-check:
+    name: Data Quality Validation
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci --include=dev
+          
+      - name: Run data validation tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npm run test -- tests/database/fragrance-data-consistency.test.ts --reporter=verbose
+          
+      - name: Run fragrance data audit
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npm run audit:fragrance-data
+          
+      - name: Check data completeness threshold
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MIN_COMPLETENESS_THRESHOLD: "85" # 85% minimum completeness
+        run: |
+          node -e "
+          const { auditFragranceData } = require('./scripts/database/audit-fragrance-data.ts');
+          
+          (async () => {
+            try {
+              const result = await auditFragranceData();
+              const completeness = result.completenessScore * 100;
+              const threshold = parseFloat(process.env.MIN_COMPLETENESS_THRESHOLD || '85');
+              
+              console.log(\`Data completeness: \${completeness.toFixed(1)}%\`);
+              console.log(\`Required threshold: \${threshold}%\`);
+              
+              if (completeness < threshold) {
+                console.error(\`❌ Data completeness (\${completeness.toFixed(1)}%) is below threshold (\${threshold}%)\`);
+                console.error(\`Missing families: \${result.missingFamilyCount}\`);
+                console.error(\`Invalid families: \${result.invalidFamilyCount}\`);
+                console.error(\`Empty accords: \${result.emptyAccordsCount}\`);
+                process.exit(1);
+              }
+              
+              console.log(\`✅ Data completeness meets threshold\`);
+            } catch (error) {
+              console.error('Audit failed:', error);
+              process.exit(1);
+            }
+          })();
+          "
+
+      - name: Generate data quality report
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          mkdir -p reports
+          npm run audit:fragrance-data > reports/data-quality-report.txt 2>&1 || true
+          
+      - name: Upload quality report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: data-quality-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+
+      - name: Comment PR with quality report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const report = fs.readFileSync('reports/data-quality-report.txt', 'utf8');
+              const lines = report.split('\n');
+              const summary = lines.slice(0, 20).join('\n'); // First 20 lines
+              
+              const body = `## 📊 Data Quality Check Results
+              
+              \`\`\`
+              ${summary}
+              \`\`\`
+              
+              Full report available in workflow artifacts.
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              console.log('Could not create comment:', error.message);
+            }
+
+  notify-on-failure:
+    name: Notify on Quality Issues
+    runs-on: ubuntu-latest
+    needs: data-quality-check
+    if: failure() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Notify team of data quality issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Data Quality Check Failed',
+              body: `
+              # Data Quality Issues Detected
+              
+              The automated data quality check has failed on the main branch.
+              
+              **Workflow**: [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
+              **Branch**: ${context.ref}
+              **Commit**: ${context.sha}
+              
+              ## Next Steps
+              1. Review the workflow logs for specific issues
+              2. Run \`npm run audit:fragrance-data\` locally to diagnose
+              3. Apply data fixes using migration scripts if needed
+              4. Verify fixes with \`npm run test:data-quality\`
+              
+              ## Related
+              - SCE-62: Missing fragrance data issues
+              - SCE-64: Inconsistent empty states
+              `,
+              labels: ['bug', 'data-quality', 'urgent']
+            });
+            
+            console.log(`Created issue: ${issue.data.html_url}`);
+
+  production-health-check:
+    name: Production Data Health Check
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production' || github.event_name == 'schedule'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --production=false
+
+      - name: Run production health check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🏥 Running production data health check..."
+          
+          # Check critical metrics
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+          
+          (async () => {
+            try {
+              // Check total fragrances
+              const { count: totalCount } = await supabase
+                .from('fragrances')
+                .select('*', { count: 'exact', head: true });
+                
+              console.log(\`Total fragrances: \${totalCount?.toLocaleString()}\`);
+              
+              if (!totalCount || totalCount < 1000) {
+                console.error('❌ Critical: Less than 1000 fragrances in production');
+                process.exit(1);
+              }
+              
+              // Check family completeness
+              const { count: withFamily } = await supabase
+                .from('fragrances')
+                .select('*', { count: 'exact', head: true })
+                .not('fragrance_family', 'is', null);
+                
+              const familyCompleteness = (withFamily / totalCount) * 100;
+              console.log(\`Family completeness: \${familyCompleteness.toFixed(1)}%\`);
+              
+              if (familyCompleteness < 90) {
+                console.error(\`❌ Warning: Family completeness (\${familyCompleteness.toFixed(1)}%) below 90%\`);
+              }
+              
+              console.log('✅ Production health check passed');
+              
+            } catch (error) {
+              console.error('Production health check failed:', error);
+              process.exit(1);
+            }
+          })();
+          "

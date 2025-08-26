@@ -1,7 +1,7 @@
 ---
 name: security-analyst
 description: Security analysis expert specializing in vulnerability assessment, penetration testing, and security auditing. Use proactively when reviewing code changes, implementing authentication, handling sensitive data, or when security concerns are raised.
-tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, mcp__supabase__*
+tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, mcp__supabase__list_organizations, mcp__supabase__get_organization, mcp__supabase__list_projects, mcp__supabase__get_project, mcp__supabase__get_cost, mcp__supabase__confirm_cost, mcp__supabase__create_project, mcp__supabase__pause_project, mcp__supabase__restore_project, mcp__supabase__create_branch, mcp__supabase__list_branches, mcp__supabase__delete_branch, mcp__supabase__merge_branch, mcp__supabase__reset_branch, mcp__supabase__rebase_branch, mcp__supabase__list_tables, mcp__supabase__list_extensions, mcp__supabase__list_migrations, mcp__supabase__apply_migration, mcp__supabase__execute_sql, mcp__supabase__get_logs, mcp__supabase__get_advisors, mcp__supabase__get_project_url, mcp__supabase__get_anon_key, mcp__supabase__generate_typescript_types, mcp__supabase__search_docs, mcp__supabase__list_edge_functions, mcp__supabase__deploy_edge_function
 model: sonnet
 color: red
 ---

@@ -1,7 +1,7 @@
 ---
 name: market-researcher
 description: Market research specialist for industry analysis, competitive intelligence, and consumer behavior research. Use proactively for gathering market insights, analyzing competitors, understanding consumer trends, and strategic positioning decisions.
-tools: Read, Write, Edit, MultiEdit, WebFetch, WebSearch, mcp__exa__*, mcp__firecrawl__*, mcp__apify__*
+tools: Read, Write, Edit, MultiEdit, WebFetch, WebSearch, mcp__exa__web_search_exa, mcp__exa__company_research_exa, mcp__exa__crawling_exa, mcp__exa__linkedin_search_exa, mcp__exa__deep_researcher_start, mcp__exa__deep_researcher_check, mcp__firecrawl__firecrawl_scrape, mcp__firecrawl__firecrawl_map, mcp__firecrawl__firecrawl_crawl, mcp__firecrawl__firecrawl_check_crawl_status, mcp__firecrawl__firecrawl_search, mcp__firecrawl__firecrawl_extract, mcp__firecrawl__firecrawl_deep_research, mcp__firecrawl__firecrawl_generate_llmstxt, mcp__apify__get-actor-details, mcp__apify__search-actors, mcp__apify__search-apify-docs, mcp__apify__fetch-apify-docs, mcp__apify__add-actor, mcp__apify__apify-slash-rag-web-browser
 color: cyan
 model: sonnet
 ---

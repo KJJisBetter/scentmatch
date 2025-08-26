@@ -45,13 +45,13 @@ export function QuizInterface() {
     `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   );
 
-  // Form for each question - memoized to prevent recreations
-  const form = useMemo(() => useForm<SingleQuestionFormData>({
+  // Form for each question
+  const form = useForm<SingleQuestionFormData>({
     resolver: zodResolver(singleQuestionSchema),
     defaultValues: {
       answer: '',
     },
-  }), []);
+  });
 
   // MVP Quiz Questions (5 essential questions)
   const mvpQuestions = [
@@ -173,11 +173,11 @@ export function QuizInterface() {
   // Reset form when question changes
   React.useEffect(() => {
     form.reset({ answer: '' });
-  }, [currentQuestion]);
+  }, [currentQuestion, form]);
 
   const handleAnswerSubmit = async (data: SingleQuestionFormData) => {
     const currentQ = mvpQuestions[currentQuestion];
-    if (!currentQ) return;
+    if (!currentQ || isAnalyzing) return; // Prevent submissions during analysis
 
     const newResponse = {
       question_id: currentQ.id,
@@ -214,6 +214,8 @@ export function QuizInterface() {
   };
 
   const handleOptionClick = (answer: string) => {
+    if (isAnalyzing) return; // Prevent clicks during analysis
+    
     form.setValue('answer', answer);
     form.handleSubmit(handleAnswerSubmit)();
   };
@@ -222,37 +224,51 @@ export function QuizInterface() {
     setIsAnalyzing(true);
 
     try {
-      // Generate recommendations using modern UnifiedRecommendationEngine
-      const supabase = await createServerSupabase();
-      const engine = new UnifiedRecommendationEngine(supabase as any, 'hybrid');
+      // FIXED: Use API route to store quiz data and generate personalized recommendations
+      console.log(`🎯 QUIZ ANALYSIS: Starting analysis for session ${quizSessionToken}`);
       
-      const result = await engine.generateRecommendations({
-        strategy: 'hybrid',
-        quizResponses: allResponses.map(r => ({
-          question_id: r.question_id,
-          answer: r.answer_value,
-          timestamp: r.timestamp,
-        })),
-        sessionToken: quizSessionToken,
-        limit: 10,
+      const response = await fetch('/api/quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          responses: allResponses.map(r => ({
+            question_id: r.question_id,
+            answer_value: r.answer_value,
+            timestamp: r.timestamp,
+          })),
+          session_token: quizSessionToken,
+        }),
       });
 
-      if (result.success && result.recommendations.length >= 3) {
+      if (!response.ok) {
+        throw new Error(`Quiz analysis failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.analysis_complete && result.recommendations && result.recommendations.length >= 3) {
+        console.log(`✅ QUIZ ANALYSIS COMPLETE: Got ${result.recommendations.length} personalized recommendations`);
+        console.log(`📊 RECOMMENDATION METHOD: ${result.recommendation_method}`);
+        
         // Prepare simplified data for conversion flow (exactly 3 recommendations)
         setPersonalityResults({
-          quiz_session_token: quizSessionToken,
+          quiz_session_token: result.quiz_session_token || quizSessionToken,
           recommendations: result.recommendations.slice(0, 3), // Take top 3 recommendations
           processing_time_ms: result.processing_time_ms,
           recommendation_method: result.recommendation_method,
           personality_analysis: result.personality_analysis,
         });
       } else {
-        // Fallback if direct recommendations fail
+        console.warn('⚠️ QUIZ ANALYSIS: Incomplete results, using available recommendations');
+        // Fallback if analysis incomplete but has some recommendations
         setPersonalityResults({
-          quiz_session_token: quizSessionToken,
-          recommendations: result.recommendations, // Fallback recommendations
-          processing_time_ms: result.processing_time_ms,
-          recommendation_method: 'fallback',
+          quiz_session_token: result.quiz_session_token || quizSessionToken,
+          recommendations: result.recommendations || [], // Available recommendations
+          processing_time_ms: result.processing_time_ms || 0,
+          recommendation_method: 'api_fallback',
+          error: result.error,
         });
       }
 
@@ -292,15 +308,25 @@ export function QuizInterface() {
             <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
           </div>
           <h3 className='text-xl font-semibold mb-2'>
-            Finding Your Perfect Matches...
+            Creating Your Personalized Fragrance Profile...
           </h3>
           <p className='text-muted-foreground mb-4'>
-            Selecting 3 ideal fragrances for you
+            Analyzing your responses and finding perfect matches
           </p>
-          <div className='text-sm text-muted-foreground space-y-1'>
-            <p>✨ Analyzing your preferences</p>
-            <p>🧪 Matching against 1,467 fragrances</p>
-            <p>🎯 Selecting your top 3 matches</p>
+          <div className='text-sm text-muted-foreground space-y-2'>
+            <p>🧠 Analyzing your fragrance personality from quiz responses</p>
+            <p>💾 Storing your preferences for personalized recommendations</p>  
+            <p>🎯 Matching your profile against our fragrance database</p>
+            <p>✨ Generating educational explanations for your experience level</p>
+            <p>🎨 Preparing your top 3 personalized matches</p>
+          </div>
+          
+          {/* Loading progress indicator */}
+          <div className='mt-6'>
+            <div className='text-xs text-muted-foreground mb-2'>This may take 15-30 seconds for the best results</div>
+            <div className='w-full bg-gray-200 rounded-full h-2'>
+              <div className='bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full animate-pulse w-2/3'></div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -354,22 +380,26 @@ export function QuizInterface() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <div className='space-y-4'>
+                      <div className='touch-spacing'>
                         {question.options.map(option => (
                           <button
                             key={option.value}
                             type='button'
                             onClick={() => handleOptionClick(option.value)}
-                            className='w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98]'
+                            className='w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group touch-target-xl touch-feedback touch-action-area'
+                            disabled={isAnalyzing}
+                            aria-describedby={`option-${option.value}-desc`}
                           >
                             <div className='flex items-center space-x-4'>
-                              <div className='text-2xl'>{option.emoji}</div>
-                              <div className='flex-1'>
-                                <span className='font-medium group-hover:text-purple-700'>
+                              <div className='text-2xl flex-shrink-0' role='img' aria-label={`${option.text} emoji`}>
+                                {option.emoji}
+                              </div>
+                              <div className='flex-1 min-w-0'>
+                                <span className='font-medium group-hover:text-purple-700 text-sm sm:text-base leading-tight'>
                                   {option.text}
                                 </span>
                               </div>
-                              <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500' />
+                              <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500 flex-shrink-0' />
                             </div>
                           </button>
                         ))}

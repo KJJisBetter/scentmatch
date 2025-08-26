@@ -26,7 +26,7 @@ if (!serviceRoleKey) {
  * WARNING: This client bypasses RLS policies. Use with extreme caution.
  */
 export function createServiceSupabase() {
-  return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
+  return createSupabaseClient<Database>(supabaseUrl!, serviceRoleKey!, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

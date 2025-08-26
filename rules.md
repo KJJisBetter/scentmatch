@@ -3,7 +3,7 @@
 ## How You Should Behave
 - Always delegate feature building to implementation specialists when context >30k tokens
 - Never research patterns documented in CLAUDE.md
-- Always browser test UI changes using @testing-specialist  
+- Always browser test UI changes using @qa-specialist
 - Never create custom components (use shadcn/ui only)
 - Always ask "Should I [A] or [B]?" when uncertain
 
@@ -40,6 +40,13 @@
 ### Strategic Tool Selection
 **Core Principle**: Use the most specialized tool for each task type
 
+#### Agent-MCP Mapping
+- **@database-operations-expert**: Supabase operations
+- **@qa-specialist**: Playwright browser testing
+- **@devops-engineer**: Vercel + GitHub CLI deployment
+- **@market-researcher**: Exa/Firecrawl research
+- **@project-manager**: Linear issue tracking
+
 #### Development & Deployment
 - **Vercel**: Deployment management, preview generation, domain configuration
 - **Supabase**: Database operations, user auth, RLS policies, project branching  
@@ -53,11 +60,10 @@
 - **Ref**: Technical documentation and API references
 
 ### Performance & Safety Rules
-- **Always test UI changes**: Use Playwright for browser verification before marking tasks complete
-- **Database safety**: Use Supabase read-only mode for exploration, full access only for confirmed changes
-- **Search efficiency**: Exa for semantic queries, Firecrawl for known URLs, Apify for structured data
-- **Caching strategy**: Use Firecrawl maxAge parameter for 500% faster repeat requests
+- **Always test UI changes**: Use @qa-specialist for browser verification before marking tasks complete
+- **Database safety**: Use @database-operations-expert for all Supabase operations
 - **GitHub operations**: Always use GitHub CLI (gh) via Bash tool for ALL GitHub tasks
+- **Agent delegation**: Use specialized agents for planning, research, and implementation
 
 ### Never Do
 - Use multiple heavy automation tools simultaneously (performance)

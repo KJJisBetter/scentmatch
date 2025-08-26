@@ -77,6 +77,14 @@
     "middleware.ts",
     "vitest.config.ts",
     "*.config.js",
-    "*.config.ts"
+    "*.config.ts",
+    "components/gamification/**/*",
+    "components/performance/**/*",
+    "components/collection/progressive-collection-preview.tsx",
+    "components/education/progressive-disclosure.tsx",
+    "lib/services/social-proof.ts",
+    "lib/services/social-sharing.ts",
+    "lib/utils/analytics-cache.ts",
+    "lib/utils/share-image-generator.ts"
   ]
 }

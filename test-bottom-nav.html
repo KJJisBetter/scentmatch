@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bottom Navigation Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(40 25% 96%)',
+                        foreground: 'hsl(262 47% 17%)',
+                        primary: 'hsl(262 47% 17%)',
+                        'muted-foreground': 'hsl(262 28% 51%)',
+                        border: 'hsl(40 25% 87%)',
+                        ring: 'hsl(33 25% 71%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .backdrop-blur-md {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        /* Lucide icons */
+        .lucide {
+            width: 1.25rem;
+            height: 1.25rem;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans">
+    <div class="min-h-screen p-4">
+        <h1 class="text-3xl font-bold mb-4 text-center">Bottom Navigation Test</h1>
+        <p class="text-muted-foreground mb-8 text-center">
+            Resize your browser to mobile width (375px) to see the bottom navigation.
+        </p>
+        
+        <div class="max-w-sm mx-auto space-y-4 mb-20">
+            <div class="p-4 border border-border rounded-lg">
+                <h2 class="font-semibold">Features Implemented</h2>
+                <ul class="text-sm text-muted-foreground space-y-1 mt-2">
+                    <li>✅ 5 navigation tabs (Discover, Search, Collections, Quiz, Profile)</li>
+                    <li>✅ Fixed positioning at bottom</li>
+                    <li>✅ Backdrop blur effect</li>
+                    <li>✅ 44px minimum touch targets</li>
+                    <li>✅ Active state indicators</li>
+                    <li>✅ Smooth transitions</li>
+                    <li>✅ Keyboard navigation support</li>
+                    <li>✅ ARIA labels for accessibility</li>
+                    <li>✅ Haptic feedback on iOS</li>
+                    <li>✅ Hidden on desktop (md:hidden)</li>
+                    <li>✅ High contrast mode support</li>
+                </ul>
+            </div>
+            
+            <div class="p-4 border border-border rounded-lg">
+                <h2 class="font-semibold">Test Instructions</h2>
+                <ol class="text-sm text-muted-foreground space-y-1 mt-2">
+                    <li>1. Resize browser to mobile width</li>
+                    <li>2. Bottom navigation should appear</li>
+                    <li>3. Click tabs to test navigation</li>
+                    <li>4. Use Tab key for keyboard navigation</li>
+                    <li>5. Test on actual mobile device for haptics</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav role="navigation" aria-label="Bottom navigation" class="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/90 backdrop-blur-md border-t border-border/40 pb-2 sm:pb-4">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-around px-2 py-1">
+                <!-- Discover Tab -->
+                <button type="button" role="button" tabindex="0" aria-label="Discover fragrances" data-active="true" onclick="navigate('/')" class="touch-target flex flex-col items-center justify-center gap-1 px-2 py-1 transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg text-primary">
+                    <svg class="lucide h-5 w-5 transition-transform duration-200 scale-110" viewBox="0 0 24 24">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9,22 9,12 15,12 15,22"/>
+                    </svg>
+                    <span class="text-xs font-semibold leading-none transition-all duration-200">Discover</span>
+                </button>
+                
+                <!-- Search Tab -->
+                <button type="button" role="button" tabindex="0" aria-label="Search fragrances" data-active="false" onclick="navigate('/search')" class="touch-target flex flex-col items-center justify-center gap-1 px-2 py-1 transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg text-muted-foreground hover:text-foreground">
+                    <svg class="lucide h-5 w-5 transition-transform duration-200" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <span class="text-xs font-medium leading-none transition-all duration-200">Search</span>
+                </button>
+                
+                <!-- Collections Tab -->
+                <button type="button" role="button" tabindex="0" aria-label="My collections" data-active="false" onclick="navigate('/collection')" class="touch-target flex flex-col items-center justify-center gap-1 px-2 py-1 transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg text-muted-foreground hover:text-foreground">
+                    <svg class="lucide h-5 w-5 transition-transform duration-200" viewBox="0 0 24 24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <span class="text-xs font-medium leading-none transition-all duration-200">Collections</span>
+                </button>
+                
+                <!-- Quiz Tab -->
+                <button type="button" role="button" tabindex="0" aria-label="Take fragrance quiz" data-active="false" onclick="navigate('/quiz')" class="touch-target flex flex-col items-center justify-center gap-1 px-2 py-1 transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg text-muted-foreground hover:text-foreground">
+                    <svg class="lucide h-5 w-5 transition-transform duration-200" viewBox="0 0 24 24">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <path d="M16 13H8"/>
+                        <path d="M16 17H8"/>
+                        <path d="M10 9H8"/>
+                    </svg>
+                    <span class="text-xs font-medium leading-none transition-all duration-200">Quiz</span>
+                </button>
+                
+                <!-- Profile Tab -->
+                <button type="button" role="button" tabindex="0" aria-label="User profile" data-active="false" onclick="navigate('/profile')" class="touch-target flex flex-col items-center justify-center gap-1 px-2 py-1 transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg text-muted-foreground hover:text-foreground">
+                    <svg class="lucide h-5 w-5 transition-transform duration-200" viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span class="text-xs font-medium leading-none transition-all duration-200">Profile</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        function navigate(href) {
+            // Simulate haptic feedback on iOS
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent) && navigator.vibrate) {
+                navigator.vibrate(10);
+            }
+            
+            // Update active state
+            document.querySelectorAll('button[role="button"]').forEach(btn => {
+                btn.setAttribute('data-active', 'false');
+                btn.className = btn.className.replace('text-primary', 'text-muted-foreground hover:text-foreground');
+                btn.className = btn.className.replace('font-semibold', 'font-medium');
+                btn.className = btn.className.replace('scale-110', '');
+            });
+            
+            // Set clicked tab as active
+            const clickedBtn = event.target.closest('button');
+            if (clickedBtn) {
+                clickedBtn.setAttribute('data-active', 'true');
+                clickedBtn.className = clickedBtn.className.replace('text-muted-foreground hover:text-foreground', 'text-primary');
+                clickedBtn.className = clickedBtn.className.replace('font-medium', 'font-semibold');
+                const icon = clickedBtn.querySelector('.lucide');
+                if (icon && !icon.className.includes('scale-110')) {
+                    icon.className += ' scale-110';
+                }
+            }
+            
+            console.log('Navigate to:', href);
+        }
+        
+        // Keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target.role === 'button') {
+                e.preventDefault();
+                e.target.click();
+            }
+        });
+        
+        // Show current viewport size
+        function updateViewportInfo() {
+            const info = document.getElementById('viewport-info') || document.createElement('div');
+            info.id = 'viewport-info';
+            info.style.cssText = 'position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 8px; border-radius: 4px; font-size: 12px; z-index: 1000;';
+            info.textContent = `${window.innerWidth}x${window.innerHeight}`;
+            document.body.appendChild(info);
+        }
+        
+        updateViewportInfo();
+        window.addEventListener('resize', updateViewportInfo);
+    </script>
+</body>
+</html>

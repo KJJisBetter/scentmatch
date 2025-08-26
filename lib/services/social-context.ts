@@ -1,4 +1,4 @@
-import { createServiceSupabase } from '@/lib/supabase';
+import { createServiceSupabase } from '@/lib/supabase/service';
 import type { Database } from '@/types/database';
 
 // Type definitions for social validation system

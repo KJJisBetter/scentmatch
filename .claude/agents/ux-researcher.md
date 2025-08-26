@@ -1,7 +1,7 @@
 ---
 name: ux-researcher
 description: UX research expert specializing in user experience analysis, conversion optimization, and usability testing. Use proactively for interface improvements, user journey optimization, and accessibility analysis.
-tools: Read, Write, Edit, MultiEdit, WebFetch, WebSearch, mcp__exa__*, mcp__firecrawl__*
+tools: Read, Write, Edit, MultiEdit, WebFetch, WebSearch, mcp__exa__web_search_exa, mcp__exa__company_research_exa, mcp__exa__crawling_exa, mcp__exa__linkedin_search_exa, mcp__exa__deep_researcher_start, mcp__exa__deep_researcher_check, mcp__firecrawl__firecrawl_scrape, mcp__firecrawl__firecrawl_map, mcp__firecrawl__firecrawl_crawl, mcp__firecrawl__firecrawl_check_crawl_status, mcp__firecrawl__firecrawl_search, mcp__firecrawl__firecrawl_extract, mcp__firecrawl__firecrawl_deep_research, mcp__firecrawl__firecrawl_generate_llmstxt
 color: purple
 model: sonnet
 ---

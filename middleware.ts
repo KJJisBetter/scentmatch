@@ -5,6 +5,82 @@ import type { Database } from '@/types/database';
 
 // Note: Edge runtime is configured via config.matcher, not export const runtime
 
+/**
+ * URL redirect rules for common broken patterns (SCE-63)
+ */
+function getUrlRedirects(pathname: string): { shouldRedirect: boolean; destination?: string } {
+  const lowercasePath = pathname.toLowerCase();
+  
+  // Handle common authentication redirects
+  const authRedirects: Record<string, string> = {
+    '/login': '/auth/login',
+    '/signin': '/auth/login', 
+    '/signup': '/auth/signup',
+    '/register': '/auth/signup',
+    '/reset-password': '/auth/reset',
+    '/forgot-password': '/auth/reset'
+  };
+
+  if (authRedirects[lowercasePath]) {
+    return { shouldRedirect: true, destination: authRedirects[lowercasePath] };
+  }
+
+  // Handle missing navigation routes identified in audit
+  const missingRouteRedirects: Record<string, string> = {
+    '/samples': '/browse?category=samples',
+    '/profile': '/dashboard',
+    '/account': '/dashboard', 
+    '/settings': '/dashboard',
+    '/collection': '/dashboard/collection'
+  };
+
+  if (missingRouteRedirects[lowercasePath]) {
+    return { shouldRedirect: true, destination: missingRouteRedirects[lowercasePath] };
+  }
+
+  // Handle fragrance-related URL variations
+  const fragranceRedirects: Record<string, string> = {
+    '/fragrances': '/browse',
+    '/perfumes': '/browse',
+    '/scents': '/browse',
+    '/products': '/browse'
+  };
+
+  if (fragranceRedirects[lowercasePath]) {
+    return { shouldRedirect: true, destination: fragranceRedirects[lowercasePath] };
+  }
+
+  // Handle case sensitivity issues
+  if (pathname !== lowercasePath && !/^\/api\//.test(pathname)) {
+    return { shouldRedirect: true, destination: lowercasePath };
+  }
+
+  // Handle trailing slash issues (remove trailing slash except for root)
+  if (pathname !== '/' && pathname.endsWith('/')) {
+    return { shouldRedirect: true, destination: pathname.slice(0, -1) };
+  }
+
+  // Handle double slashes
+  if (pathname.includes('//')) {
+    const cleaned = pathname.replace(/\/+/g, '/');
+    return { shouldRedirect: true, destination: cleaned };
+  }
+
+  // Handle legacy product URLs (example: /product/123 -> /browse)
+  if (pathname.match(/^\/product\/\w+$/)) {
+    return { shouldRedirect: true, destination: '/browse' };
+  }
+
+  // Handle brand-specific URLs (example: /brand/chanel -> /browse?search=chanel)
+  const brandMatch = pathname.match(/^\/brand\/([a-zA-Z0-9\-]+)$/);
+  if (brandMatch) {
+    const brandName = brandMatch[1];
+    return { shouldRedirect: true, destination: `/browse?search=${encodeURIComponent(brandName)}` };
+  }
+
+  return { shouldRedirect: false };
+}
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const isProduction = process.env.NODE_ENV === 'production';
@@ -93,6 +169,13 @@ export async function middleware(req: NextRequest) {
     const redirectUrl = new URL('/auth/login', req.url);
     redirectUrl.searchParams.set('redirectTo', currentPath);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // Handle common URL redirects and fixes (SCE-63)
+  const redirects = getUrlRedirects(currentPath);
+  if (redirects.shouldRedirect) {
+    console.log(`Redirecting ${currentPath} to ${redirects.destination}`);
+    return NextResponse.redirect(new URL(redirects.destination, req.url));
   }
 
   // If user is logged in and tries to access auth pages, redirect to dashboard

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Search, Home, Compass, HelpCircle } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -27,19 +28,63 @@ export default function NotFound() {
             Page Not Found
           </h2>
 
-          <p className='text-slate-600 mb-6'>
+          <p className='text-slate-600 mb-8'>
             The fragrance you're looking for seems to have vanished into thin
             air. Let's get you back on track to discover your perfect scent.
           </p>
 
-          <div className='space-y-3'>
-            <Button asChild className='w-full'>
-              <Link href='/'>Return Home</Link>
-            </Button>
+          <div className='space-y-4'>
+            <div className='grid grid-cols-1 gap-3'>
+              <Button asChild className='w-full'>
+                <Link href='/' className='flex items-center justify-center gap-2'>
+                  <Home className='h-4 w-4' />
+                  Return Home
+                </Link>
+              </Button>
 
-            <Button variant='outline' asChild className='w-full'>
-              <Link href='/browse'>Browse Fragrances</Link>
-            </Button>
+              <Button variant='outline' asChild className='w-full'>
+                <Link href='/browse' className='flex items-center justify-center gap-2'>
+                  <Compass className='h-4 w-4' />
+                  Browse Fragrances
+                </Link>
+              </Button>
+
+              <Button variant='outline' asChild className='w-full'>
+                <Link href='/quiz' className='flex items-center justify-center gap-2'>
+                  <Search className='h-4 w-4' />
+                  Find Your Match
+                </Link>
+              </Button>
+            </div>
+
+            <div className='pt-4 border-t border-slate-200'>
+              <p className='text-sm text-slate-500 mb-3'>Looking for something specific?</p>
+              <div className='space-y-2'>
+                <div className='text-xs text-slate-400'>
+                  Try searching for popular fragrances like:
+                </div>
+                <div className='flex flex-wrap gap-2'>
+                  <Link 
+                    href='/browse?search=Sauvage' 
+                    className='px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-full transition-colors'
+                  >
+                    Sauvage
+                  </Link>
+                  <Link 
+                    href='/browse?search=Bleu de Chanel' 
+                    className='px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-full transition-colors'
+                  >
+                    Bleu de Chanel
+                  </Link>
+                  <Link 
+                    href='/browse?search=Tom Ford' 
+                    className='px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-full transition-colors'
+                  >
+                    Tom Ford
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

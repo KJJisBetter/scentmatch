@@ -25,22 +25,25 @@ export function QuizSkeleton({
             <div className='animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto' />
             <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
           </div>
-          <div className='space-y-3' aria-hidden='true'>
-            <Skeleton className='h-6 w-64 mx-auto' />
-            <Skeleton className='h-4 w-48 mx-auto' />
+          <h3 className='text-xl font-semibold mb-2'>
+            Creating Your Personalized Fragrance Profile...
+          </h3>
+          <p className='text-muted-foreground mb-4'>
+            Analyzing your responses and finding perfect matches
+          </p>
+          <div className='text-sm text-muted-foreground space-y-2'>
+            <p>🧠 Analyzing your fragrance personality from quiz responses</p>
+            <p>💾 Storing your preferences for personalized recommendations</p>  
+            <p>🎯 Matching your profile against our fragrance database</p>
+            <p>✨ Generating educational explanations for your experience level</p>
+            <p>🎨 Preparing your top 3 personalized matches</p>
           </div>
-          <div className='text-sm text-muted-foreground space-y-2 mt-6'>
-            <div className='flex items-center justify-center space-x-2'>
-              <Skeleton className='h-4 w-4 rounded-full' />
-              <Skeleton className='h-4 w-32' />
-            </div>
-            <div className='flex items-center justify-center space-x-2'>
-              <Skeleton className='h-4 w-4 rounded-full' />
-              <Skeleton className='h-4 w-40' />
-            </div>
-            <div className='flex items-center justify-center space-x-2'>
-              <Skeleton className='h-4 w-4 rounded-full' />
-              <Skeleton className='h-4 w-36' />
+          
+          {/* Loading progress indicator */}
+          <div className='mt-6'>
+            <div className='text-xs text-muted-foreground mb-2'>This may take 15-30 seconds for the best results</div>
+            <div className='w-full bg-gray-200 rounded-full h-2'>
+              <div className='bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full animate-pulse w-2/3'></div>
             </div>
           </div>
         </CardContent>

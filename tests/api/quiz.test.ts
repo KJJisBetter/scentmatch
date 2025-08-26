@@ -357,7 +357,7 @@ describe('Quiz API Endpoints', () => {
         bot_detected: true,
         confidence: 0.91,
         detection_reasons: [
-          'Uniform response timing (95-105ms)',
+          'Uniform response timing',
           'Always selecting first option',
           'No human-like hesitation patterns'
         ],

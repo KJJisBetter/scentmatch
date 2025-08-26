@@ -1,4 +1,4 @@
-import { createClientSupabase } from '@/lib/supabase-client';
+import { createClientSupabase } from '@/lib/supabase';
 
 /**
  * MVP Personality Engine
