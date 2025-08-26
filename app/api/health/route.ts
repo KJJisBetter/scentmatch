@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 /**
  * Production Health Check API
@@ -13,15 +13,15 @@ export async function GET() {
   const startTime = Date.now();
 
   try {
-    const supabase = createClient();
+    const supabase = await createServerSupabase();
 
     // Test database connectivity with timeout
-    const connectionTest = await Promise.race([
+    const connectionTest = (await Promise.race([
       supabase.from('fragrances').select('id').limit(1).single(),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Database connection timeout')), 5000)
       ),
-    ]);
+    ])) as any;
 
     if (connectionTest.error && connectionTest.error.code !== 'PGRST116') {
       throw new Error(
@@ -156,7 +156,7 @@ export async function GET() {
  */
 export async function HEAD() {
   try {
-    const supabase = createClient();
+    const supabase = await createServerSupabase();
 
     // Quick connectivity test
     const { error } = await supabase

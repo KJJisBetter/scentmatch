@@ -181,9 +181,9 @@ export async function GET(request: NextRequest) {
         supabase as any
       ).rpc('advanced_fragrance_search', {
         query_text: sanitizedQuery,
-        scent_families: scentFamilies.length > 0 ? scentFamilies : null,
-        occasions: occasions.length > 0 ? occasions : null,
-        seasons: seasons.length > 0 ? seasons : null,
+        scent_families: (scentFamilies?.length ?? 0) > 0 ? scentFamilies : null,
+        occasions: (occasions?.length ?? 0) > 0 ? occasions : null,
+        seasons: (seasons?.length ?? 0) > 0 ? seasons : null,
         sample_available_only: sampleOnly,
         max_results: limit,
       });
