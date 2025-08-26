@@ -2,15 +2,15 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { Database } from '@/types/database';
-import { randomBytes } from 'crypto';
-
 // Note: Edge runtime is configured via config.matcher, not export const runtime
 
 /**
- * Generate cryptographic nonce for CSP
+ * Generate cryptographic nonce for CSP using Web Crypto API (Edge Runtime compatible)
  */
 function generateNonce(): string {
-  return randomBytes(16).toString('base64');
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array));
 }
 
 /**
