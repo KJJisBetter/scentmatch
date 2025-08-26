@@ -1,0 +1,33 @@
+# Development and testing files
+tests/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+playwright-report*/
+playwright-accessibility-results.xml
+test-*.html
+
+# Documentation and specs
+docs/
+.agent-os/
+examples/
+scripts/
+
+# Development configs
+*.config.ts
+playwright.*.config.ts
+vitest.*.config.ts
+
+# Large development dependencies
+node_modules/.cache
+.next/cache
+coverage/
+
+# Performance and gamification (not in MVP)
+components/gamification/
+components/performance/
+lib/services/social-proof.ts
+lib/services/social-sharing.ts
+lib/utils/analytics-cache.ts
+lib/utils/share-image-generator.ts
