@@ -59,6 +59,9 @@
     "test:cross-device:network": "npx playwright test --config=playwright.cross-device.config.ts tests/cross-device/network-throttling.test.ts",
     "analyze:bundle": "node scripts/performance/bundle-analyzer.js",
     "test:cross-device:full": "node scripts/qa/run-cross-device-tests.js",
+    "production:health": "node scripts/production/health-monitor.js",
+    "production:rollback": "node scripts/production/emergency-rollback.js",
+    "production:rollback:emergency": "node scripts/production/emergency-rollback.js --yes",
     "prepare": "husky"
   },
   "lint-staged": {
