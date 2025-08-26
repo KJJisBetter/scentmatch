@@ -1,5 +1,6 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { headers } from 'next/headers';
+import { securityLogger } from '@/lib/security/logger';
 
 // Rate limit configurations for different endpoints
 export const RATE_LIMITS = {
@@ -89,8 +90,8 @@ const createRateLimiter = (requests: number, window: string) => {
     !process.env.UPSTASH_REDIS_REST_URL ||
     !process.env.UPSTASH_REDIS_REST_TOKEN
   ) {
-    console.warn(
-      '⚠️ Redis not configured - using in-memory rate limiting (development only)'
+    securityLogger.warn(
+      'Redis not configured - using in-memory rate limiting (development only)'
     );
 
     return createSimpleRateLimiter(requests, windowMs);
@@ -196,7 +197,7 @@ export function getClientIdentifier(request?: Request): string {
       return `${ip}:${hashString(userAgent)}`;
     }
   } catch (error) {
-    console.warn('Failed to get client identifier:', error);
+    securityLogger.warn('Failed to get client identifier', { error });
     return 'unknown';
   }
 }
@@ -238,7 +239,7 @@ export async function checkRateLimit(
       limitType,
     };
   } catch (error) {
-    console.error(`Rate limit check failed for ${limitType}:`, error);
+    securityLogger.error(`Rate limit check failed for ${limitType}`, { error });
 
     // Fail open - allow request if rate limiting fails
     return {
@@ -267,6 +268,17 @@ export async function withRateLimit(
     const resetTimeFormatted = new Date(result.resetTime).toISOString();
     const errorMessage =
       options?.errorMessage || 'Too many requests. Please try again later.';
+
+    // Log rate limit violation for security monitoring
+    securityLogger.rateLimit(
+      limitType,
+      options?.identifier || 'unknown',
+      result.limit,
+      {
+        used: result.used,
+        resetTime: resetTimeFormatted,
+      }
+    );
 
     return {
       blocked: true,
