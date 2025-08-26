@@ -7,6 +7,11 @@ import {
 import { FragranceNormalizer } from '@/lib/data-quality/fragrance-normalizer';
 import { MissingProductDetector } from '@/lib/data-quality/missing-product-detector';
 import { withRateLimit } from '@/lib/rate-limit';
+import {
+  searchQuerySchema,
+  validateApiInput,
+  sanitizeForDatabase,
+} from '@/lib/validation/api-schemas';
 
 /**
  * Clean corrupted fragrance names that contain UUIDs
@@ -14,25 +19,26 @@ import { withRateLimit } from '@/lib/rate-limit';
  */
 function cleanFragranceName(name: string): string {
   if (!name) return name;
-  
+
   // Remove UUID prefixes (36-char UUID pattern followed by space)
   // Pattern: "12deed0a-fe15-45f1-b6e0-50f421f3bb7f Creed Aventus Oil"
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s+/i;
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s+/i;
   return name.replace(uuidPattern, '').trim();
 }
 
 /**
  * Unified Search API - Consolidates 5 search routes into one
- * 
+ *
  * GET /api/search?mode=enhanced&type=suggestions&smart=true&filters=true
- * 
+ *
  * Replaces and consolidates:
  * - /api/search/enhanced/route.ts (196 lines) - Fuse.js fuzzy search
  * - /api/search/smart/route.ts (356 lines) - Smart search with AI
  * - /api/search/filters/route.ts (253 lines) - Filter options
  * - /api/search/suggestions/route.ts (183 lines) - Search suggestions
  * - /api/search/suggestions/enhanced/route.ts (additional suggestions)
- * 
+ *
  * Total consolidation: 988+ lines → 1 unified endpoint
  * Enhanced database-integrated search with canonical fragrance system
  * Handles malformed names and missing products intelligently
@@ -48,19 +54,46 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q')?.trim() || '';
-    const scentFamilies =
-      searchParams.get('scent_families')?.split(',').filter(Boolean) || [];
-    const occasions =
-      searchParams.get('occasions')?.split(',').filter(Boolean) || [];
-    const seasons =
-      searchParams.get('seasons')?.split(',').filter(Boolean) || [];
-    const sampleOnly = searchParams.get('sample_only') === 'true';
-    const limit = Math.max(
-      1,
-      Math.min(50, parseInt(searchParams.get('limit') || '20'))
-    );
-    const enhanced = searchParams.get('enhanced') !== 'false'; // Enable by default
+
+    // SECURITY: Validate and sanitize search parameters
+    const queryParams = {
+      q: searchParams.get('q')?.trim() || '',
+      scent_families:
+        searchParams.get('scent_families')?.split(',').filter(Boolean) || [],
+      occasions:
+        searchParams.get('occasions')?.split(',').filter(Boolean) || [],
+      seasons: searchParams.get('seasons')?.split(',').filter(Boolean) || [],
+      sample_only: searchParams.get('sample_only') === 'true',
+      limit: Math.max(
+        1,
+        Math.min(50, parseInt(searchParams.get('limit') || '20'))
+      ),
+      enhanced: searchParams.get('enhanced') !== 'false',
+    };
+
+    const validation = validateApiInput(searchQuerySchema, queryParams);
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid search parameters',
+          details: validation.error,
+        },
+        { status: 400 }
+      );
+    }
+
+    const {
+      q: query,
+      scent_families: scentFamilies,
+      occasions,
+      seasons,
+      sample_only: sampleOnly,
+      limit,
+      enhanced,
+    } = validation.data;
+
+    // Additional sanitization for database queries
+    const sanitizedQuery = query ? sanitizeForDatabase(query) : '';
 
     const supabase = await createServerSupabase();
     const normalizer = new FragranceNormalizer();
@@ -71,9 +104,9 @@ export async function GET(request: NextRequest) {
     let normalizedQuery: any = null;
 
     // Step 1: Enhanced search with canonical system (if enabled)
-    if (enhanced && query && query.length > 0) {
+    if (enhanced && sanitizedQuery && sanitizedQuery.length > 0) {
       try {
-        normalizedQuery = normalizer.normalizeFragranceName(query);
+        normalizedQuery = normalizer.normalizeFragranceName(sanitizedQuery);
 
         // Try canonical smart search first
         const { data: canonicalResults, error: canonicalError } = await (
@@ -90,7 +123,7 @@ export async function GET(request: NextRequest) {
         ) {
           // Map canonical UUIDs back to original fragrance IDs for proper linking
           const canonicalIds = canonicalResults.map((r: any) => r.fragrance_id);
-          
+
           const { data: fragranceMapping } = await supabase
             .from('fragrances_canonical')
             .select('id, metadata')
@@ -138,16 +171,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 2: Try database function if canonical didn't work
-    if (!searchResults && query && query.length > 0) {
-      console.log(`🔍 Database function search: "${query}"`);
+    if (!searchResults && sanitizedQuery && sanitizedQuery.length > 0) {
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Database function search: "${sanitizedQuery}"`);
+      }
 
       const { data: functionResults, error: functionError } = await (
         supabase as any
       ).rpc('advanced_fragrance_search', {
-        query_text: query,
-        scent_families: scentFamilies.length > 0 ? scentFamilies : null,
-        occasions: occasions.length > 0 ? occasions : null,
-        seasons: seasons.length > 0 ? seasons : null,
+        query_text: sanitizedQuery,
+        scent_families: (scentFamilies?.length ?? 0) > 0 ? scentFamilies : null,
+        occasions: (occasions?.length ?? 0) > 0 ? occasions : null,
+        seasons: (seasons?.length ?? 0) > 0 ? seasons : null,
         sample_available_only: sampleOnly,
         max_results: limit,
       });
@@ -186,7 +222,9 @@ export async function GET(request: NextRequest) {
 
     // Fallback to simple database query if function search didn't work
     if (!searchResults) {
-      console.log(`🔍 Fallback database search: "${query}"`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Fallback database search: "${sanitizedQuery}"`);
+      }
       searchMethod = 'fallback_database';
 
       let fallbackQuery = (supabase as any).from('fragrances').select(`
@@ -203,9 +241,9 @@ export async function GET(request: NextRequest) {
         `);
 
       // Search in fragrance names first, then try brand names
-      if (query && query.length > 0) {
+      if (sanitizedQuery && sanitizedQuery.length > 0) {
         // Try fragrance name search first
-        fallbackQuery = fallbackQuery.ilike('name', `%${query}%`);
+        fallbackQuery = fallbackQuery.ilike('name', `%${sanitizedQuery}%`);
       }
 
       // Apply filters
@@ -237,14 +275,16 @@ export async function GET(request: NextRequest) {
       let brandResults: any[] = [];
       if (
         (!fallbackResults || fallbackResults.length === 0) &&
-        query &&
-        query.length > 0
+        sanitizedQuery &&
+        sanitizedQuery.length > 0
       ) {
         // Use brand intelligence to get brand family variations
-        const brandVariations = getBrandFamilyVariations(query);
-        console.log(
-          `🧠 Brand intelligence: "${query}" → [${brandVariations.join(', ')}]`
-        );
+        const brandVariations = getBrandFamilyVariations(sanitizedQuery);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            `🧠 Brand intelligence: "${sanitizedQuery}" → [${brandVariations.join(', ')}]`
+          );
+        }
 
         // Search for any brand in the family
         const { data: brandSearchResults } = await (supabase as any)
@@ -311,16 +351,18 @@ export async function GET(request: NextRequest) {
     if (
       enhanced &&
       (!searchResults || searchResults.fragrances.length === 0) &&
-      query &&
-      query.length > 2
+      sanitizedQuery &&
+      sanitizedQuery.length > 2
     ) {
       try {
-        console.log(
-          `🔍 No results found for "${query}" - checking missing product intelligence`
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            `🔍 No results found for "${sanitizedQuery}" - checking missing product intelligence`
+          );
+        }
 
         const missingProductResponse = await detector.handleProductNotFound(
-          query,
+          sanitizedQuery,
           undefined, // No user ID from search request
           request.headers.get('x-forwarded-for') || undefined,
           request.headers.get('user-agent') || undefined
@@ -329,16 +371,24 @@ export async function GET(request: NextRequest) {
         // If we have good alternatives, format them as search results
         if (missingProductResponse.alternatives.length > 0) {
           // Check if alternatives have canonical UUIDs that need mapping
-          const alternativeIds = missingProductResponse.alternatives.map((alt: any) => alt.fragrance_id);
-          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          const needsMapping = alternativeIds.some((id: string) => uuidPattern.test(id));
-          
+          const alternativeIds = missingProductResponse.alternatives.map(
+            (alt: any) => alt.fragrance_id
+          );
+          const uuidPattern =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const needsMapping = alternativeIds.some((id: string) =>
+            uuidPattern.test(id)
+          );
+
           const alternativeIdMap = new Map();
           if (needsMapping) {
             const { data: altMapping } = await supabase
               .from('fragrances_canonical')
               .select('id, metadata')
-              .in('id', alternativeIds.filter((id: string) => uuidPattern.test(id)));
+              .in(
+                'id',
+                alternativeIds.filter((id: string) => uuidPattern.test(id))
+              );
 
             altMapping?.forEach((mapping: any) => {
               const originalId = mapping.metadata?.migrated_from;
