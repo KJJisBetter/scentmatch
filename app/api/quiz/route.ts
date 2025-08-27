@@ -31,7 +31,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Invalid request data',
-          details: 'error' in validation ? validation.error : 'Validation failed',
+          details:
+            validation.success === false
+              ? validation.error
+              : 'Validation failed',
           error_code: 'VALIDATION_FAILED',
         },
         { status: 400 }
