@@ -10,7 +10,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-
   // ESLint configuration for MVP build
   eslint: {
     // Allow production builds to complete with specific rule warnings
@@ -49,29 +48,6 @@ const nextConfig = {
         hostname: '*.fragrantica.com',
       },
     ],
-  },
-
-  // Security headers
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-        ],
-      },
-    ];
   },
 };
 
