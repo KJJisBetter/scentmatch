@@ -194,7 +194,20 @@ export function QuizToCollectionBridge({
     case 'collection_preview':
       return (
         <ProgressiveCollectionPreview
-          recommendations={quizResults.recommendations}
+          recommendations={quizResults.recommendations.map(item => ({
+            fragrance: {
+              id: item.fragrance_id,
+              name: item.name,
+              brand: item.brand,
+              description: item.explanation,
+              scent_family: item.scent_family,
+              image_url: item.image_url,
+            },
+            match_score: item.score,
+            reasoning: item.explanation,
+            sample_available: item.sample_available,
+            sample_price_usd: item.sample_price_usd,
+          }))}
           quiz_session_token={quizResults.quiz_session_token}
           onSaveCollection={handleSaveCollection}
           onSkip={handleSkipCollection}

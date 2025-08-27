@@ -91,7 +91,7 @@ export function ProgressiveQuizFlow({
     return (
       <div className={cn('relative', className)}>
         <QuizSkeleton 
-          variant="questions"
+          variant="loading"
           data-testid="quiz-skeleton"
         />
         
@@ -111,7 +111,7 @@ export function ProgressiveQuizFlow({
     return (
       <div className={cn('relative opacity-0 animate-fade-in', className)}>
         <QuizSkeleton 
-          variant="questions"
+          variant="loading"
           data-testid="quiz-skeleton"
         />
       </div>
@@ -138,7 +138,7 @@ export function ProgressiveQuizFlow({
       )}
 
       {/* Enhanced Quiz Flow with Progressive Loading */}
-      <Suspense fallback={<QuizSkeleton variant="questions" />}>
+      <Suspense fallback={<QuizSkeleton variant="loading" />}>
         <div data-testid="quiz-content" className="animate-fade-in">
           <EnhancedQuizFlow
             initialGender={initialGender}

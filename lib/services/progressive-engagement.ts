@@ -464,7 +464,7 @@ export class ProgressiveEngagementService {
       const ratedItems = collection?.filter((item: any) => item.rating).length || 0;
 
       // Define progressive stages
-      const stages = [
+      const stages: ProgressiveStage[] = [
         {
           stage_id: 'discovery',
           stage_name: 'Discovery',
@@ -483,7 +483,9 @@ export class ProgressiveEngagementService {
               reward_description: 'Unlock basic collection insights',
               auto_grant: true
             }
-          ]
+          ],
+          current_progress: 0,
+          completed: false
         },
         {
           stage_id: 'exploration',
@@ -504,7 +506,9 @@ export class ProgressiveEngagementService {
               reward_description: 'Advanced analytics and insights',
               auto_grant: true
             }
-          ]
+          ],
+          current_progress: 0,
+          completed: false
         },
         {
           stage_id: 'curation',
@@ -526,7 +530,9 @@ export class ProgressiveEngagementService {
               reward_description: 'Fragrance Connoisseur badge',
               auto_grant: true
             }
-          ]
+          ],
+          current_progress: 0,
+          completed: false
         }
       ];
 
@@ -924,7 +930,7 @@ export class ProgressiveEngagementService {
     try {
       const event: AnalyticsEvent = {
         user_id: userId,
-        event_type: eventType,
+        event_type: eventType as AnalyticsEventType,
         event_data: eventData
       };
 

@@ -222,11 +222,6 @@ export function ProgressiveEngagementFlow({
         onSaveToFavorites={(fragranceId) => {
           handleFragranceInteraction('favorite_added', fragranceId);
         }}
-        onCompareFragrances={(fragranceIds) => {
-          handleFragranceInteraction('comparison_view', fragranceIds[0] || 'unknown', {
-            compared_with: fragranceIds.slice(1)
-          });
-        }}
       />
 
       {/* Progressive Value Building Section */}

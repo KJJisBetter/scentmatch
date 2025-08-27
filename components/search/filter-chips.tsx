@@ -86,8 +86,8 @@ export function FilterChips({
   const [announcement, setAnnouncement] = useState<string>('');
 
   // Refs for performance and debouncing
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
-  const abortControllerRef = useRef<AbortController>();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const performanceStartRef = useRef<number>(0);
 
   // Initialize AI engine

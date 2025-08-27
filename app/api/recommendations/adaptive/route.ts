@@ -69,7 +69,11 @@ export async function POST(request: NextRequest) {
     const recommendationRequest: UnifiedRecommendationRequest = {
       strategy: validatedRequest.strategy,
       userId: userId,
-      quizResponses: validatedRequest.quizResponses,
+      quizResponses: validatedRequest.quizResponses?.map(response => ({
+        question_id: response.question_id,
+        answer: response.answer,
+        timestamp: response.timestamp,
+      })),
       userPreferences: validatedRequest.userPreferences,
       limit: validatedRequest.limit,
       sessionToken: validatedRequest.sessionToken,

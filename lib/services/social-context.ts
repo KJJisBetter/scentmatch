@@ -5,11 +5,11 @@ import type { Database } from '@/types/database';
 export interface UserDemographics {
   user_id?: string;
   guest_session_id?: string;
-  age_group: '13-17' | '18-24' | '25-34' | '35-44' | '45-54' | '55-64' | '65+';
-  experience_level: 'beginner' | 'intermediate' | 'experienced' | 'expert';
+  age_group?: '13-17' | '18-24' | '25-34' | '35-44' | '45-54' | '55-64' | '65+';
+  experience_level?: 'beginner' | 'intermediate' | 'experienced' | 'expert';
   gender_preference?: 'men' | 'women' | 'unisex' | 'no_preference';
-  social_influence_level: number; // 1-10
-  uniqueness_preference: number; // 1-10
+  social_influence_level?: number; // 1-10
+  uniqueness_preference?: number; // 1-10
   style_preferences?: string[];
   occasion_preferences?: string[];
 }

@@ -66,9 +66,9 @@ export class SocialSharingService {
 
   private async getSupabase() {
     if (!this.supabase) {
-      this.supabase = await createServerSupabase();
+      this.supabase = createServerSupabase();
     }
-    return this.supabase;
+    return await this.supabase;
   }
 
   /**

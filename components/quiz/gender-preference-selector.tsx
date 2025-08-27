@@ -16,7 +16,7 @@ import {
   type GenderPreferenceFormData,
 } from '@/lib/quiz/form-schemas';
 
-export type GenderPreference = 'men' | 'women';
+export type GenderPreference = 'men' | 'women' | 'unisex';
 
 interface GenderPreferenceSelectorProps {
   onGenderSelect: (gender: GenderPreference) => void;

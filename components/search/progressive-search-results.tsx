@@ -108,12 +108,12 @@ export function ProgressiveSearchResults({
     if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (entry.entryType === 'layout-shift' && entry.value > 0.1) {
-            console.warn('Layout shift detected:', entry.value);
+          if (entry.entryType === 'layout-shift' && (entry as any).value > 0.1) {
+            console.warn('Layout shift detected:', (entry as any).value);
             if (onPerformanceMetric) {
               onPerformanceMetric({
                 name: 'layout-shift',
-                value: entry.value
+                value: (entry as any).value
               });
             }
           }

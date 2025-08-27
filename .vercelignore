@@ -29,5 +29,4 @@ components/gamification/
 components/performance/
 lib/services/social-proof.ts
 lib/services/social-sharing.ts
-lib/utils/analytics-cache.ts
 lib/utils/share-image-generator.ts

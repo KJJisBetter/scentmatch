@@ -6,11 +6,11 @@ import { z } from 'zod';
 const baseDemographicsSchema = z.object({
   user_id: z.string().uuid().optional(),
   guest_session_id: z.string().min(1).optional(),
-  age_group: z.enum(['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']),
+  age_group: z.enum(['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']).optional(),
   experience_level: z.enum(['beginner', 'intermediate', 'experienced', 'expert']),
   gender_preference: z.enum(['men', 'women', 'unisex', 'no_preference']).optional(),
-  social_influence_level: z.number().min(1).max(10).default(5),
-  uniqueness_preference: z.number().min(1).max(10).default(5),
+  social_influence_level: z.number().min(1).max(10),
+  uniqueness_preference: z.number().min(1).max(10),
   style_preferences: z.array(z.string()).optional(),
   occasion_preferences: z.array(z.string()).optional()
 });

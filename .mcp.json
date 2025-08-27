@@ -41,6 +41,12 @@
     "apify": {
       "type": "http",
       "url": "https://mcp.apify.com"
+    },
+    "vercel": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@vercel/mcp-server"],
+      "env": {}
     }
   }
 }

@@ -37,7 +37,7 @@ export class ProgressiveQuizErrorBoundary extends Component<Props, State> {
     canRecover: true
   };
 
-  public static override getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     const errorId = `error-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     
     // Determine if error is recoverable based on type

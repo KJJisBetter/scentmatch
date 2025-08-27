@@ -9,9 +9,9 @@ import { z } from 'zod';
 
 // Gender preference schema
 export const genderPreferenceSchema = z.object({
-  gender: z.enum(['men', 'women'], {
+  gender: z.enum(['men', 'women', 'unisex'], {
     required_error: 'Please select a fragrance category',
-    invalid_type_error: 'Please select either men or women fragrances',
+    invalid_type_error: 'Please select a valid fragrance category',
   }),
 });
 

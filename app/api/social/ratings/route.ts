@@ -137,8 +137,21 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = peerRatingSchema.parse(body);
 
-    // Submit the rating
-    await socialContextService.submitPeerRating(validatedData);
+    // Submit the rating - map to interface fields only
+    const ratingData = {
+      user_id: validatedData.user_id,
+      guest_session_id: validatedData.guest_session_id,
+      fragrance_id: validatedData.fragrance_id,
+      overall_rating: validatedData.overall_rating,
+      would_recommend: validatedData.would_recommend,
+      experience_rating: validatedData.experience_rating,
+      usage_occasion: validatedData.usage_occasion,
+      experience_level_when_rated: validatedData.experience_level_when_rated,
+      confidence_in_rating: validatedData.confidence_in_rating,
+      quick_review: validatedData.quick_review,
+    };
+    
+    await socialContextService.submitPeerRating(ratingData);
 
     return NextResponse.json({
       success: true,

@@ -82,9 +82,9 @@ export class SocialProofService {
 
   private async getSupabase() {
     if (!this.supabase) {
-      this.supabase = await createServerSupabase();
+      this.supabase = createServerSupabase();
     }
-    return this.supabase;
+    return await this.supabase;
   }
 
   /**
@@ -292,7 +292,7 @@ export class SocialProofService {
           if (!fragranceCount.has(key)) {
             fragranceCount.set(key, {
               name: fragrance.name,
-              brand: fragrance.fragrance_brands.name,
+              brand: fragrance.fragrance_brands[0]?.name || 'Unknown',
               count: 0
             });
           }
@@ -311,7 +311,7 @@ export class SocialProofService {
           trend_score: Math.min(100, data.count * 10), // Simplified scoring
           additions_today: data.count,
           additions_this_week: data.count * 7, // Estimated
-          growth_velocity: data.count > 5 ? 'high' : data.count > 2 ? 'medium' : 'low'
+          growth_velocity: data.count > 5 ? 3 : data.count > 2 ? 2 : 1
         }));
 
       // Get trending personality traits (from recent collections)
@@ -710,6 +710,21 @@ export class SocialProofService {
       index % names.length;
     
     return names[nameIndex];
+  }
+
+  private formatActionForDisplay(eventType: string): string {
+    switch (eventType) {
+      case 'quiz_to_collection_conversion':
+        return 'discovered new fragrances';
+      case 'collection_item_added':
+        return 'added to collection';
+      case 'collection_shared':
+        return 'shared their collection';
+      case 'fragrance_rated':
+        return 'rated a fragrance';
+      default:
+        return 'took an action';
+    }
   }
 
   private async getTotalCollectionsWithFragrance(fragranceId: string): Promise<number> {
