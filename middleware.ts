@@ -135,55 +135,8 @@ export async function middleware(req: NextRequest) {
     );
   }
 
-  // Content Security Policy - Production Hardened
-  const nonce = generateNonce();
-
-  if (isProduction) {
-    // Production CSP - Maximum Security (No unsafe-inline/eval)
-    const cspDirectives = [
-      "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}'`,
-      `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
-      "font-src 'self' data: https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.voyageai.com",
-      "frame-src 'none'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      'upgrade-insecure-requests',
-    ];
-    res.headers.set('Content-Security-Policy', cspDirectives.join('; '));
-
-    // Additional Production Security Headers
-    res.headers.set('X-Content-Type-Options', 'nosniff');
-    res.headers.set('X-Frame-Options', 'DENY');
-    res.headers.set('X-XSS-Protection', '0'); // Disable legacy XSS filter
-    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-    res.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
-    res.headers.set('Origin-Agent-Cluster', '?1');
-  } else if (isPreview) {
-    // Preview Environment - Balanced Security
-    const cspDirectives = [
-      "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://vercel.live https://va.vercel-scripts.com`,
-      `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
-      "font-src 'self' data: https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.supabase.co https://vercel.live https://va.vercel-scripts.com wss://*.supabase.co",
-      "frame-src 'self'",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-    ];
-    res.headers.set('Content-Security-Policy', cspDirectives.join('; '));
-  }
-
-  // Set nonce for script and style elements
-  res.headers.set('X-Nonce', nonce);
+  // Temporarily disable CSP for production deployment testing
+  // TODO: Re-enable after fixing Next.js compatibility
 
   // Add deployment information headers (for debugging)
   if (process.env.VERCEL_ENV) {
