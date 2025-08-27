@@ -62,7 +62,6 @@ export function ConversionFlow({
   const [accountData, setAccountData] = useState({
     email: '',
     password: '',
-    firstName: '',
   });
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -78,11 +77,7 @@ export function ConversionFlow({
       const supabase = createClientSupabase();
 
       // Basic validation
-      if (
-        !accountData.email ||
-        !accountData.password ||
-        !accountData.firstName
-      ) {
+      if (!accountData.email || !accountData.password) {
         setErrors(['Please fill in all required fields']);
         setIsCreatingAccount(false);
         return;
@@ -100,7 +95,6 @@ export function ConversionFlow({
         password: accountData.password,
         options: {
           data: {
-            first_name: accountData.firstName,
             quiz_session_token: quizResults.quiz_session_token,
             recommendation_count: quizResults.recommendations.length,
           },
@@ -126,7 +120,6 @@ export function ConversionFlow({
               user_data: {
                 user_id: authData.user!.id,
                 email: accountData.email,
-                first_name: accountData.firstName,
               },
             });
 
@@ -134,7 +127,6 @@ export function ConversionFlow({
               const newUser = {
                 id: authData.user!.id,
                 email: accountData.email,
-                firstName: accountData.firstName,
                 quiz_completed_at: new Date().toISOString(),
                 recommendations_generated: quizResults.recommendations.length,
                 onboarding_step: 'recommendations_unlocked',
@@ -196,11 +188,17 @@ export function ConversionFlow({
           }}
           onLearnMore={async fragranceId => {
             // Use safe navigation to prevent 404s (SCE-71 fix)
-            const { safeNavigateToFragrance } = await import('@/lib/services/fragrance-validation-client');
-            
+            const { safeNavigateToFragrance } = await import(
+              '@/lib/services/fragrance-validation-client'
+            );
+
             await safeNavigateToFragrance(fragranceId, () => {
-              console.error(`❌ NAVIGATION FAILED: Fragrance ${fragranceId} not found in ConversionFlow`);
-              alert(`This fragrance is temporarily unavailable. Please try another recommendation!`);
+              console.error(
+                `❌ NAVIGATION FAILED: Fragrance ${fragranceId} not found in ConversionFlow`
+              );
+              alert(
+                `This fragrance is temporarily unavailable. Please try another recommendation!`
+              );
             });
           }}
           onSaveToFavorites={fragranceId => {
@@ -301,8 +299,9 @@ export function ConversionFlow({
                     Enhance Your Collection Experience
                   </h2>
                   <p className='text-muted-foreground'>
-                    Your {quizResults.collection_context.size} fragrances are saved! 
-                    Create an account to unlock advanced collection features.
+                    Your {quizResults.collection_context.size} fragrances are
+                    saved! Create an account to unlock advanced collection
+                    features.
                   </p>
                 </>
               ) : (
@@ -321,10 +320,9 @@ export function ConversionFlow({
             <Alert className='mb-6' variant='default'>
               <CheckCircle className='w-4 h-4' />
               <AlertDescription>
-                {collectionFirst && quizResults.collection_context?.saved 
+                {collectionFirst && quizResults.collection_context?.saved
                   ? `Your collection of ${quizResults.collection_context.size} fragrances is secure and will be linked to your account`
-                  : 'Your quiz results and recommendations will be saved'
-                }
+                  : 'Your quiz results and recommendations will be saved'}
               </AlertDescription>
             </Alert>
 
@@ -372,32 +370,13 @@ export function ConversionFlow({
                 />
               </div>
 
-              <div>
-                <Label htmlFor='firstName'>First Name</Label>
-                <Input
-                  id='firstName'
-                  type='text'
-                  value={accountData.firstName}
-                  onChange={e =>
-                    setAccountData(prev => ({
-                      ...prev,
-                      firstName: e.target.value,
-                    }))
-                  }
-                  placeholder='What should we call you?'
-                  className='mt-1'
-                  disabled={isCreatingAccount}
-                />
-              </div>
-
               <Button
                 onClick={handleAccountCreation}
                 disabled={
                   isCreatingAccount ||
                   isPending ||
                   !accountData.email ||
-                  !accountData.password ||
-                  !accountData.firstName
+                  !accountData.password
                 }
                 className='w-full bg-purple-600 hover:bg-purple-700 py-3 font-semibold'
                 size='lg'
@@ -442,8 +421,7 @@ export function ConversionFlow({
             <p className='text-lg text-muted-foreground mb-6'>
               {collectionFirst && quizResults.collection_context?.saved
                 ? `Your account is ready and your collection of ${quizResults.collection_context.size} fragrances is now enhanced with premium features`
-                : 'Your account is ready and your quiz results have been saved'
-              }
+                : 'Your account is ready and your quiz results have been saved'}
             </p>
 
             {/* Immediate Benefits Display */}
@@ -476,8 +454,13 @@ export function ConversionFlow({
                 size='lg'
                 className='w-full bg-purple-600 hover:bg-purple-700 font-semibold py-4'
                 onClick={() => {
-                  if (collectionFirst && quizResults.collection_context?.saved) {
-                    router.push('/collection?source=account_creation&enhanced=true');
+                  if (
+                    collectionFirst &&
+                    quizResults.collection_context?.saved
+                  ) {
+                    router.push(
+                      '/collection?source=account_creation&enhanced=true'
+                    );
                   } else {
                     router.push('/recommendations?quiz_completed=true');
                   }
@@ -486,8 +469,7 @@ export function ConversionFlow({
                 <ExternalLink className='w-5 h-5 mr-2' />
                 {collectionFirst && quizResults.collection_context?.saved
                   ? 'Manage Your Collection'
-                  : 'View All 15 Recommendations'
-                }
+                  : 'View All 15 Recommendations'}
               </Button>
 
               <Button

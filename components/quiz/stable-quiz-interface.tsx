@@ -17,11 +17,12 @@ interface StableQuizInterfaceProps {
   mode: QuizMode;
   onQuizComplete: (responses: any[]) => void;
   onProgressUpdate?: (progress: { current: number; total: number }) => void;
+  isSubmitting?: boolean;
 }
 
 /**
  * Stable Quiz Interface - No React Hook Form
- * 
+ *
  * Uses plain React state management for maximum stability.
  * Eliminates infinite re-render loops and form validation complexity.
  */
@@ -29,10 +30,12 @@ export function StableQuizInterface({
   mode,
   onQuizComplete,
   onProgressUpdate,
+  isSubmitting = false,
 }: StableQuizInterfaceProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
-  
+  const [isProcessing, setIsProcessing] = useState(false);
+
   // Simple state for current selections
   const [singleSelection, setSingleSelection] = useState<string>('');
   const [multipleSelections, setMultipleSelections] = useState<string[]>([]);
@@ -51,15 +54,18 @@ export function StableQuizInterface({
   React.useEffect(() => {
     setSingleSelection('');
     setMultipleSelections([]);
-    
+
     if (onProgressUpdate) {
       onProgressUpdate(progress);
     }
   }, [currentQuestionIndex]);
 
   const handleSingleOptionClick = (value: string) => {
+    // Prevent duplicate submissions
+    if (isSubmitting || isProcessing) return;
+
     setSingleSelection(value);
-    
+
     // Immediate proceed for single selection
     const newResponse = {
       question_id: currentQuestion.id,
@@ -77,7 +83,7 @@ export function StableQuizInterface({
     let newSelections: string[];
     if (checked) {
       newSelections = [...multipleSelections, value];
-      
+
       // Check max selections
       if (newSelections.length > (currentQuestion.maxSelections || 8)) {
         return;
@@ -90,7 +96,13 @@ export function StableQuizInterface({
   };
 
   const handleMultipleContinue = () => {
-    if (!currentQuestion || multipleSelections.length < (currentQuestion.minSelections || 1)) {
+    // Prevent duplicate submissions
+    if (isSubmitting || isProcessing) return;
+
+    if (
+      !currentQuestion ||
+      multipleSelections.length < (currentQuestion.minSelections || 1)
+    ) {
       return;
     }
 
@@ -106,11 +118,15 @@ export function StableQuizInterface({
   };
 
   const proceedToNext = (newResponse: any) => {
+    // Prevent double processing
+    if (isProcessing) return;
+
     const updatedResponses = [...responses, newResponse];
     setResponses(updatedResponses);
 
     if (currentQuestionIndex >= questions.length - 1) {
-      // Quiz complete
+      // Quiz complete - set processing state immediately
+      setIsProcessing(true);
       onQuizComplete(updatedResponses);
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -197,19 +213,27 @@ export function StableQuizInterface({
               <p className='text-center text-muted-foreground mb-6'>
                 Pick what sounds nice - you can choose multiple
               </p>
-              
+
               {currentQuestion.options.map(option => {
                 const isSelected = multipleSelections.includes(option.value);
-                
+
                 return (
                   <div
                     key={option.value}
-                    className={`w-full p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98] ${
+                    className={`w-full p-4 border-2 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${
                       isSelected
                         ? 'border-purple-500 bg-purple-50'
                         : `border-gray-200 ${modeConfig.buttonStyle}`
+                    } ${
+                      isSubmitting || isProcessing
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'cursor-pointer'
                     }`}
-                    onClick={() => handleMultipleToggle(option.value, !isSelected)}
+                    onClick={() =>
+                      !isSubmitting &&
+                      !isProcessing &&
+                      handleMultipleToggle(option.value, !isSelected)
+                    }
                   >
                     <div className='flex items-center space-x-4'>
                       <div className='text-2xl'>{option.emoji}</div>
@@ -238,7 +262,10 @@ export function StableQuizInterface({
                 <Button
                   onClick={handleMultipleContinue}
                   disabled={
-                    multipleSelections.length < (currentQuestion.minSelections || 1)
+                    multipleSelections.length <
+                      (currentQuestion.minSelections || 1) ||
+                    isSubmitting ||
+                    isProcessing
                   }
                   className='px-8 py-3'
                 >
@@ -246,7 +273,8 @@ export function StableQuizInterface({
                   {multipleSelections.length === 1 ? 'choice' : 'choices'}
                 </Button>
                 <p className='text-xs text-muted-foreground mt-2'>
-                  {multipleSelections.length}/{currentQuestion.maxSelections || 3} selected
+                  {multipleSelections.length}/
+                  {currentQuestion.maxSelections || 3} selected
                   {currentQuestion.minSelections &&
                     ` (minimum ${currentQuestion.minSelections})`}
                 </p>
@@ -260,7 +288,12 @@ export function StableQuizInterface({
                   key={option.value}
                   type='button'
                   onClick={() => handleSingleOptionClick(option.value)}
-                  className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98] border-gray-200 ${modeConfig.buttonStyle}`}
+                  disabled={isSubmitting || isProcessing}
+                  className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 group transform hover:scale-[1.02] active:scale-[0.98] border-gray-200 ${modeConfig.buttonStyle} ${
+                    isSubmitting || isProcessing
+                      ? 'cursor-not-allowed opacity-50'
+                      : ''
+                  }`}
                   style={{ minHeight: '48px' }}
                 >
                   <div className='flex items-center space-x-4'>

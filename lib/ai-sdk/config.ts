@@ -19,7 +19,7 @@ export const openaiClient = createOpenAI({
   apiKey: openaiApiKey,
 });
 
-// Model configurations for different use cases
+// Model configurations for different use cases with timeout settings
 export const AI_MODELS = {
   // For generating recommendations and analysis (gpt-4o supports structured output)
   RECOMMENDATION: openai('gpt-4o'),
@@ -32,6 +32,16 @@ export const AI_MODELS = {
 
   // For quick analysis and lightweight tasks
   FAST: openai('gpt-3.5-turbo'),
+} as const;
+
+// Timeout configurations for AI operations (in milliseconds)
+export const AI_TIMEOUTS = {
+  // Quick operations (personality analysis, simple explanations)
+  FAST: 8000, // 8 seconds
+  // Standard operations (recommendations, detailed explanations)
+  STANDARD: 15000, // 15 seconds
+  // Complex operations (batch processing, embeddings)
+  COMPLEX: 30000, // 30 seconds
 } as const;
 
 // Configuration for different AI operations
@@ -52,6 +62,10 @@ export const AI_CONFIG = {
     temperature: 0.3,
     // Maximum tokens for recommendation explanations
     maxTokens: 500,
+    // Enable database-only fallback when AI fails
+    enableFallback: true,
+    // Maximum time to wait for AI enhancement before fallback
+    maxWaitTime: 10000, // 10 seconds
   },
 
   SIMILARITY: {

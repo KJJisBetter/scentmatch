@@ -23,30 +23,38 @@ if (!supabaseAnonKey) {
 /**
  * Update user session for middleware
  * This function should be called from middleware.ts to refresh sessions
+ * FIXED: Only redirect to login for protected routes, not all routes
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  isProtectedRoute: boolean = false
+) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  const supabase = createServerClient<Database>(supabaseUrl!, supabaseAnonKey!, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
+  const supabase = createServerClient<Database>(
+    supabaseUrl!,
+    supabaseAnonKey!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
-        supabaseResponse = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        );
-      },
-    },
-  });
+    }
+  );
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // (supabase as any).auth.getUser(). A simple mistake could make it very hard to debug
@@ -56,15 +64,27 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await (supabase as any).auth.getUser();
 
+  // FIXED: Only redirect to login for protected routes when user is not authenticated
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
+    isProtectedRoute &&
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
-    // no user, potentially respond by redirecting the user to the login page
+    // Redirect unauthenticated users from protected routes to login
+    console.log(
+      `🔒 AUTH REDIRECT: ${request.nextUrl.pathname} -> /auth/login (user not authenticated)`
+    );
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = '/auth/login';
+    url.searchParams.set('redirectTo', request.nextUrl.pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Log successful authentication for protected routes
+  if (user && isProtectedRoute) {
+    console.log(
+      `✅ AUTH SUCCESS: ${request.nextUrl.pathname} (user: ${user.email || user.id})`
+    );
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

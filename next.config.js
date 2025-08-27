@@ -23,6 +23,29 @@ const nextConfig = {
     optimizePackageImports: ['@supabase/supabase-js'],
   },
 
+  // Security configuration (compatible with middleware CSP)
+  poweredByHeader: false,
+
+  // Headers configuration to support middleware security headers
+  async headers() {
+    return [
+      {
+        // Apply to all routes (middleware will override as needed)
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+    ];
+  },
+
   // Image optimization configuration
   images: {
     // Allow images from Supabase storage and common fragrance image sources
@@ -48,6 +71,9 @@ const nextConfig = {
         hostname: '*.fragrantica.com',
       },
     ],
+    // Enable optimization for better performance
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 

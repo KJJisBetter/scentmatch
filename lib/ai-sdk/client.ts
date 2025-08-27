@@ -10,15 +10,31 @@ import { z } from 'zod';
 import {
   AI_MODELS,
   AI_CONFIG,
+  AI_TIMEOUTS,
   PROMPT_TEMPLATES,
   AIRecommendationResponse,
   AIPersonalityResponse,
   AIEmbeddingResponse,
   AIError,
 } from './config';
-import { adaptivePromptEngine, type AdaptivePromptConfig } from './adaptive-prompts';
-import type { UserExperienceLevel, ExplanationStyle } from './user-experience-detector';
-import { beginnerExplanationEngine, type BeginnerExplanationRequest, type BeginnerExplanationResult } from './beginner-explanation-engine';
+import {
+  adaptivePromptEngine,
+  type AdaptivePromptConfig,
+} from './adaptive-prompts';
+import type {
+  UserExperienceLevel,
+  ExplanationStyle,
+} from './user-experience-detector';
+import {
+  beginnerExplanationEngine,
+  type BeginnerExplanationRequest,
+  type BeginnerExplanationResult,
+} from './beginner-explanation-engine';
+import {
+  withTimeout,
+  DATABASE_FALLBACK,
+  AITimeoutError,
+} from './timeout-wrapper';
 
 // Validation schemas for AI responses
 const RecommendationSchema = z.object({
@@ -43,12 +59,18 @@ export class VercelAIClient {
   /**
    * Generate text embeddings for similarity search
    * Replaces custom embedding generation with OpenAI's embedding model
+   * FIXED: Added timeout handling for production stability
    */
   async generateEmbedding(text: string): Promise<AIEmbeddingResponse> {
     try {
-      const { embedding } = await embed({
+      const embedOperation = embed({
         model: AI_MODELS.EMBEDDING,
         value: text,
+      });
+
+      const { embedding } = await withTimeout(embedOperation, {
+        timeout: AI_TIMEOUTS.STANDARD,
+        operation: 'generateEmbedding',
       });
 
       return {
@@ -98,6 +120,7 @@ export class VercelAIClient {
   /**
    * Generate fragrance recommendations with AI reasoning
    * Replaces complex custom recommendation logic
+   * FIXED: Added timeout handling for production stability
    */
   async generateRecommendations(
     userPreferences: string,
@@ -115,11 +138,16 @@ export class VercelAIClient {
         Return as JSON array matching the schema.
       `;
 
-      const { object } = await generateObject({
+      const recommendOperation = generateObject({
         model: AI_MODELS.RECOMMENDATION,
         schema: z.array(RecommendationSchema),
         prompt,
         temperature: AI_CONFIG.RECOMMENDATION.temperature,
+      });
+
+      const { object } = await withTimeout(recommendOperation, {
+        timeout: AI_TIMEOUTS.COMPLEX,
+        operation: 'generateRecommendations',
       });
 
       return object.slice(0, limit);
@@ -135,6 +163,7 @@ export class VercelAIClient {
   /**
    * Analyze user quiz responses to determine personality type
    * Replaces custom personality analysis engines
+   * FIXED: Added timeout handling and database fallback for production stability
    */
   async analyzePersonality(
     quizResponses: any[]
@@ -153,25 +182,32 @@ export class VercelAIClient {
         Return analysis as JSON matching the schema.
       `;
 
-      const { object } = await generateObject({
+      const personalityOperation = generateObject({
         model: AI_MODELS.RECOMMENDATION,
         schema: PersonalityAnalysisSchema,
         prompt,
       });
 
+      const { object } = await withTimeout(personalityOperation, {
+        timeout: AI_TIMEOUTS.FAST,
+        operation: 'analyzePersonality',
+        fallback: async () => ({ object: DATABASE_FALLBACK.PERSONALITY }),
+      });
+
       return object;
     } catch (error) {
-      throw new AIError(
-        'Failed to analyze personality',
-        'PERSONALITY_ANALYSIS_FAILED',
-        error as Error
+      console.warn(
+        'Personality analysis failed, using database fallback:',
+        error
       );
+      return DATABASE_FALLBACK.PERSONALITY;
     }
   }
 
   /**
    * Generate explanations for recommendations
    * Provides transparent AI reasoning for user trust
+   * FIXED: Added timeout handling and database fallback for production stability
    * @deprecated Use explainRecommendationAdaptive for experience-level aware explanations
    */
   async explainRecommendation(
@@ -194,18 +230,30 @@ export class VercelAIClient {
         Keep explanation concise but informative.
       `;
 
-      const { text } = await generateText({
+      const explanationOperation = generateText({
         model: AI_MODELS.RECOMMENDATION,
         prompt,
       });
 
+      const { text } = await withTimeout(explanationOperation, {
+        timeout: AI_TIMEOUTS.STANDARD,
+        operation: 'explainRecommendation',
+        fallback: async () => {
+          const fragName =
+            fragranceDetails.split(' by ')[0] || 'this fragrance';
+          const scentFamily =
+            fragranceDetails.match(/\(([^)]+)\)$/)?.[1] || 'fragrance';
+          return { text: DATABASE_FALLBACK.EXPLANATION(fragName, scentFamily) };
+        },
+      });
+
       return text;
     } catch (error) {
-      throw new AIError(
-        'Failed to explain recommendation',
-        'EXPLANATION_FAILED',
-        error as Error
-      );
+      console.warn('Explanation failed, using database fallback:', error);
+      const fragName = fragranceDetails.split(' by ')[0] || 'this fragrance';
+      const scentFamily =
+        fragranceDetails.match(/\(([^)]+)\)$/)?.[1] || 'fragrance';
+      return DATABASE_FALLBACK.EXPLANATION(fragName, scentFamily);
     }
   }
 
@@ -242,10 +290,13 @@ export class VercelAIClient {
       });
 
       // Adapt vocabulary for experience level
-      const adaptedText = adaptivePromptEngine.adaptVocabulary(text, experienceLevel);
+      const adaptedText = adaptivePromptEngine.adaptVocabulary(
+        text,
+        experienceLevel
+      );
 
       // Build result object with conditional properties
-      const disclosure = explanationStyle.useProgressiveDisclosure 
+      const disclosure = explanationStyle.useProgressiveDisclosure
         ? adaptivePromptEngine.generateProgressiveDisclosureSummary(adaptedText)
         : null;
 
@@ -253,7 +304,7 @@ export class VercelAIClient {
         ? this.extractFragranceTerms(fragranceDetails + ' ' + adaptedText)
         : null;
 
-      const educationalTerms = terms 
+      const educationalTerms = terms
         ? adaptivePromptEngine.generateEducationalContent(terms)
         : null;
 
@@ -281,7 +332,7 @@ export class VercelAIClient {
   /**
    * Generate beginner-friendly explanations with education
    * Specific implementation for SCE-66 (30-40 word limit)
-   * Uses specialized BeginnerExplanationEngine for optimal results
+   * FIXED: Added timeout handling and database fallback for production stability
    */
   async explainForBeginner(
     fragranceId: string,
@@ -297,8 +348,9 @@ export class VercelAIClient {
   }> {
     try {
       // Parse fragrance details
-      const { name, brand, scentFamily } = this.parseFragranceDetails(fragranceDetails);
-      
+      const { name, brand, scentFamily } =
+        this.parseFragranceDetails(fragranceDetails);
+
       const request: BeginnerExplanationRequest = {
         fragranceId,
         fragranceName: name,
@@ -307,7 +359,15 @@ export class VercelAIClient {
         userContext: userProfile,
       };
 
-      const result = await beginnerExplanationEngine.generateExplanation(request);
+      const beginnerOperation =
+        beginnerExplanationEngine.generateExplanation(request);
+
+      const result = await withTimeout(beginnerOperation, {
+        timeout: AI_TIMEOUTS.STANDARD,
+        operation: 'explainForBeginner',
+        fallback: async () =>
+          DATABASE_FALLBACK.BEGINNER_EXPLANATION(name, brand),
+      });
 
       return {
         explanation: result.explanation,
@@ -317,10 +377,22 @@ export class VercelAIClient {
         confidenceBoost: result.educationalContent.confidenceBooster,
       };
     } catch (error) {
-      console.error('BeginnerExplanationEngine failed, falling back to adaptive method:', error);
-      
-      // Fallback to previous method
-      return this.explainForBeginnerFallback(fragranceId, userProfile, fragranceDetails, includeEducation);
+      console.warn(
+        'BeginnerExplanationEngine failed, using database fallback:',
+        error
+      );
+
+      // Database fallback for complete AI failure
+      const { name, brand } = this.parseFragranceDetails(fragranceDetails);
+      const fallback = DATABASE_FALLBACK.BEGINNER_EXPLANATION(name, brand);
+
+      return {
+        explanation: fallback.explanation,
+        summary: fallback.summary,
+        expandedContent: fallback.educationalContent.tips.join(' '),
+        educationalTerms: fallback.educationalContent.terms,
+        confidenceBoost: fallback.educationalContent.confidenceBooster,
+      };
     }
   }
 
@@ -399,7 +471,7 @@ export class VercelAIClient {
   } {
     // Parse format: "Name by Brand (Family)"
     const match = fragranceDetails.match(/(.*?)\s+by\s+(.*?)\s*\(([^)]+)\)/);
-    
+
     if (match) {
       return {
         name: match[1].trim(),
@@ -407,7 +479,7 @@ export class VercelAIClient {
         scentFamily: match[3].trim(),
       };
     }
-    
+
     // Fallback parsing
     const parts = fragranceDetails.split(' ');
     return {
@@ -422,13 +494,28 @@ export class VercelAIClient {
    */
   private extractFragranceTerms(text: string): string[] {
     const fragranceKeywords = [
-      'edp', 'edt', 'parfum', 'notes', 'projection', 'longevity', 'sillage', 
-      'dry down', 'scent family', 'fresh', 'floral', 'woody', 'oriental',
-      'concentration', 'olfactory', 'accord', 'facet', 'composition'
+      'edp',
+      'edt',
+      'parfum',
+      'notes',
+      'projection',
+      'longevity',
+      'sillage',
+      'dry down',
+      'scent family',
+      'fresh',
+      'floral',
+      'woody',
+      'oriental',
+      'concentration',
+      'olfactory',
+      'accord',
+      'facet',
+      'composition',
     ];
 
     const lowerText = text.toLowerCase();
-    return fragranceKeywords.filter(keyword => 
+    return fragranceKeywords.filter(keyword =>
       lowerText.includes(keyword.toLowerCase())
     );
   }
@@ -529,26 +616,35 @@ export class VercelAIClient {
       userProfile: string;
       fragranceDetails: string;
     }>
-  ): Promise<Array<{
-    fragranceId: string;
-    explanation: string;
-    summary: string;
-    educationalTerms?: Record<string, any>;
-    confidenceBoost: string;
-  }>> {
+  ): Promise<
+    Array<{
+      fragranceId: string;
+      explanation: string;
+      summary: string;
+      educationalTerms?: Record<string, any>;
+      confidenceBoost: string;
+    }>
+  > {
     try {
-      const beginnerRequests: BeginnerExplanationRequest[] = requests.map(req => {
-        const { name, brand, scentFamily } = this.parseFragranceDetails(req.fragranceDetails);
-        return {
-          fragranceId: req.fragranceId,
-          fragranceName: name,
-          brand,
-          scentFamily,
-          userContext: req.userProfile,
-        };
-      });
+      const beginnerRequests: BeginnerExplanationRequest[] = requests.map(
+        req => {
+          const { name, brand, scentFamily } = this.parseFragranceDetails(
+            req.fragranceDetails
+          );
+          return {
+            fragranceId: req.fragranceId,
+            fragranceName: name,
+            brand,
+            scentFamily,
+            userContext: req.userProfile,
+          };
+        }
+      );
 
-      const results = await beginnerExplanationEngine.generateBatchExplanations(beginnerRequests);
+      const results =
+        await beginnerExplanationEngine.generateBatchExplanations(
+          beginnerRequests
+        );
 
       return results.map((result, index) => ({
         fragranceId: requests[index].fragranceId,
@@ -605,8 +701,9 @@ export class VercelAIClient {
         scentFamily: 'fresh',
         userContext: 'new fragrance explorer',
       };
-      
-      const result = await beginnerExplanationEngine.generateExplanation(testRequest);
+
+      const result =
+        await beginnerExplanationEngine.generateExplanation(testRequest);
       checks.beginner_explanations = result.explanation.length > 0;
     } catch {
       checks.beginner_explanations = false;

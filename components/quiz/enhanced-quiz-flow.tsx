@@ -16,7 +16,7 @@ import { QuizResultsStreaming } from './quiz-results-streaming';
 import { QuizToCollectionBridge } from './quiz-to-collection-bridge';
 // Removed WorkingRecommendationEngine - now using API endpoint
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { QuizSkeleton } from '@/components/ui/skeletons';
 import { useProgressiveSession } from '@/lib/quiz/progressive-session-manager';
 import { GenderValidationError } from './gender-validation-error';
@@ -53,6 +53,8 @@ export function EnhancedQuizFlow({
   const [quizResponses, setQuizResponses] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [genderError, setGenderError] = useState<{
     message: string;
     recoveryAction?: {
@@ -70,7 +72,7 @@ export function EnhancedQuizFlow({
     trackEngagement,
     getEngagementScore,
     storeQuizResults,
-    trackPageView
+    trackPageView,
   } = useProgressiveSession();
 
   // Track initial page view
@@ -79,7 +81,7 @@ export function EnhancedQuizFlow({
     trackEngagement({
       type: 'quiz_started',
       context: 'enhanced_flow',
-      value: { initial_gender: initialGender }
+      value: { initial_gender: initialGender },
     });
   }, [trackPageView, trackEngagement, initialGender]);
 
@@ -90,7 +92,7 @@ export function EnhancedQuizFlow({
     trackEngagement({
       type: 'gender_selected',
       value: gender,
-      context: 'quiz_flow'
+      context: 'quiz_flow',
     });
 
     // Legacy analytics
@@ -116,7 +118,7 @@ export function EnhancedQuizFlow({
     trackEngagement({
       type: 'experience_selected',
       value: level,
-      context: 'quiz_flow'
+      context: 'quiz_flow',
     });
 
     // Legacy analytics
@@ -137,6 +139,15 @@ export function EnhancedQuizFlow({
   };
 
   const handleQuizComplete = async (responses: any[]) => {
+    // Prevent duplicate submissions
+    if (isSubmitting || isComplete) {
+      console.warn(
+        '⚠️ DUPLICATE SUBMISSION PREVENTED: Quiz already being processed'
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
     setQuizResponses(responses);
     setIsGenerating(true);
 
@@ -146,32 +157,44 @@ export function EnhancedQuizFlow({
       value: {
         question_count: responses.length,
         gender_preference: genderPreference,
-        experience_level: experienceLevel
+        experience_level: experienceLevel,
       },
-      context: 'quiz_flow'
+      context: 'quiz_flow',
     });
 
     try {
-      // CRITICAL FRONTEND VALIDATION: Ensure gender preference exists to prevent SCE-81  
-      if (!genderPreference || !['men', 'women', 'unisex'].includes(genderPreference)) {
-        console.error('❌ CRITICAL FRONTEND VALIDATION: Invalid or missing gender preference');
-        console.error('📊 CURRENT STATE:', { genderPreference, experienceLevel, responseCount: responses.length });
-        
+      // CRITICAL FRONTEND VALIDATION: Ensure gender preference exists to prevent SCE-81
+      if (
+        !genderPreference ||
+        !['men', 'women', 'unisex'].includes(genderPreference)
+      ) {
+        console.error(
+          '❌ CRITICAL FRONTEND VALIDATION: Invalid or missing gender preference'
+        );
+        console.error('📊 CURRENT STATE:', {
+          genderPreference,
+          experienceLevel,
+          responseCount: responses.length,
+        });
+
         // Set error state instead of throwing
         setGenderError({
-          message: 'Gender preference was not properly selected. This is required for personalized recommendations.',
+          message:
+            'Gender preference was not properly selected. This is required for personalized recommendations.',
           recoveryAction: {
             type: 'restart_quiz',
             step: 'gender_selection',
-            message: 'Please restart and select your fragrance preference first'
-          }
+            message:
+              'Please restart and select your fragrance preference first',
+          },
         });
         setCurrentStep('gender_error');
         return;
       }
 
-      console.log(`✅ FRONTEND VALIDATION PASSED: Gender=${genderPreference}, Experience=${experienceLevel}`);
-      
+      console.log(
+        `✅ FRONTEND VALIDATION PASSED: Gender=${genderPreference}, Experience=${experienceLevel}`
+      );
 
       // Add gender and experience context to responses
       const enhancedResponses = [
@@ -188,9 +211,17 @@ export function EnhancedQuizFlow({
         ...responses,
       ];
 
-      console.log(`✅ ENHANCED RESPONSES: Gender=${genderPreference}, Experience=${experienceLevel}, Total=${enhancedResponses.length}`);
+      console.log(
+        `✅ ENHANCED RESPONSES: Gender=${genderPreference}, Experience=${experienceLevel}, Total=${enhancedResponses.length}`
+      );
 
       // Generate recommendations using API endpoint (database-backed)
+      console.log(
+        '🚀 SUBMITTING TO API: Making single request to prevent duplicates'
+      );
+      console.log(
+        `📊 API REQUEST: Session ${quizSessionToken}, ${enhancedResponses.length} responses`
+      );
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,23 +236,31 @@ export function EnhancedQuizFlow({
       // Handle API validation errors with structured recovery
       if (!response.ok) {
         console.error('❌ API ERROR:', result);
-        
+
         // Handle gender-related errors specifically
-        if (result.error_code === 'MISSING_GENDER_PREFERENCE' || result.error_code === 'INVALID_GENDER_VALUE') {
-          console.log('🔄 GENDER ERROR RECOVERY: Showing user-friendly error page');
-          
+        if (
+          result.error_code === 'MISSING_GENDER_PREFERENCE' ||
+          result.error_code === 'INVALID_GENDER_VALUE'
+        ) {
+          console.log(
+            '🔄 GENDER ERROR RECOVERY: Showing user-friendly error page'
+          );
+
           // Set error information for display
           setGenderError({
-            message: result.user_message || 'Please select your gender preference to continue.',
-            recoveryAction: result.recovery_action
+            message:
+              result.user_message ||
+              'Please select your gender preference to continue.',
+            recoveryAction: result.recovery_action,
           });
-          
+
           // Show gender error step
           setCurrentStep('gender_error');
           return;
         }
-        
+
         // Handle other API errors
+        console.error('❌ OTHER API ERROR:', result);
         throw new Error(result.error || 'Quiz processing failed');
       }
 
@@ -236,7 +275,8 @@ export function EnhancedQuizFlow({
           gender_preference: genderPreference,
           experience_level: experienceLevel,
           processing_time_ms: result.processing_time_ms,
-          recommendation_method: result.recommendation_method || 'database_functions',
+          recommendation_method:
+            result.recommendation_method || 'database_functions',
         };
 
         storeQuizResults(quizResultsData);
@@ -247,9 +287,9 @@ export function EnhancedQuizFlow({
           value: {
             recommendation_count: result.recommendations.length,
             processing_time_ms: result.processing_time_ms,
-            engagement_score: getEngagementScore()
+            engagement_score: getEngagementScore(),
           },
-          context: 'quiz_success'
+          context: 'quiz_success',
         });
 
         // Legacy analytics
@@ -270,11 +310,24 @@ export function EnhancedQuizFlow({
         }
 
         setCurrentStep('results');
+        setIsComplete(true); // Mark as complete to prevent further submissions
       } else {
         throw new Error('Failed to generate sufficient recommendations');
       }
     } catch (error) {
       console.error('Quiz completion error:', error);
+
+      // Track error for debugging
+      trackEngagement({
+        type: 'quiz_api_error',
+        value: {
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+          gender_preference: genderPreference,
+          experience_level: experienceLevel,
+        },
+        context: 'quiz_submission_failed',
+      });
 
       // Handle gender-related errors with recovery flow
       if (error instanceof Error && error.message.includes('fetch')) {
@@ -286,29 +339,38 @@ export function EnhancedQuizFlow({
         setRecommendations([]);
         setCurrentStep('results');
       }
+
+      // Reset submission state on error so user can retry
+      setIsSubmitting(false);
+      setIsComplete(false);
     } finally {
       setIsGenerating(false);
+      // Keep isSubmitting true on success to prevent re-submissions
+      // Only reset on error so user can retry
+      if (!isComplete) {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const handleGenderErrorRestart = () => {
     console.log('🔄 RESTARTING QUIZ: User requested restart from gender error');
-    
+
     // Clear error state
     setGenderError(null);
-    
+
     // Reset all quiz state
     setCurrentStep('gender');
     setGenderPreference(undefined);
     setExperienceLevel(undefined);
     setQuizResponses([]);
     setRecommendations([]);
-    
+
     // Track restart event
     trackEngagement({
       type: 'quiz_restarted',
       value: 'gender_validation_error',
-      context: 'error_recovery'
+      context: 'error_recovery',
     });
   };
 
@@ -317,7 +379,7 @@ export function EnhancedQuizFlow({
     trackEngagement({
       type: 'sample_interest',
       value: fragranceId,
-      context: 'quiz_results'
+      context: 'quiz_results',
     });
 
     // Legacy analytics
@@ -339,25 +401,29 @@ export function EnhancedQuizFlow({
     trackEngagement({
       type: 'fragrance_detail_view',
       value: fragranceId,
-      context: 'quiz_results'
+      context: 'quiz_results',
     });
 
     // Use safe navigation to prevent 404s (SCE-71 fix)
-    const { safeNavigateToFragrance } = await import('@/lib/services/fragrance-validation-client');
-    
+    const { safeNavigateToFragrance } = await import(
+      '@/lib/services/fragrance-validation-client'
+    );
+
     await safeNavigateToFragrance(fragranceId, () => {
       // Fallback action if fragrance not found
       console.error(`❌ NAVIGATION FAILED: Fragrance ${fragranceId} not found`);
-      
+
       // Track failed navigation for debugging
       trackEngagement({
         type: 'navigation_failed',
         value: fragranceId,
-        context: 'quiz_results_404_prevention'
+        context: 'quiz_results_404_prevention',
       });
-      
+
       // Show user-friendly message
-      alert(`This fragrance is temporarily unavailable. Please try another recommendation from your results!`);
+      alert(
+        `This fragrance is temporarily unavailable. Please try another recommendation from your results!`
+      );
     });
   };
 
@@ -366,7 +432,7 @@ export function EnhancedQuizFlow({
     trackEngagement({
       type: 'favorite_added',
       value: fragranceId,
-      context: 'quiz_results'
+      context: 'quiz_results',
     });
 
     console.log('Save to favorites:', fragranceId);
@@ -399,10 +465,50 @@ export function EnhancedQuizFlow({
 
   // Step 3: Adaptive Quiz Interface
   if (currentStep === 'quiz' && experienceLevel) {
+    // Show loading state when submitting final answer
+    if (isSubmitting || isGenerating) {
+      return (
+        <div className='max-w-2xl mx-auto'>
+          <Card>
+            <CardContent className='text-center py-12'>
+              <div className='relative mb-6'>
+                <div className='animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto' />
+                <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
+              </div>
+              <h3 className='text-xl font-semibold mb-2'>
+                Processing your results...
+              </h3>
+              <p className='text-muted-foreground mb-4'>
+                Analyzing your responses and finding perfect matches
+              </p>
+              <div className='text-sm text-muted-foreground space-y-2'>
+                <p>🧠 Analyzing your fragrance personality</p>
+                <p>💾 Storing your preferences securely</p>
+                <p>🎯 Matching against our fragrance database</p>
+                <p>✨ Generating personalized explanations</p>
+                <p>🎨 Preparing your top 3 recommendations</p>
+              </div>
+
+              {/* Loading progress indicator */}
+              <div className='mt-6'>
+                <div className='text-xs text-muted-foreground mb-2'>
+                  This may take 15-30 seconds for the best results
+                </div>
+                <div className='w-full bg-gray-200 rounded-full h-2'>
+                  <div className='bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full animate-pulse w-2/3'></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className='max-w-4xl mx-auto'>
         <StableQuizInterface
           mode={experienceLevel}
+          isSubmitting={isSubmitting}
           onQuizComplete={handleQuizComplete}
           onProgressUpdate={progress => {
             // Progressive engagement tracking
@@ -411,9 +517,11 @@ export function EnhancedQuizFlow({
               value: {
                 current_question: progress.current,
                 total_questions: progress.total,
-                progress_percentage: Math.round((progress.current / progress.total) * 100)
+                progress_percentage: Math.round(
+                  (progress.current / progress.total) * 100
+                ),
               },
-              context: 'quiz_interface'
+              context: 'quiz_interface',
             });
 
             // Legacy analytics
@@ -441,17 +549,17 @@ export function EnhancedQuizFlow({
       quiz_session_token: quizSessionToken,
       recommendations: recommendations,
       processing_time_ms: 3000, // Default value
-      recommendation_method: 'unified_ai'
+      recommendation_method: 'unified_ai',
     };
 
     return (
       <QuizToCollectionBridge
         quizResults={quizResultsData}
-        onAccountCreated={(userData) => {
+        onAccountCreated={userData => {
           console.log('Account created:', userData);
           // Handle account creation completion
         }}
-        onConversionComplete={(result) => {
+        onConversionComplete={result => {
           console.log('Conversion complete:', result);
           // Handle conversion completion
         }}

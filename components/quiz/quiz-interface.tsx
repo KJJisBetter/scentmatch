@@ -41,6 +41,8 @@ export function QuizInterface() {
   const [personalityResults, setPersonalityResults] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [quizSessionToken] = useState(
     `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   );
@@ -177,7 +179,7 @@ export function QuizInterface() {
 
   const handleAnswerSubmit = async (data: SingleQuestionFormData) => {
     const currentQ = mvpQuestions[currentQuestion];
-    if (!currentQ || isAnalyzing) return; // Prevent submissions during analysis
+    if (!currentQ || isAnalyzing || isSubmitting || isComplete) return; // Prevent duplicate submissions
 
     const newResponse = {
       question_id: currentQ.id,
@@ -214,19 +216,30 @@ export function QuizInterface() {
   };
 
   const handleOptionClick = (answer: string) => {
-    if (isAnalyzing) return; // Prevent clicks during analysis
-    
+    if (isAnalyzing || isSubmitting || isComplete) return; // Prevent clicks during submission
+
     form.setValue('answer', answer);
     form.handleSubmit(handleAnswerSubmit)();
   };
 
   const analyzeQuiz = async (allResponses: any[]) => {
+    // Prevent duplicate API calls
+    if (isSubmitting || isComplete) {
+      console.warn(
+        '⚠️ DUPLICATE API CALL PREVENTED: Quiz already being processed'
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
     setIsAnalyzing(true);
 
     try {
       // FIXED: Use API route to store quiz data and generate personalized recommendations
-      console.log(`🎯 QUIZ ANALYSIS: Starting analysis for session ${quizSessionToken}`);
-      
+      console.log(
+        `🎯 QUIZ ANALYSIS: Starting analysis for session ${quizSessionToken}`
+      );
+
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: {
@@ -243,15 +256,25 @@ export function QuizInterface() {
       });
 
       if (!response.ok) {
-        throw new Error(`Quiz analysis failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Quiz analysis failed: ${response.status} ${response.statusText}`
+        );
       }
 
       const result = await response.json();
 
-      if (result.analysis_complete && result.recommendations && result.recommendations.length >= 3) {
-        console.log(`✅ QUIZ ANALYSIS COMPLETE: Got ${result.recommendations.length} personalized recommendations`);
-        console.log(`📊 RECOMMENDATION METHOD: ${result.recommendation_method}`);
-        
+      if (
+        result.analysis_complete &&
+        result.recommendations &&
+        result.recommendations.length >= 3
+      ) {
+        console.log(
+          `✅ QUIZ ANALYSIS COMPLETE: Got ${result.recommendations.length} personalized recommendations`
+        );
+        console.log(
+          `📊 RECOMMENDATION METHOD: ${result.recommendation_method}`
+        );
+
         // Prepare simplified data for conversion flow (exactly 3 recommendations)
         setPersonalityResults({
           quiz_session_token: result.quiz_session_token || quizSessionToken,
@@ -260,8 +283,12 @@ export function QuizInterface() {
           recommendation_method: result.recommendation_method,
           personality_analysis: result.personality_analysis,
         });
+
+        setIsComplete(true); // Mark as complete to prevent further submissions
       } else {
-        console.warn('⚠️ QUIZ ANALYSIS: Incomplete results, using available recommendations');
+        console.warn(
+          '⚠️ QUIZ ANALYSIS: Incomplete results, using available recommendations'
+        );
         // Fallback if analysis incomplete but has some recommendations
         setPersonalityResults({
           quiz_session_token: result.quiz_session_token || quizSessionToken,
@@ -282,8 +309,11 @@ export function QuizInterface() {
         error: 'Unable to generate recommendations',
       });
       setShowResults(true);
+      // Reset submission state on error so user can retry
+      setIsSubmitting(false);
     } finally {
       setIsAnalyzing(false);
+      // Keep isSubmitting true on success to prevent re-submissions
     }
   };
 
@@ -299,7 +329,7 @@ export function QuizInterface() {
 
   const progress = ((currentQuestion + 1) / mvpQuestions.length) * 100;
 
-  if (isAnalyzing) {
+  if (isAnalyzing || isSubmitting) {
     return (
       <Card className='max-w-2xl mx-auto'>
         <CardContent className='text-center py-12'>
@@ -308,22 +338,28 @@ export function QuizInterface() {
             <Sparkles className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-purple-500' />
           </div>
           <h3 className='text-xl font-semibold mb-2'>
-            Creating Your Personalized Fragrance Profile...
+            {isSubmitting
+              ? 'Processing your results...'
+              : 'Creating Your Personalized Fragrance Profile...'}
           </h3>
           <p className='text-muted-foreground mb-4'>
             Analyzing your responses and finding perfect matches
           </p>
           <div className='text-sm text-muted-foreground space-y-2'>
             <p>🧠 Analyzing your fragrance personality from quiz responses</p>
-            <p>💾 Storing your preferences for personalized recommendations</p>  
+            <p>💾 Storing your preferences for personalized recommendations</p>
             <p>🎯 Matching your profile against our fragrance database</p>
-            <p>✨ Generating educational explanations for your experience level</p>
+            <p>
+              ✨ Generating educational explanations for your experience level
+            </p>
             <p>🎨 Preparing your top 3 personalized matches</p>
           </div>
-          
+
           {/* Loading progress indicator */}
           <div className='mt-6'>
-            <div className='text-xs text-muted-foreground mb-2'>This may take 15-30 seconds for the best results</div>
+            <div className='text-xs text-muted-foreground mb-2'>
+              This may take 15-30 seconds for the best results
+            </div>
             <div className='w-full bg-gray-200 rounded-full h-2'>
               <div className='bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full animate-pulse w-2/3'></div>
             </div>
@@ -386,12 +422,20 @@ export function QuizInterface() {
                             key={option.value}
                             type='button'
                             onClick={() => handleOptionClick(option.value)}
-                            className='w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group touch-target-xl touch-feedback touch-action-area'
-                            disabled={isAnalyzing}
+                            className={`w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group touch-target-xl touch-feedback touch-action-area ${
+                              isAnalyzing || isSubmitting || isComplete
+                                ? 'cursor-not-allowed opacity-50'
+                                : ''
+                            }`}
+                            disabled={isAnalyzing || isSubmitting || isComplete}
                             aria-describedby={`option-${option.value}-desc`}
                           >
                             <div className='flex items-center space-x-4'>
-                              <div className='text-2xl flex-shrink-0' role='img' aria-label={`${option.text} emoji`}>
+                              <div
+                                className='text-2xl flex-shrink-0'
+                                role='img'
+                                aria-label={`${option.text} emoji`}
+                              >
                                 {option.emoji}
                               </div>
                               <div className='flex-1 min-w-0'>
