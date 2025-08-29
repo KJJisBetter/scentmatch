@@ -57,7 +57,11 @@ export function ConversionFlow({
 }: ConversionFlowProps) {
   const router = useRouter();
   const [step, setStep] = useState<
-    'quiz_results' | 'account_form' | 'conversion_success' | 'guest_limitations'
+    | 'quiz_results'
+    | 'account_form'
+    | 'email_verification'
+    | 'conversion_success'
+    | 'guest_limitations'
   >(collectionFirst ? 'account_form' : 'quiz_results');
   const [accountData, setAccountData] = useState({
     email: '',
@@ -146,7 +150,13 @@ export function ConversionFlow({
 
               onAccountCreated(newUser);
               onConversionComplete(conversionResult);
-              setStep('conversion_success');
+
+              // Check if email confirmation is required
+              if (!authData.user.email_confirmed_at) {
+                setStep('email_verification');
+              } else {
+                setStep('conversion_success');
+              }
             } else {
               setErrors([
                 transferResult.error ||
@@ -402,6 +412,83 @@ export function ConversionFlow({
                   <ArrowLeft className='w-4 h-4' />
                   <span>Back to Results</span>
                 </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Email Verification Step
+  if (step === 'email_verification') {
+    return (
+      <div className='max-w-3xl mx-auto text-center space-y-8'>
+        <Card className='bg-gradient-to-br from-blue-50 to-purple-50'>
+          <CardContent className='py-8'>
+            <div className='text-4xl mb-4'>📧</div>
+            <h2 className='text-3xl font-bold mb-4'>Check Your Email</h2>
+            <p className='text-lg text-muted-foreground mb-6'>
+              We've sent a verification link to{' '}
+              <strong>{accountData.email}</strong>
+            </p>
+
+            <div className='bg-white p-6 rounded-lg border border-blue-200 mb-6'>
+              <h3 className='font-bold mb-4 text-blue-800'>
+                Your Quiz Results Are Saved!
+              </h3>
+              <p className='text-sm text-gray-600 mb-4'>
+                Your {quizResults.recommendations.length} personalized fragrance
+                recommendations have been securely saved to your account.
+              </p>
+
+              <div className='text-left space-y-2 text-sm'>
+                <div className='flex items-center space-x-2'>
+                  <CheckCircle className='w-4 h-4 text-green-500' />
+                  <span>✅ Account created successfully</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <CheckCircle className='w-4 h-4 text-green-500' />
+                  <span>✅ Quiz results saved to your collection</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <ExternalLink className='w-4 h-4 text-blue-500' />
+                  <span>🔄 Email verification required</span>
+                </div>
+              </div>
+            </div>
+
+            <div className='space-y-4'>
+              <div className='text-sm text-gray-600'>
+                <p className='mb-2'>
+                  <strong>Next steps:</strong>
+                </p>
+                <ol className='text-left list-decimal list-inside space-y-1'>
+                  <li>Check your email inbox for "Confirm Your Signup"</li>
+                  <li>Click the "Confirm your email" link</li>
+                  <li>
+                    You'll be redirected to your collection with all quiz
+                    results saved
+                  </li>
+                </ol>
+              </div>
+
+              <div className='flex flex-col gap-3 pt-4'>
+                <Button
+                  onClick={() => window.open('https://gmail.com', '_blank')}
+                  className='w-full'
+                >
+                  <ExternalLink className='w-4 h-4 mr-2' />
+                  Open Gmail
+                </Button>
+
+                <Button
+                  variant='outline'
+                  onClick={() => router.push('/auth/login')}
+                  className='w-full'
+                >
+                  I'll verify later - Go to Login
+                </Button>
               </div>
             </div>
           </CardContent>
