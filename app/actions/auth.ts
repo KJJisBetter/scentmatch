@@ -93,9 +93,11 @@ export async function signUp(email: string, password: string) {
     // Create user profile if user was created
     if (data.user) {
       try {
-        // Always attempt to create user profile during signup
-        await ensureUserProfile(data.user.id, data.user.email);
-        console.log('User profile created/verified for:', data.user.id);
+        // TEMPORARILY DISABLED: Skip profile creation to test email confirmation
+        // await ensureUserProfile(data.user.id, data.user.email);
+        console.log(
+          'User created successfully, profile creation temporarily disabled'
+        );
       } catch (profileError) {
         console.error(
           'Failed to create user profile during signup:',
