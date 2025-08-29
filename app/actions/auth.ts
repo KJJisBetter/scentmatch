@@ -346,16 +346,13 @@ async function ensureUserProfile(userId: string, email: string | undefined) {
 
     if (!existingProfile) {
       console.log('DEBUG: Creating new profile');
-      // Create profile with correct schema - both id and user_id
+      // Create profile with minimal required fields - let database set defaults
       const { error: insertError } = await (supabase as any)
         .from('user_profiles')
         .insert({
-          id: userId, // Primary key
-          user_id: userId, // Foreign key to auth.users
-          onboarding_completed: false,
-          onboarding_step: 'getting_started',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          id: userId, // Primary key (UUID from auth.users)
+          user_id: userId, // Foreign key to auth.users (same UUID)
+          // All other fields will use their database defaults
         });
 
       console.log('DEBUG: Profile creation result', { insertError });
