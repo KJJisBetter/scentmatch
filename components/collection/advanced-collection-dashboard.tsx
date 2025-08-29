@@ -207,7 +207,7 @@ export function CollectionDashboard({
 
     if (filters.family !== 'all') {
       filtered = filtered.filter(
-        item => item.fragrances?.scent_family === filters.family
+        item => item.fragrances?.fragrance_family === filters.family
       );
     }
 
@@ -708,7 +708,7 @@ function calculateCollectionStats(collection: any[]): CollectionStats {
 
   const families = Array.from(
     new Set(
-      collection.map(item => item.fragrances?.scent_family).filter(Boolean)
+      collection.map(item => item.fragrances?.fragrance_family).filter(Boolean)
     )
   );
 

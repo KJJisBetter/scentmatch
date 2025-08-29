@@ -58,7 +58,7 @@ export interface Database {
           travel_size_available?: boolean;
           travel_size_ml?: number;
           travel_size_price_usd?: number;
-          scent_family?: string;
+          fragrance_family?: string;
           embedding?: number[];
           search_vector?: string;
           popularity_score?: number;
@@ -83,7 +83,7 @@ export interface Database {
           travel_size_available?: boolean;
           travel_size_ml?: number;
           travel_size_price_usd?: number;
-          scent_family?: string;
+          fragrance_family?: string;
           embedding?: number[];
           created_at?: string;
           updated_at?: string;
@@ -106,7 +106,7 @@ export interface Database {
           travel_size_available?: boolean;
           travel_size_ml?: number;
           travel_size_price_usd?: number;
-          scent_family?: string;
+          fragrance_family?: string;
           embedding?: number[];
           created_at?: string;
           updated_at?: string;
@@ -583,7 +583,7 @@ export interface Database {
           fragrance_id: string;
           name: string;
           brand: string;
-          scent_family: string;
+          fragrance_family: string;
           relevance_score: number;
         }[];
       };
