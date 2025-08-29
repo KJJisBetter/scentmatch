@@ -2,6 +2,7 @@
 
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 import { checkServerActionRateLimit } from '@/lib/rate-limit';
 import { revalidatePath } from 'next/cache';
@@ -27,6 +28,24 @@ const GENERIC_AUTH_ERROR =
   'Invalid email or password. Please check your credentials and try again.';
 const GENERIC_RESET_MESSAGE =
   'If an account with that email exists, you will receive a password reset link shortly.';
+
+// Helper to get dynamic base URL for email redirects
+function getBaseUrl(): string {
+  const headersList = headers();
+  const host = headersList.get('host');
+  const protocol = headersList.get('x-forwarded-proto') || 'http';
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  // Fallback for different environments
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return 'http://localhost:3000';
+}
 
 export async function signUp(email: string, password: string) {
   try {
@@ -61,7 +80,7 @@ export async function signUp(email: string, password: string) {
       email: emailResult.data,
       password: passwordResult.data,
       options: {
-        emailRedirectTo: `https://scentmatch-ge01b0679-kevin-javiers-projects.vercel.app/auth/confirm?next=/dashboard`,
+        emailRedirectTo: `${getBaseUrl()}/auth/confirm?next=/dashboard`,
       },
     });
 
@@ -215,7 +234,7 @@ export async function resetPassword(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(
       emailResult.data,
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset`,
+        redirectTo: `${getBaseUrl()}/auth/confirm?next=/auth/reset`,
       }
     );
 
