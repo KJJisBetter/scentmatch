@@ -61,7 +61,7 @@ export async function signUp(email: string, password: string) {
       email: emailResult.data,
       password: passwordResult.data,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `https://scentmatch-ge01b0679-kevin-javiers-projects.vercel.app/auth/confirm?next=/dashboard`,
       },
     });
 
