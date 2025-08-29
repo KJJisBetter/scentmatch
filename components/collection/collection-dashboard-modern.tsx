@@ -135,7 +135,7 @@ export function CollectionDashboardModern({
             id,
             user_id,
             fragrance_id,
-            status,
+            collection_type as status,
             rating,
             personal_notes,
             usage_frequency,
@@ -143,7 +143,7 @@ export function CollectionDashboardModern({
             seasons,
             purchase_date,
             purchase_price,
-            added_at,
+            created_at as added_at,
             fragrances:fragrance_id (
               id,
               name,
@@ -160,7 +160,7 @@ export function CollectionDashboardModern({
           `
           )
           .eq('user_id', userId)
-          .order('added_at', { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (error) {
           if (process.env.NODE_ENV === 'development') {
