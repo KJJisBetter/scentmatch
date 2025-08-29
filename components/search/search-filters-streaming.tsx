@@ -10,17 +10,14 @@ interface SearchFiltersStreamingProps {
   className?: string;
 }
 
-// Async component for filters (if they need to load data)
-async function SearchFiltersData({
+// Search filters component - optimized for performance
+function SearchFiltersData({
   onFiltersChange,
   initialFilters,
 }: {
   onFiltersChange: (filters: any) => void;
   initialFilters?: any;
 }) {
-  // Small delay to demonstrate progressive loading
-  await new Promise(resolve => setTimeout(resolve, 30));
-
   return <SearchFilters onFiltersChange={onFiltersChange} />;
 }
 

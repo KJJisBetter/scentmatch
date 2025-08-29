@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Loader2, Zap, Star } from 'lucide-react';
+import { getSearchSuggestions } from '@/lib/actions/suggestion-actions';
 
 interface EnhancedSuggestion {
   text: string;
@@ -85,17 +86,23 @@ export function EnhancedSearchInput({
       suggestionsDebounceRef.current = setTimeout(async () => {
         setIsSuggestionsLoading(true);
         try {
-          // Use enhanced endpoint if available, fallback to original
-          const endpoint = useEnhancedEndpoint
-            ? `/api/search/suggestions/enhanced?q=${encodeURIComponent(query.trim())}`
-            : `/api/search/suggestions?q=${encodeURIComponent(query.trim())}`;
-
-          const response = await fetch(endpoint);
-          if (response.ok) {
-            const data = await response.json();
-            setSuggestions(data.suggestions || []);
+          // Use Server Action for suggestions
+          const result = await getSearchSuggestions(query.trim(), 12);
+          if (result.success && result.suggestions) {
+            // Map Server Action response to enhanced suggestion interface
+            const enhancedSuggestions: EnhancedSuggestion[] =
+              result.suggestions.map(suggestion => ({
+                text: suggestion.text,
+                type: suggestion.type,
+                confidence: suggestion.confidence,
+                trending: false, // Server Action doesn't provide trending info yet
+                result_count: undefined, // Server Action doesn't provide result count yet
+              }));
+            setSuggestions(enhancedSuggestions);
             setShowSuggestions(true);
             setSelectedIndex(-1); // Reset selection
+          } else {
+            setSuggestions([]);
           }
         } catch (error) {
           console.error('Error fetching suggestions:', error);

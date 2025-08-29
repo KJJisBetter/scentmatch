@@ -34,6 +34,7 @@ import {
   TrendingUp,
   Filter,
 } from 'lucide-react';
+import { getSearchSuggestions } from '@/lib/actions/suggestion-actions';
 
 interface SearchCommandItem {
   id: string;
@@ -102,19 +103,16 @@ export function SearchCommand({
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/search/suggestions/enhanced?q=${encodeURIComponent(searchQuery)}&limit=12`
-      );
+      const result = await getSearchSuggestions(searchQuery, 12);
 
-      if (response.ok) {
-        const data = await response.json();
-        const searchItems: SearchCommandItem[] = data.suggestions.map(
-          (suggestion: any, index: number) => ({
+      if (result.success && result.suggestions) {
+        const searchItems: SearchCommandItem[] = result.suggestions.map(
+          (suggestion, index: number) => ({
             id: `${suggestion.type}-${suggestion.text}-${index}`,
             text: suggestion.text,
             type: suggestion.type,
             confidence: suggestion.confidence,
-            trending: suggestion.trending,
+            trending: false, // Server Action doesn't provide trending info yet
             popular: suggestion.confidence > 0.8,
             description: getItemDescription(suggestion.type, suggestion.text),
           })
@@ -132,6 +130,9 @@ export function SearchCommand({
         }
 
         setItems(searchItems);
+      } else {
+        // Server Action failed, use default items
+        setItems(getDefaultItems());
       }
     } catch (error) {
       console.error('Search command error:', error);

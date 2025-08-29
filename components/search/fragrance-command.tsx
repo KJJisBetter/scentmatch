@@ -36,6 +36,7 @@ import {
   Loader2,
   Clock,
 } from 'lucide-react';
+import { getSearchSuggestions } from '@/lib/actions/suggestion-actions';
 
 interface FragranceSearchResult {
   id: string;
@@ -163,21 +164,18 @@ export function FragranceCommand({
       setIsLoading(true);
 
       try {
-        const response = await fetch(
-          `/api/search/suggestions/enhanced?q=${encodeURIComponent(searchQuery)}&limit=12`
-        );
+        const result = await getSearchSuggestions(searchQuery, 12);
 
-        if (response.ok) {
-          const data = await response.json();
-          const searchResults: FragranceSearchResult[] = data.suggestions.map(
-            (suggestion: any, index: number) => ({
+        if (result.success && result.suggestions) {
+          const searchResults: FragranceSearchResult[] = result.suggestions.map(
+            (suggestion, index: number) => ({
               id: `${suggestion.type}-${suggestion.text}-${index}`,
               text: suggestion.text,
               type: suggestion.type,
               confidence: suggestion.confidence,
-              trending: suggestion.trending,
+              trending: false, // Server Action doesn't provide trending info yet
               popular: suggestion.confidence > 0.8,
-              result_count: suggestion.result_count,
+              result_count: undefined, // Server Action doesn't provide result count yet
               description: getItemDescription(suggestion.type),
             })
           );
@@ -195,6 +193,7 @@ export function FragranceCommand({
 
           setResults(searchResults);
         } else {
+          // Server Action failed or no suggestions
           setResults([]);
         }
       } catch (error) {

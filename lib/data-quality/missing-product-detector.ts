@@ -170,7 +170,8 @@ export class MissingProductDetector {
     try {
       const analysis = this.analyzeSearchQuery(searchQuery);
 
-      const { data, error } = await (this.supabase as any).rpc(
+      const supabase = await this.getSupabase();
+      const { data, error } = await (supabase as any).rpc(
         'log_missing_product_request',
         {
           query: searchQuery,
@@ -182,9 +183,7 @@ export class MissingProductDetector {
 
       if (error) {
         // Fallback to direct insert if RPC fails
-        const { data: fallbackData, error: fallbackError } = await (
-          this.supabase as any
-        )
+        const { data: fallbackData, error: fallbackError } = await supabase
           .from('missing_product_requests')
           .insert({
             search_query: searchQuery,
@@ -215,8 +214,9 @@ export class MissingProductDetector {
   async getMissingProductCount(searchQuery: string): Promise<number> {
     try {
       const normalizedQuery = searchQuery.toLowerCase().trim();
+      const supabase = await this.getSupabase();
 
-      const { data, error } = await (this.supabase as any)
+      const { data, error } = await supabase
         .from('missing_product_summary')
         .select('request_count')
         .eq('normalized_query', normalizedQuery)
@@ -365,7 +365,8 @@ export class MissingProductDetector {
     gender?: string
   ): Promise<AlternativeSuggestion[]> {
     try {
-      let query = (this.supabase as any)
+      const supabase = await this.getSupabase();
+      let query = supabase
         .from('fragrances')
         .select('id, name, brand_id, gender, popularity_score, main_accords')
         .ilike('brand_id', `%${brandName.replace(/\s+/g, '-')}%`)
@@ -404,7 +405,8 @@ export class MissingProductDetector {
     excludeBrand?: string
   ): Promise<AlternativeSuggestion[]> {
     try {
-      let query = (this.supabase as any)
+      const supabase = await this.getSupabase();
+      let query = supabase
         .from('fragrances')
         .select('id, name, brand_id, gender, popularity_score, main_accords')
         .or(`gender.eq.${gender},gender.eq.unisex`)
@@ -446,8 +448,9 @@ export class MissingProductDetector {
     notes: string[]
   ): Promise<AlternativeSuggestion[]> {
     try {
+      const supabase = await this.getSupabase();
       // Build query to find fragrances with similar note profiles
-      const { data: fragrances, error } = await (this.supabase as any)
+      const { data: fragrances, error } = await supabase
         .from('fragrances')
         .select('id, name, brand_id, main_accords, popularity_score')
         .overlaps('main_accords', notes)
@@ -491,8 +494,9 @@ export class MissingProductDetector {
       // Normalize the query first
       const normalized = this.normalizer.normalizeFragranceName(searchQuery);
 
+      const supabase = await this.getSupabase();
       // Use PostgreSQL similarity search
-      const { data: fragrances, error } = await (this.supabase as any).rpc(
+      const { data: fragrances, error } = await (supabase as any).rpc(
         'similarity_search_fragrances',
         {
           query_text: normalized.canonicalName,
@@ -503,7 +507,7 @@ export class MissingProductDetector {
 
       if (error || !fragrances) {
         // Fallback to basic text search if similarity function fails
-        const { data: fallbackResults } = await (this.supabase as any)
+        const { data: fallbackResults } = await supabase
           .from('fragrances')
           .select('id, name, brand_id, popularity_score')
           .textSearch('search_vector', searchQuery.split(' ').join(' | '))
@@ -562,8 +566,9 @@ export class MissingProductDetector {
     requestCount: number
   ): Promise<void> {
     try {
+      const supabase = await this.getSupabase();
       // Update summary with sourcing status
-      await (this.supabase as any)
+      await supabase
         .from('missing_product_summary')
         .update({
           sourcing_status: 'sourcing',
@@ -595,8 +600,9 @@ export class MissingProductDetector {
     similar_matches?: any[];
   }> {
     try {
+      const supabase = await this.getSupabase();
       // Check for exact match first
-      const { data: exactMatch } = await (this.supabase as any)
+      const { data: exactMatch } = await supabase
         .from('fragrances')
         .select('id, name, brand_id')
         .ilike('name', searchQuery)
@@ -610,7 +616,7 @@ export class MissingProductDetector {
       }
 
       // Check for similar matches using trigram similarity
-      const { data: similarMatches } = await (this.supabase as any)
+      const { data: similarMatches } = await supabase
         .from('fragrances')
         .select('id, name, brand_id')
         .textSearch('search_vector', searchQuery.split(' ').join(' | '))
@@ -639,18 +645,19 @@ export class MissingProductDetector {
     }>;
   }> {
     try {
+      const supabase = await this.getSupabase();
       // Get total request count
-      const { count: totalRequests } = await (this.supabase as any)
+      const { count: totalRequests } = await supabase
         .from('missing_product_requests')
         .select('*', { count: 'exact', head: true });
 
       // Get unique products count
-      const { count: uniqueProducts } = await (this.supabase as any)
+      const { count: uniqueProducts } = await supabase
         .from('missing_product_summary')
         .select('*', { count: 'exact', head: true });
 
       // Get top missing products
-      const { data: topMissing } = await (this.supabase as any)
+      const { data: topMissing } = await supabase
         .from('missing_product_summary')
         .select('normalized_query, request_count, priority_score')
         .order('priority_score', { ascending: false })
@@ -686,10 +693,11 @@ export class MissingProductDetector {
     notes?: string
   ): Promise<void> {
     try {
+      const supabase = await this.getSupabase();
       const normalizedQuery = searchQuery.toLowerCase().trim();
 
       // Update summary
-      await (this.supabase as any)
+      await supabase
         .from('missing_product_summary')
         .update({
           sourcing_status: 'added',
@@ -698,7 +706,7 @@ export class MissingProductDetector {
         .eq('normalized_query', normalizedQuery);
 
       // Update individual requests
-      await (this.supabase as any)
+      await supabase
         .from('missing_product_requests')
         .update({
           status: 'added',
