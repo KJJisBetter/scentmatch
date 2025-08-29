@@ -6,7 +6,10 @@ import dynamic from 'next/dynamic';
 
 // Dynamic import for large collection dashboard (826 lines) - massive bundle savings
 const CollectionDashboardModern = dynamic(
-  () => import('@/components/collection/collection-dashboard-modern').then(mod => ({ default: mod.CollectionDashboardModern })),
+  () =>
+    import('@/components/collection/collection-dashboard-modern').then(mod => ({
+      default: mod.CollectionDashboardModern,
+    })),
   {
     loading: () => <CollectionDashboardSkeleton />,
   }
@@ -41,7 +44,7 @@ export const metadata: Metadata = {
 // Streaming Server Components for Progressive Loading
 async function CollectionHeader({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
-  
+
   const { data: userProfile } = await (supabase as any)
     .from('user_profiles')
     .select('first_name')
@@ -77,31 +80,36 @@ async function CollectionHeader({ userId }: { userId: string }) {
 
 async function CollectionQuickStats({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
-  
+
   // Fast aggregation queries
   const { data: collectionStats } = await (supabase as any)
     .from('user_collections')
     .select('collection_type, rating, created_at')
     .eq('user_id', userId);
 
-  const totalFragrances = collectionStats?.filter((c: any) => c.collection_type === 'owned')?.length || 0;
-  const ratedItems = collectionStats?.filter((c: any) => c.rating !== null)?.length || 0;
-  const diversityScore = ratedItems > 0 ? Math.round((ratedItems / totalFragrances) * 100) : 0;
-  const recentAdditions = collectionStats?.filter((c: any) => {
-    const addedDate = new Date(c.created_at);
-    const daysDiff = (Date.now() - addedDate.getTime()) / (1000 * 60 * 60 * 24);
-    return daysDiff <= 7;
-  })?.length || 0;
-  
+  const totalFragrances =
+    collectionStats?.filter((c: any) =>
+      ['saved', 'owned'].includes(c.collection_type)
+    )?.length || 0;
+  const ratedItems =
+    collectionStats?.filter((c: any) => c.rating !== null)?.length || 0;
+  const diversityScore =
+    ratedItems > 0 ? Math.round((ratedItems / totalFragrances) * 100) : 0;
+  const recentAdditions =
+    collectionStats?.filter((c: any) => {
+      const addedDate = new Date(c.created_at);
+      const daysDiff =
+        (Date.now() - addedDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff <= 7;
+    })?.length || 0;
+
   return (
     <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-6'>
       <div className='bg-card rounded-lg p-4 border'>
         <div className='text-2xl font-bold text-foreground'>
           {totalFragrances}
         </div>
-        <div className='text-sm text-muted-foreground'>
-          Total Fragrances
-        </div>
+        <div className='text-sm text-muted-foreground'>Total Fragrances</div>
       </div>
 
       <div className='bg-card rounded-lg p-4 border'>
@@ -117,18 +125,12 @@ async function CollectionQuickStats({ userId }: { userId: string }) {
         <div className='text-2xl font-bold text-foreground'>
           {recentAdditions}
         </div>
-        <div className='text-sm text-muted-foreground'>
-          Recent Additions
-        </div>
+        <div className='text-sm text-muted-foreground'>Recent Additions</div>
       </div>
 
       <div className='bg-card rounded-lg p-4 border'>
-        <div className='text-2xl font-bold text-foreground'>
-          {ratedItems}
-        </div>
-        <div className='text-sm text-muted-foreground'>
-          Rated Items
-        </div>
+        <div className='text-2xl font-bold text-foreground'>{ratedItems}</div>
+        <div className='text-sm text-muted-foreground'>Rated Items</div>
       </div>
     </div>
   );
@@ -136,11 +138,12 @@ async function CollectionQuickStats({ userId }: { userId: string }) {
 
 async function StreamingCollectionDashboard({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
-  
+
   // Get user profile for dashboard context
   const { data: userProfile } = await (supabase as any)
     .from('user_profiles')
-    .select(`
+    .select(
+      `
       id,
       email,
       first_name,
@@ -149,19 +152,24 @@ async function StreamingCollectionDashboard({ userId }: { userId: string }) {
       favorite_accords,
       disliked_accords,
       privacy_settings
-    `)
+    `
+    )
     .eq('id', userId)
     .single();
 
   // Get collection insights (slower query)
-  const { data: collectionStats } = await (supabase as any).rpc('get_collection_insights', {
-    target_user_id: userId,
-  });
+  const { data: collectionStats } = await (supabase as any).rpc(
+    'get_collection_insights',
+    {
+      target_user_id: userId,
+    }
+  );
 
   // Get recent activity
   const { data: recentActivity } = await (supabase as any)
     .from('user_collections')
-    .select(`
+    .select(
+      `
       id,
       fragrance_id,
       collection_type as status,
@@ -170,7 +178,8 @@ async function StreamingCollectionDashboard({ userId }: { userId: string }) {
         name,
         fragrance_brands:brand_id (name)
       )
-    `)
+    `
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(5);
@@ -179,11 +188,13 @@ async function StreamingCollectionDashboard({ userId }: { userId: string }) {
     <CollectionDashboardModern
       userId={userId}
       userProfile={userProfile || undefined}
-      initialStats={collectionStats || {
-        total_fragrances: 0,
-        diversity_score: 0,
-        dominant_families: [],
-      }}
+      initialStats={
+        collectionStats || {
+          total_fragrances: 0,
+          diversity_score: 0,
+          dominant_families: [],
+        }
+      }
       recentActivity={recentActivity || []}
     />
   );
@@ -228,11 +239,14 @@ function CollectionDashboardSkeleton() {
         <div className='h-6 bg-gray-200 animate-pulse rounded w-32 mb-4'></div>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className='h-10 bg-gray-200 animate-pulse rounded'></div>
+            <div
+              key={i}
+              className='h-10 bg-gray-200 animate-pulse rounded'
+            ></div>
           ))}
         </div>
       </div>
-      
+
       {/* Collection grid skeleton */}
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
         {Array.from({ length: 8 }).map((_, i) => (
@@ -259,9 +273,12 @@ function CollectionDashboardSkeleton() {
 
 export default async function CollectionPage() {
   const supabase = await createServerSupabase();
-  
+
   // Only verify authentication - don't load heavy data blocking the page
-  const { data: { user }, error } = await (supabase as any).auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await (supabase as any).auth.getUser();
 
   if (error || !user) {
     redirect('/auth/signin');

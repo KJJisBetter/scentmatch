@@ -14,7 +14,7 @@ import { signOut } from '@/app/actions/auth';
 // Streaming Components for Progressive Loading
 async function UserProfile({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
-  
+
   const { data: profile } = await (supabase as any)
     .from('user_profiles')
     .select('*')
@@ -25,7 +25,8 @@ async function UserProfile({ userId }: { userId: string }) {
     <div>
       <h1 className='text-3xl font-bold'>Welcome to ScentMatch</h1>
       <p className='text-gray-600'>
-        Hello, {profile?.email || 'Fragrance Explorer'}! Ready to discover your perfect fragrance?
+        Hello, {profile?.email || 'Fragrance Explorer'}! Ready to discover your
+        perfect fragrance?
       </p>
     </div>
   );
@@ -33,24 +34,27 @@ async function UserProfile({ userId }: { userId: string }) {
 
 async function DashboardStats({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
-  
-  // Get collection stats  
+
+  // Get collection stats
   const { data: collectionStats } = await (supabase as any)
     .from('user_collections')
     .select('id, collection_type')
     .eq('user_id', userId);
-    
-  const totalCollection = collectionStats?.filter((c: any) => c.collection_type === 'owned')?.length || 0;
-  const totalWishlist = collectionStats?.filter((c: any) => c.collection_type === 'wishlist')?.length || 0;
-  
+
+  const totalCollection =
+    collectionStats?.filter((c: any) =>
+      ['saved', 'owned'].includes(c.collection_type)
+    )?.length || 0;
+  const totalWishlist =
+    collectionStats?.filter((c: any) => c.collection_type === 'wishlist')
+      ?.length || 0;
+
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
       <Card>
         <CardHeader>
           <CardTitle>My Collection</CardTitle>
-          <CardDescription>
-            {totalCollection} fragrances owned
-          </CardDescription>
+          <CardDescription>{totalCollection} fragrances owned</CardDescription>
         </CardHeader>
         <CardContent>
           <Button className='w-full'>View Collection</Button>
@@ -86,11 +90,13 @@ async function DashboardStats({ userId }: { userId: string }) {
 
 async function AccountInfo({ userId }: { userId: string }) {
   const supabase = await createServerSupabase();
-  
-  const { data: { user } } = await (supabase as any).auth.getUser();
-  
+
+  const {
+    data: { user },
+  } = await (supabase as any).auth.getUser();
+
   if (!user) return null;
-  
+
   return (
     <div className='mt-8'>
       <Card>
@@ -158,7 +164,10 @@ function AccountSkeleton() {
         <CardContent>
           <div className='space-y-2'>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className='h-4 bg-gray-200 animate-pulse rounded w-full'></div>
+              <div
+                key={i}
+                className='h-4 bg-gray-200 animate-pulse rounded w-full'
+              ></div>
             ))}
           </div>
         </CardContent>
@@ -188,7 +197,7 @@ export default async function DashboardPage() {
           <Suspense fallback={<ProfileSkeleton />}>
             <UserProfile userId={user.id} />
           </Suspense>
-          
+
           {/* Sign out button loads immediately */}
           <form
             action={async () => {
