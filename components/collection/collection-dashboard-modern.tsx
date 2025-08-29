@@ -137,25 +137,17 @@ export function CollectionDashboardModern({
             fragrance_id,
             collection_type as status,
             rating,
-            personal_notes,
-            usage_frequency,
-            occasions,
-            seasons,
+            notes,
             purchase_date,
-            purchase_price,
             created_at as added_at,
             fragrances:fragrance_id (
               id,
               name,
-              brand_id,
-              scent_family,
+              fragrance_family,
               image_url,
               sample_available,
               sample_price_usd,
-              fragrance_brands:brand_id (
-                id,
-                name
-              )
+              fragrance_brands!inner(name)
             )
           `
           )
@@ -206,21 +198,13 @@ export function CollectionDashboardModern({
     // Apply progressive view logic first
     if (progressiveView === 'currently-wearing') {
       filtered = filtered
-        .filter(
-          item =>
-            item.usage_frequency === 'daily' ||
-            item.usage_frequency === 'weekly' ||
-            (item.rating && item.rating >= 4)
-        )
+        .filter(item => item.rating >= 4 || (item.rating && item.rating >= 4))
         .slice(0, 5);
     } else if (progressiveView === 'this-season') {
       const currentSeason = getCurrentSeason();
       filtered = filtered
         .filter(
-          item =>
-            !item.seasons ||
-            item.seasons.length === 0 ||
-            item.seasons.includes(currentSeason)
+          item => true // No seasonal filtering available
         )
         .slice(0, 15);
     }
@@ -242,7 +226,7 @@ export function CollectionDashboardModern({
         item =>
           item.fragrances?.name?.toLowerCase().includes(searchLower) ||
           getBrandName(item.fragrances)?.toLowerCase().includes(searchLower) ||
-          item.personal_notes?.toLowerCase().includes(searchLower)
+          item.notes?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -382,10 +366,7 @@ export function CollectionDashboardModern({
                   <Badge variant='secondary' className='ml-2 text-xs'>
                     {
                       collection.filter(
-                        i =>
-                          i.usage_frequency === 'daily' ||
-                          i.usage_frequency === 'weekly' ||
-                          (i.rating && i.rating >= 4)
+                        i => i.rating >= 4 || (i.rating && i.rating >= 4)
                       ).length
                     }
                   </Badge>
@@ -396,11 +377,7 @@ export function CollectionDashboardModern({
                     {
                       collection.filter(i => {
                         const currentSeason = getCurrentSeason();
-                        return (
-                          !i.seasons ||
-                          i.seasons.length === 0 ||
-                          i.seasons.includes(currentSeason)
-                        );
+                        return true; // No seasonal filtering available
                       }).length
                     }
                   </Badge>

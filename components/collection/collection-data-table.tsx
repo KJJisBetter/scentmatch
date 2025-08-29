@@ -39,7 +39,7 @@ interface Fragrance {
   id: string;
   name: string;
   brand_id: string;
-  scent_family?: string;
+  fragrance_family?: string;
   image_url?: string;
   sample_available?: boolean;
   sample_price_usd?: number;
@@ -50,12 +50,10 @@ interface CollectionItem {
   id: string;
   user_id: string;
   fragrance_id: string;
-  status: 'owned' | 'wishlist' | 'tried' | 'selling';
+  status: 'saved' | 'owned' | 'wishlist' | 'tried';
   rating?: number;
-  personal_notes?: string;
-  usage_frequency?: 'daily' | 'weekly' | 'occasional' | 'special';
-  occasions?: string[];
-  seasons?: string[];
+  notes?: string;
+  purchase_date?: string;
   purchase_date?: string;
   purchase_price?: number;
   added_at: string;
@@ -94,14 +92,14 @@ export function CollectionDataTable({
   // Helper function to get status styling
   const getStatusStyling = (status: string) => {
     switch (status) {
+      case 'saved':
+        return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       case 'owned':
         return 'bg-green-100 text-green-700 border-green-200';
       case 'wishlist':
         return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'tried':
         return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'selling':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
     }
@@ -123,11 +121,11 @@ export function CollectionDataTable({
       header: ({ table }) => (
         <Checkbox
           checked={
-            table.getIsAllPageRowsSelected() 
-              ? true 
-              : table.getIsSomePageRowsSelected() 
-              ? 'indeterminate' 
-              : false
+            table.getIsAllPageRowsSelected()
+              ? true
+              : table.getIsSomePageRowsSelected()
+                ? 'indeterminate'
+                : false
           }
           onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
           aria-label='Select all'
@@ -176,9 +174,9 @@ export function CollectionDataTable({
               <div className='text-sm text-muted-foreground truncate'>
                 {brandName}
               </div>
-              {fragrance.scent_family && (
+              {fragrance.fragrance_family && (
                 <Badge variant='outline' className='text-xs mt-1'>
-                  {fragrance.scent_family}
+                  {fragrance.fragrance_family}
                 </Badge>
               )}
             </div>
@@ -239,10 +237,10 @@ export function CollectionDataTable({
       },
     },
     {
-      accessorKey: 'usage_frequency',
-      header: 'Usage',
+      accessorKey: 'rating',
+      header: 'Rating',
       cell: ({ row }) => {
-        const frequency = row.getValue('usage_frequency') as string;
+        const rating = row.getValue('rating') as number;
         const displayMap = {
           daily: 'Daily',
           weekly: 'Weekly',
@@ -292,10 +290,10 @@ export function CollectionDataTable({
       },
     },
     {
-      accessorKey: 'personal_notes',
+      accessorKey: 'notes',
       header: 'Notes',
       cell: ({ row }) => {
-        const notes = row.getValue('personal_notes') as string;
+        const notes = row.getValue('notes') as string;
         return notes ? (
           <div className='max-w-[200px] truncate text-sm text-muted-foreground italic'>
             "{notes}"
