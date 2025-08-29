@@ -346,12 +346,12 @@ async function ensureUserProfile(userId: string, email: string | undefined) {
 
     if (!existingProfile) {
       console.log('DEBUG: Creating new profile');
-      // Create profile with correct schema - no email field, use user_id
+      // Create profile with correct schema - both id and user_id
       const { error: insertError } = await (supabase as any)
         .from('user_profiles')
         .insert({
           id: userId, // Primary key
-          // Removed email field - it doesn't exist in the table
+          user_id: userId, // Foreign key to auth.users
           onboarding_completed: false,
           onboarding_step: 'getting_started',
           created_at: new Date().toISOString(),
