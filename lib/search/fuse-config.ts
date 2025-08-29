@@ -5,7 +5,7 @@
  * proper threshold, and fragrance-specific search patterns.
  */
 
-import Fuse from 'fuse.js';
+import Fuse, { type IFuseOptions } from 'fuse.js';
 
 export interface FragranceSearchItem {
   id: string;
@@ -36,7 +36,7 @@ export interface SearchableFragrance extends FragranceSearchItem {
 /**
  * Primary Fuse.js configuration optimized for fragrance search
  */
-export const fuseConfig: Fuse.IFuseOptions<SearchableFragrance> = {
+export const fuseConfig: IFuseOptions<SearchableFragrance> = {
   // Search configuration
   threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything - 0.4 good balance for typos
   distance: 100, // Maximum distance between characters to consider a match
@@ -117,7 +117,7 @@ export const fuseConfig: Fuse.IFuseOptions<SearchableFragrance> = {
  * Alternative config for exact/near-exact matches
  * Use when user wants precise results
  */
-export const exactMatchConfig: Fuse.IFuseOptions<SearchableFragrance> = {
+export const exactMatchConfig: IFuseOptions<SearchableFragrance> = {
   ...fuseConfig,
   threshold: 0.2, // Much stricter threshold
   distance: 50, // Shorter distance for exact matches
@@ -128,7 +128,7 @@ export const exactMatchConfig: Fuse.IFuseOptions<SearchableFragrance> = {
  * Config for broad discovery search
  * Use when showing "related" or "similar" results
  */
-export const discoveryConfig: Fuse.IFuseOptions<SearchableFragrance> = {
+export const discoveryConfig: IFuseOptions<SearchableFragrance> = {
   ...fuseConfig,
   threshold: 0.6, // More lenient threshold
   distance: 200, // Longer distance for broader matching
@@ -139,7 +139,7 @@ export const discoveryConfig: Fuse.IFuseOptions<SearchableFragrance> = {
  * Suggestion/autocomplete config
  * Optimized for real-time search suggestions
  */
-export const suggestionConfig: Fuse.IFuseOptions<SearchableFragrance> = {
+export const suggestionConfig: IFuseOptions<SearchableFragrance> = {
   threshold: 0.3, // Medium threshold for suggestions
   distance: 100,
   minMatchCharLength: 2,

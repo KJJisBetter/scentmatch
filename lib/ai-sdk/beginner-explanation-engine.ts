@@ -1,13 +1,17 @@
 /**
  * Beginner Explanation Engine
- * 
+ *
  * Specialized engine for generating beginner-friendly fragrance explanations
  * Solves SCE-66 and SCE-67 with educational, confidence-building content
  */
 
 import { generateText } from 'ai';
 import { AI_MODELS } from './config';
-import { adaptivePromptEngine, validateBeginnerExplanation, FRAGRANCE_EDUCATION } from './adaptive-prompts';
+import {
+  adaptivePromptEngine,
+  validateBeginnerExplanation,
+  FRAGRANCE_EDUCATION,
+} from './adaptive-prompts';
 import type { UserExperienceLevel } from './user-experience-detector';
 
 export interface BeginnerExplanationRequest {
@@ -61,26 +65,34 @@ export class BeginnerExplanationEngine {
     // Try multiple times to get optimal explanation
     while (attempts < this.maxRetries) {
       attempts++;
-      
+
       try {
-        const explanation = await this.generateSingleExplanation(request, attempts);
+        const explanation = await this.generateSingleExplanation(
+          request,
+          attempts
+        );
         const validation = validateBeginnerExplanation(explanation);
         const score = this.calculateExplanationScore(explanation, validation);
 
         if (validation.valid || score > bestScore) {
           bestResult = { explanation, validation, score };
           bestScore = score;
-          
+
           // If we got a valid result, use it
           if (validation.valid) break;
         }
       } catch (error) {
-        console.warn(`Explanation generation attempt ${attempts} failed:`, error);
+        console.warn(
+          `Explanation generation attempt ${attempts} failed:`,
+          error
+        );
       }
     }
 
     if (!bestResult) {
-      throw new Error('Failed to generate beginner explanation after multiple attempts');
+      throw new Error(
+        'Failed to generate beginner explanation after multiple attempts'
+      );
     }
 
     // Generate educational content
@@ -116,10 +128,10 @@ export class BeginnerExplanationEngine {
     attemptNumber: number
   ): Promise<string> {
     const fragranceDetails = `${request.fragranceName} by ${request.brand} (${request.scentFamily})`;
-    
+
     // Build enhanced context based on attempt number
     const enhancedContext = this.buildEnhancedContext(request, attemptNumber);
-    
+
     const prompt = `
       You are teaching someone about fragrances while explaining why this recommendation matches their preferences. Be educational but concise.
       
@@ -147,7 +159,7 @@ export class BeginnerExplanationEngine {
     const { text } = await generateText({
       model: AI_MODELS.RECOMMENDATION,
       prompt,
-      maxTokens: 80, // Strict limit for word count control
+      maxOutputTokens: 80, // Strict limit for word count control
       temperature: attemptNumber > 1 ? 0.3 : 0.5, // Lower temperature for retries
     });
 
@@ -162,25 +174,28 @@ export class BeginnerExplanationEngine {
     attemptNumber: number
   ): string {
     let context = request.userContext;
-    
+
     // Add more specific guidance on retries
     if (attemptNumber > 1) {
       context += '. Focus on ONE clear benefit that resonates with beginners.';
     }
-    
+
     if (attemptNumber > 2) {
       context += ` Keep explanations simple and practical.`;
     }
-    
+
     return context;
   }
 
   /**
    * Calculate explanation quality score - updated for educational focus
    */
-  private calculateExplanationScore(explanation: string, validation: any): number {
+  private calculateExplanationScore(
+    explanation: string,
+    validation: any
+  ): number {
     let score = 0;
-    
+
     // Word count score (max 30 points) - reduced weight for educational flexibility
     const wordCount = validation.wordCount;
     if (wordCount >= 30 && wordCount <= 40) {
@@ -188,21 +203,23 @@ export class BeginnerExplanationEngine {
     } else if (wordCount >= 25 && wordCount <= 45) {
       score += 20;
     }
-    
+
     // Educational terms score (max 30 points) - NEW: prioritize teaching
     if (validation.hasEducationalTerms) score += 30;
-    
+
     // Performance information score (max 25 points) - NEW: explain fragrance behavior
     if (validation.hasPerformanceInfo) score += 25;
-    
+
     // Meaningful comparison score (max 15 points) - NEW: educational comparisons
     if (validation.hasMeaningfulComparison) score += 15;
-    
+
     // Penalty for baby-talk (subtract 20 points)
-    if (validation.issues?.some((issue: string) => issue.includes('baby-talk'))) {
+    if (
+      validation.issues?.some((issue: string) => issue.includes('baby-talk'))
+    ) {
       score -= 20;
     }
-    
+
     return Math.max(score, 0); // Ensure non-negative score
   }
 
@@ -219,13 +236,13 @@ export class BeginnerExplanationEngine {
   }> {
     // Extract fragrance terms for education
     const terms = this.extractEducationalTerms(explanation, request);
-    
+
     // Generate contextual tips
     const tips = await this.generateContextualTips(request);
-    
+
     // Generate confidence booster
     const confidenceBooster = await this.generateConfidenceBooster(request);
-    
+
     return {
       terms,
       tips,
@@ -242,34 +259,45 @@ export class BeginnerExplanationEngine {
   ): Record<string, any> {
     const terms: Record<string, any> = {};
     const combinedText = `${explanation} ${request.scentFamily}`.toLowerCase();
-    
+
     // Check for fragrance education terms
     Object.entries(FRAGRANCE_EDUCATION).forEach(([key, edu]) => {
-      if (combinedText.includes(key) || combinedText.includes(edu.term.toLowerCase())) {
+      if (
+        combinedText.includes(key) ||
+        combinedText.includes(edu.term.toLowerCase())
+      ) {
         terms[key] = {
           ...edu,
           contextualExample: this.generateContextualExample(edu, request),
         };
       }
     });
-    
+
     // Add scent family education if not already covered
     if (!terms.scent_family && request.scentFamily) {
       terms.scent_family = {
         term: request.scentFamily,
-        beginnerExplanation: this.getScentFamilyExplanation(request.scentFamily),
+        beginnerExplanation: this.getScentFamilyExplanation(
+          request.scentFamily
+        ),
         example: `${request.fragranceName} is a ${request.scentFamily.toLowerCase()} fragrance`,
       };
     }
-    
+
     return terms;
   }
 
   /**
    * Generate contextual example for educational terms
    */
-  private generateContextualExample(edu: any, request: BeginnerExplanationRequest): string {
-    return edu.example || `In ${request.fragranceName}, this means ${edu.beginnerExplanation.toLowerCase()}`;
+  private generateContextualExample(
+    edu: any,
+    request: BeginnerExplanationRequest
+  ): string {
+    return (
+      edu.example ||
+      `In ${request.fragranceName}, this means ${edu.beginnerExplanation.toLowerCase()}`
+    );
   }
 
   /**
@@ -284,9 +312,11 @@ export class BeginnerExplanationEngine {
       fougere: 'Classic masculine blend of lavender, herbs, and woods',
       chypre: 'Elegant blend of citrus, flowers, and mossy woods',
     };
-    
-    return explanations[scentFamily.toLowerCase()] || 
-           `${scentFamily} scents have their own unique character and style`;
+
+    return (
+      explanations[scentFamily.toLowerCase()] ||
+      `${scentFamily} scents have their own unique character and style`
+    );
   }
 
   /**
@@ -299,12 +329,15 @@ export class BeginnerExplanationEngine {
       'Start with smaller sizes to test how fragrances work with your skin',
       'Fragrances smell different on everyone due to body chemistry',
       'Apply to pulse points (wrists, neck) for best projection',
-      'Don\'t judge a fragrance immediately - let it develop for 30 minutes',
+      "Don't judge a fragrance immediately - let it develop for 30 minutes",
     ];
-    
+
     // Add contextual tips based on scent family
-    const contextualTips = this.getContextualTips(request.scentFamily, request.priceRange);
-    
+    const contextualTips = this.getContextualTips(
+      request.scentFamily,
+      request.priceRange
+    );
+
     return [...contextualTips, ...baseTips.slice(0, 2)];
   }
 
@@ -313,18 +346,32 @@ export class BeginnerExplanationEngine {
    */
   private getContextualTips(scentFamily: string, priceRange?: any): string[] {
     const tips: Record<string, string[]> = {
-      fresh: ['Great for beginners - clean scents are universally appealing', 'Perfect for daytime and office wear'],
-      floral: ['Excellent for romantic occasions and spring/summer', 'Layer with unscented lotion for longer wear'],
-      woody: ['Ideal for fall/winter and evening events', 'A little goes a long way with woody scents'],
-      oriental: ['Start with light application - these are powerful scents', 'Perfect for special occasions and cooler weather'],
+      fresh: [
+        'Great for beginners - clean scents are universally appealing',
+        'Perfect for daytime and office wear',
+      ],
+      floral: [
+        'Excellent for romantic occasions and spring/summer',
+        'Layer with unscented lotion for longer wear',
+      ],
+      woody: [
+        'Ideal for fall/winter and evening events',
+        'A little goes a long way with woody scents',
+      ],
+      oriental: [
+        'Start with light application - these are powerful scents',
+        'Perfect for special occasions and cooler weather',
+      ],
     };
-    
-    const familyTips = tips[scentFamily.toLowerCase()] || ['Trust your instincts when trying new scent families'];
-    
+
+    const familyTips = tips[scentFamily.toLowerCase()] || [
+      'Trust your instincts when trying new scent families',
+    ];
+
     if (priceRange && priceRange.min < 50) {
       familyTips.push('Great value option for exploring this scent family');
     }
-    
+
     return familyTips;
   }
 
@@ -345,13 +392,13 @@ export class BeginnerExplanationEngine {
       - "Trust your nose - you're developing great taste!"
       - "Perfect choice for beginning your scent journey!"
     `;
-    
+
     const { text } = await generateText({
       model: AI_MODELS.FAST,
       prompt,
-      maxTokens: 30,
+      maxOutputTokens: 30,
     });
-    
+
     return text.trim();
   }
 
@@ -374,18 +421,23 @@ export class BeginnerExplanationEngine {
     requests: BeginnerExplanationRequest[]
   ): Promise<BeginnerExplanationResult[]> {
     const results: BeginnerExplanationResult[] = [];
-    
+
     // Process in small batches to avoid rate limits
     const batchSize = 3;
     for (let i = 0; i < requests.length; i += batchSize) {
       const batch = requests.slice(i, i + batchSize);
-      const batchPromises = batch.map(request => this.generateExplanation(request));
-      
+      const batchPromises = batch.map(request =>
+        this.generateExplanation(request)
+      );
+
       try {
         const batchResults = await Promise.all(batchPromises);
         results.push(...batchResults);
       } catch (error) {
-        console.error(`Batch generation failed for batch starting at index ${i}:`, error);
+        console.error(
+          `Batch generation failed for batch starting at index ${i}:`,
+          error
+        );
         // Add error results for failed batch
         batch.forEach((request, index) => {
           results.push({
@@ -409,7 +461,7 @@ export class BeginnerExplanationEngine {
         });
       }
     }
-    
+
     return results;
   }
 }

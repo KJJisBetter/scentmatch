@@ -30,8 +30,8 @@ const GENERIC_RESET_MESSAGE =
   'If an account with that email exists, you will receive a password reset link shortly.';
 
 // Helper to get dynamic base URL for email redirects
-function getBaseUrl(): string {
-  const headersList = headers();
+async function getBaseUrl(): Promise<string> {
+  const headersList = await headers();
   const host = headersList.get('host');
   const protocol = headersList.get('x-forwarded-proto') || 'http';
 
@@ -76,11 +76,12 @@ export async function signUp(email: string, password: string) {
     const supabase = await createServerSupabase();
 
     // Sign up user
+    const baseUrl = await getBaseUrl();
     const { data, error } = await supabase.auth.signUp({
       email: emailResult.data,
       password: passwordResult.data,
       options: {
-        emailRedirectTo: `${getBaseUrl()}/auth/confirm?next=/dashboard`,
+        emailRedirectTo: `${baseUrl}/auth/confirm?next=/dashboard`,
       },
     });
 
@@ -233,10 +234,11 @@ export async function resetPassword(email: string) {
     const supabase = await createServerSupabase();
 
     // Send password reset email
+    const baseUrl = await getBaseUrl();
     const { error } = await supabase.auth.resetPasswordForEmail(
       emailResult.data,
       {
-        redirectTo: `${getBaseUrl()}/auth/confirm?next=/auth/reset`,
+        redirectTo: `${baseUrl}/auth/confirm?next=/auth/reset`,
       }
     );
 

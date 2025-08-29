@@ -286,7 +286,7 @@ export class VercelAIClient {
       const { text } = await generateText({
         model: AI_MODELS.RECOMMENDATION,
         prompt,
-        maxTokens: this.calculateMaxTokens(explanationStyle.maxWords),
+        maxOutputTokens: this.calculateMaxTokens(explanationStyle.maxWords),
       });
 
       // Adapt vocabulary for experience level
@@ -455,7 +455,7 @@ export class VercelAIClient {
     const { text } = await generateText({
       model: AI_MODELS.FAST,
       prompt,
-      maxTokens: 50,
+      maxOutputTokens: 50,
     });
 
     return text.trim();

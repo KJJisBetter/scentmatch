@@ -1,32 +1,33 @@
 import { type EmailOtpType } from '@supabase/supabase-js';
-import { type NextRequest } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { type NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
+/**
+ * FIXED: Official Supabase email confirmation handler for PKCE flow
+ * Following official @supabase/ssr pattern with NextResponse.redirect()
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  // Handle both token_hash (PKCE flow) and token (implicit flow) parameters
-  const token_hash =
-    searchParams.get('token_hash') || searchParams.get('token');
-  const typeParam = searchParams.get('type');
+  const token_hash = searchParams.get('token_hash');
+  const type = searchParams.get('type') as EmailOtpType | null;
   const next = searchParams.get('next') ?? '/dashboard';
 
-  // Convert signup type to email for verifyOtp
-  const type: EmailOtpType = (
-    typeParam === 'signup' ? 'email' : typeParam
-  ) as EmailOtpType;
+  // Create redirect link without the secret token
+  const redirectTo = request.nextUrl.clone();
+  redirectTo.pathname = next;
+  redirectTo.searchParams.delete('token_hash');
+  redirectTo.searchParams.delete('type');
 
   console.log('Auth confirm handler:', {
     token_hash: !!token_hash,
-    originalType: typeParam,
-    convertedType: type,
+    type,
     next,
     fullUrl: request.url,
   });
 
   if (token_hash && type) {
-    const supabase = await createServerSupabase();
+    const supabase = await createClient();
 
     try {
       const { error } = await supabase.auth.verifyOtp({
@@ -37,9 +38,10 @@ export async function GET(request: NextRequest) {
       console.log('Token verification result:', { error: !!error });
 
       if (!error) {
-        // Successfully verified - redirect to dashboard or specified page
+        // Successfully verified - use NextResponse.redirect for proper cookie handling
         console.log('Verification successful, redirecting to:', next);
-        redirect(next);
+        redirectTo.searchParams.delete('next');
+        return NextResponse.redirect(redirectTo);
       }
     } catch (verificationError) {
       console.error('Token verification exception:', verificationError);
@@ -51,7 +53,9 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // If verification failed, redirect to error page with helpful message
+  // Return the user to an error page with instructions
   console.log('Verification failed, redirecting to error page');
-  redirect('/auth/verify?error=invalid-token');
+  redirectTo.pathname = '/auth/verify';
+  redirectTo.searchParams.set('error', 'invalid-token');
+  return NextResponse.redirect(redirectTo);
 }

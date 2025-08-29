@@ -174,7 +174,7 @@ export interface RateLimitResult {
 }
 
 // Get client identifier (IP + user agent hash for better uniqueness)
-export function getClientIdentifier(request?: Request): string {
+export async function getClientIdentifier(request?: Request): Promise<string> {
   try {
     if (request) {
       // For API routes with request object
@@ -187,7 +187,7 @@ export function getClientIdentifier(request?: Request): string {
       return `${ip}:${hashString(userAgent)}`;
     } else {
       // For Server Actions using Next.js headers
-      const headersList = headers();
+      const headersList = await headers();
       const ip =
         headersList.get('x-forwarded-for') ||
         headersList.get('x-real-ip') ||
@@ -220,7 +220,7 @@ export async function checkRateLimit(
   request?: Request
 ): Promise<RateLimitResult> {
   try {
-    const clientId = identifier || getClientIdentifier(request);
+    const clientId = identifier || (await getClientIdentifier(request));
     const rateLimiter = rateLimiters[limitType];
 
     if (!rateLimiter) {

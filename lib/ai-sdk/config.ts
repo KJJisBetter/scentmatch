@@ -61,7 +61,7 @@ export const AI_CONFIG = {
     // Temperature for recommendation generation (0 = deterministic, 1 = creative)
     temperature: 0.3,
     // Maximum tokens for recommendation explanations
-    maxTokens: 500,
+    maxOutputTokens: 500,
     // Enable database-only fallback when AI fails
     enableFallback: true,
     // Maximum time to wait for AI enhancement before fallback

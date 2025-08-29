@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { unstable_rethrow } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { createServiceSupabase } from '@/lib/supabase/service';
 
 export interface ConvertToAccountParams {
   session_token: string;

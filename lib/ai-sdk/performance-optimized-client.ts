@@ -1,6 +1,6 @@
 /**
  * Performance-Optimized AI Client
- * 
+ *
  * High-performance AI client optimized for sub-2s explanation generation
  * Includes aggressive caching, fallbacks, and mobile-optimized prompts
  */
@@ -9,7 +9,10 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { educationCache } from '@/lib/education/cache-manager';
 import { adaptivePromptEngine, FRAGRANCE_EDUCATION } from './adaptive-prompts';
-import type { UserExperienceLevel, ExplanationStyle } from './user-experience-detector';
+import type {
+  UserExperienceLevel,
+  ExplanationStyle,
+} from './user-experience-detector';
 
 export interface PerformanceMetrics {
   responseTime: number;
@@ -55,10 +58,14 @@ export class PerformanceOptimizedAIClient {
     explanationStyle: ExplanationStyle
   ): Promise<OptimizedExplanationResult> {
     const startTime = performance.now();
-    
+
     // Create cache key from parameters
-    const cacheKey = this.createCacheKey(fragranceId, userContext, experienceLevel);
-    
+    const cacheKey = this.createCacheKey(
+      fragranceId,
+      userContext,
+      experienceLevel
+    );
+
     // Check cache first
     const cached = educationCache.get<OptimizedExplanationResult>(cacheKey);
     if (cached) {
@@ -68,7 +75,7 @@ export class PerformanceOptimizedAIClient {
           ...cached.performance,
           responseTime: performance.now() - startTime,
           cacheHit: true,
-        }
+        },
       };
     }
 
@@ -85,7 +92,7 @@ export class PerformanceOptimizedAIClient {
       const { text } = await generateText({
         model: this.openai('gpt-3.5-turbo'), // Faster than GPT-4
         prompt,
-        maxTokens: this.calculateOptimalTokens(explanationStyle.maxWords),
+        maxOutputTokens: this.calculateOptimalTokens(explanationStyle.maxWords),
         temperature: 0.3, // Lower for consistency and speed
       });
 
@@ -102,10 +109,9 @@ export class PerformanceOptimizedAIClient {
       educationCache.set(cacheKey, result, 1800000); // 30 minutes
 
       return result;
-
     } catch (error) {
       console.error('AI explanation generation failed:', error);
-      
+
       // Return fallback explanation with performance tracking
       return this.getFallbackExplanation(
         fragranceId,
@@ -126,7 +132,7 @@ export class PerformanceOptimizedAIClient {
   ): Promise<OptimizedExplanationResult> {
     const startTime = performance.now();
     const cacheKey = `beginner_${fragranceId}_${this.hashString(userContext)}`;
-    
+
     // Check cache first
     const cached = educationCache.get<OptimizedExplanationResult>(cacheKey);
     if (cached) {
@@ -136,7 +142,7 @@ export class PerformanceOptimizedAIClient {
           ...cached.performance,
           responseTime: performance.now() - startTime,
           cacheHit: true,
-        }
+        },
       };
     }
 
@@ -160,12 +166,13 @@ export class PerformanceOptimizedAIClient {
       const { text } = await generateText({
         model: this.openai('gpt-3.5-turbo'),
         prompt,
-        maxTokens: 60, // Very limited for speed
+        maxOutputTokens: 60, // Very limited for speed
         temperature: 0.2,
       });
 
       // Generate educational content and confidence boost
-      const educationalTerms = this.getRelevantEducationalTerms(fragranceDetails);
+      const educationalTerms =
+        this.getRelevantEducationalTerms(fragranceDetails);
       const confidenceBoost = this.generateConfidenceBoost();
 
       const result: OptimizedExplanationResult = {
@@ -180,14 +187,13 @@ export class PerformanceOptimizedAIClient {
           fallbackUsed: false,
           modelUsed: 'gpt-3.5-turbo',
           tokenCount: 60,
-        }
+        },
       };
 
       // Cache beginner explanations for 1 hour
       educationCache.set(cacheKey, result, 3600000);
 
       return result;
-
     } catch (error) {
       console.error('Beginner explanation generation failed:', error);
       return this.getFallbackBeginnerExplanation(fragranceId, startTime);
@@ -216,7 +222,7 @@ export class PerformanceOptimizedAIClient {
         request.userContext,
         request.experienceLevel
       );
-      
+
       const cached = educationCache.get<OptimizedExplanationResult>(cacheKey);
       if (cached) {
         results.set(request.fragranceId, cached);
@@ -296,7 +302,12 @@ export class PerformanceOptimizedAIClient {
         Include technical details, composition analysis, and performance characteristics.`;
 
       default:
-        return this.createOptimizedPrompt(fragranceDetails, userContext, 'beginner', explanationStyle);
+        return this.createOptimizedPrompt(
+          fragranceDetails,
+          userContext,
+          'beginner',
+          explanationStyle
+        );
     }
   }
 
@@ -310,7 +321,10 @@ export class PerformanceOptimizedAIClient {
     fragranceDetails: string,
     startTime: number
   ): OptimizedExplanationResult {
-    const adaptedText = adaptivePromptEngine.adaptVocabulary(text, experienceLevel);
+    const adaptedText = adaptivePromptEngine.adaptVocabulary(
+      text,
+      experienceLevel
+    );
 
     const result: OptimizedExplanationResult = {
       explanation: adaptedText,
@@ -320,20 +334,24 @@ export class PerformanceOptimizedAIClient {
         fallbackUsed: false,
         modelUsed: 'gpt-3.5-turbo',
         tokenCount: this.calculateOptimalTokens(explanationStyle.maxWords),
-      }
+      },
     };
 
     // Add progressive disclosure for beginners
     if (explanationStyle.useProgressiveDisclosure) {
-      const disclosure = adaptivePromptEngine.generateProgressiveDisclosureSummary(adaptedText);
+      const disclosure =
+        adaptivePromptEngine.generateProgressiveDisclosureSummary(adaptedText);
       result.summary = disclosure.summary;
       result.expandedContent = disclosure.expandedContent;
     }
 
     // Add educational content for beginners
     if (explanationStyle.includeEducation) {
-      const terms = this.extractFragranceTerms(fragranceDetails + ' ' + adaptedText);
-      result.educationalTerms = adaptivePromptEngine.generateEducationalContent(terms);
+      const terms = this.extractFragranceTerms(
+        fragranceDetails + ' ' + adaptedText
+      );
+      result.educationalTerms =
+        adaptivePromptEngine.generateEducationalContent(terms);
     }
 
     return result;
@@ -349,14 +367,17 @@ export class PerformanceOptimizedAIClient {
     startTime: number
   ): OptimizedExplanationResult {
     const fallbackKey = `fallback_${experienceLevel}`;
-    let explanation = this.fallbackExplanations.get(fallbackKey) || 
+    let explanation =
+      this.fallbackExplanations.get(fallbackKey) ||
       'This fragrance matches your preferences well. Perfect for discovering your signature scent.';
 
     // Adapt for experience level
     if (experienceLevel === 'beginner') {
-      explanation = 'Great match for you! This scent will help you discover what you love. Try the sample first.';
+      explanation =
+        'Great match for you! This scent will help you discover what you love. Try the sample first.';
     } else if (experienceLevel === 'advanced') {
-      explanation = 'This fragrance demonstrates excellent compatibility with your established preferences and collection profile.';
+      explanation =
+        'This fragrance demonstrates excellent compatibility with your established preferences and collection profile.';
     }
 
     return {
@@ -368,7 +389,7 @@ export class PerformanceOptimizedAIClient {
         fallbackUsed: true,
         modelUsed: 'fallback',
         tokenCount: 0,
-      }
+      },
     };
   }
 
@@ -380,12 +401,14 @@ export class PerformanceOptimizedAIClient {
     startTime: number
   ): OptimizedExplanationResult {
     return {
-      explanation: 'Perfect starter fragrance for you! This scent is beginner-friendly and matches your style.',
+      explanation:
+        'Perfect starter fragrance for you! This scent is beginner-friendly and matches your style.',
       summary: 'Perfect starter fragrance for you!',
-      expandedContent: 'This scent is carefully selected for beginners and will help you discover your fragrance preferences.',
+      expandedContent:
+        'This scent is carefully selected for beginners and will help you discover your fragrance preferences.',
       educationalTerms: {
-        'beginner_friendly': FRAGRANCE_EDUCATION['notes'],
-        'starter_fragrance': FRAGRANCE_EDUCATION['edp'],
+        beginner_friendly: FRAGRANCE_EDUCATION['notes'],
+        starter_fragrance: FRAGRANCE_EDUCATION['edp'],
       },
       confidenceBoost: '96% of beginners love their first recommendation!',
       performance: {
@@ -394,7 +417,7 @@ export class PerformanceOptimizedAIClient {
         fallbackUsed: true,
         modelUsed: 'fallback',
         tokenCount: 0,
-      }
+      },
     };
   }
 
@@ -422,7 +445,7 @@ export class PerformanceOptimizedAIClient {
   private extractFragranceTerms(text: string): string[] {
     const terms: string[] = [];
     const lowerText = text.toLowerCase();
-    
+
     Object.keys(FRAGRANCE_EDUCATION).forEach(term => {
       if (lowerText.includes(term.replace('_', ' '))) {
         terms.push(term);
@@ -435,7 +458,9 @@ export class PerformanceOptimizedAIClient {
   /**
    * Get relevant educational terms for a fragrance
    */
-  private getRelevantEducationalTerms(fragranceDetails: string): Record<string, any> {
+  private getRelevantEducationalTerms(
+    fragranceDetails: string
+  ): Record<string, any> {
     const terms = this.extractFragranceTerms(fragranceDetails);
     return adaptivePromptEngine.generateEducationalContent(terms);
   }
@@ -448,18 +473,23 @@ export class PerformanceOptimizedAIClient {
       '96% of beginners find their perfect match within 3 tries',
       'Trust your instincts - your nose knows what you like',
       'Every fragrance expert started as a beginner',
-      'Finding your scent is a journey of self-discovery'
+      'Finding your scent is a journey of self-discovery',
     ];
-    
+
     return boosts[Math.floor(Math.random() * boosts.length)];
   }
 
   /**
    * Generate expanded content for progressive disclosure
    */
-  private generateExpandedContent(summary: string, fragranceDetails: string): string {
-    return `Learn more about why this ${fragranceDetails.split(' ')[0]} fragrance works for you. ` +
-           `Each fragrance has unique characteristics that match different personalities and preferences.`;
+  private generateExpandedContent(
+    summary: string,
+    fragranceDetails: string
+  ): string {
+    return (
+      `Learn more about why this ${fragranceDetails.split(' ')[0]} fragrance works for you. ` +
+      `Each fragrance has unique characteristics that match different personalities and preferences.`
+    );
   }
 
   /**
@@ -477,7 +507,7 @@ export class PerformanceOptimizedAIClient {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash).toString(36);

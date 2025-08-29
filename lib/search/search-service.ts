@@ -5,7 +5,7 @@
  * Provides consistent relevance scoring and result highlighting.
  */
 
-import Fuse from 'fuse.js';
+import Fuse, { type IFuseOptions, type FuseResult } from 'fuse.js';
 import { createServiceSupabase } from '@/lib/supabase/service';
 import {
   fuseConfig,
@@ -183,7 +183,7 @@ export class FuseSearchService {
    * Get search result highlights for better UX
    */
   getHighlights(
-    fuseResult: Fuse.FuseResult<SearchableFragrance>,
+    fuseResult: FuseResult<SearchableFragrance>,
     query: string
   ): MatchHighlight[] {
     if (!fuseResult.matches) return [];
@@ -276,9 +276,7 @@ export class FuseSearchService {
   /**
    * Get config based on search mode
    */
-  private getConfigForMode(
-    mode: string
-  ): Fuse.IFuseOptions<SearchableFragrance> {
+  private getConfigForMode(mode: string): IFuseOptions<SearchableFragrance> {
     switch (mode) {
       case 'exact':
         return exactMatchConfig;
@@ -295,9 +293,9 @@ export class FuseSearchService {
    * Apply filters to search results
    */
   private applyFilters(
-    results: Fuse.FuseResult<SearchableFragrance>[],
+    results: FuseResult<SearchableFragrance>[],
     filters?: SearchOptions['filters']
-  ): Fuse.FuseResult<SearchableFragrance>[] {
+  ): FuseResult<SearchableFragrance>[] {
     if (!filters) return results;
 
     return results.filter(result => {
@@ -344,7 +342,7 @@ export class FuseSearchService {
    * Transform Fuse results into SearchResult format
    */
   private transformFuseResults(
-    fuseResults: Fuse.FuseResult<SearchableFragrance>[],
+    fuseResults: FuseResult<SearchableFragrance>[],
     query: string,
     options: SearchOptions
   ): SearchResult[] {
@@ -378,7 +376,7 @@ export class FuseSearchService {
    * Transform Fuse results into suggestion format
    */
   private transformSuggestionResults(
-    fuseResults: Fuse.FuseResult<SearchableFragrance>[],
+    fuseResults: FuseResult<SearchableFragrance>[],
     query: string
   ): SuggestionResult[] {
     const suggestions: SuggestionResult[] = [];
@@ -416,7 +414,7 @@ export class FuseSearchService {
    * Generate human-readable match reason
    */
   private generateMatchReason(
-    fuseResult: Fuse.FuseResult<SearchableFragrance>,
+    fuseResult: FuseResult<SearchableFragrance>,
     query: string
   ): string {
     if (!fuseResult.matches || fuseResult.matches.length === 0) {

@@ -13,7 +13,7 @@ import {
 } from '@/lib/schemas/entities';
 
 // Export types from schemas for backward compatibility
-export type { 
+export type {
   CollectionActionParams,
   CollectionActionResult,
   CollectionItem,
@@ -24,7 +24,7 @@ export type CollectionActionType = 'add' | 'remove';
 
 /**
  * Unified Server Action: Update User Collection
- * 
+ *
  * Replaces all collection API routes with a single, comprehensive Server Action.
  * Handles add, remove, rate, and update operations in one unified interface.
  * This eliminates the duplicate API routes and consolidates collection management.
@@ -80,7 +80,7 @@ export async function updateUserCollection(
     const { data: fragrance, error: fragranceError } = await supabase
       .from('fragrances')
       .select('id, name')
-      .or(`id.eq.${inputFragranceId},slug.eq.${inputFragranceId}`)
+      .or(`id.eq.${fragranceId},slug.eq.${fragranceId}`)
       .single();
 
     if (fragranceError || !fragrance) {
@@ -93,7 +93,12 @@ export async function updateUserCollection(
 
     // Use the actual fragrance ID from database (UUID format)
     const actualFragranceId = fragrance.id;
-    console.log('Found fragrance:', fragrance.name, 'with ID:', actualFragranceId);
+    console.log(
+      'Found fragrance:',
+      fragrance.name,
+      'with ID:',
+      actualFragranceId
+    );
 
     let result: any;
     let in_collection = false;
@@ -145,7 +150,6 @@ export async function updateUserCollection(
       result = data;
       in_collection = true;
       message = `Added "${fragrance.name}" to your collection`;
-
     } else if (action === 'remove') {
       // Remove from collection
       const { error } = await supabase
@@ -165,7 +169,6 @@ export async function updateUserCollection(
 
       in_collection = false;
       message = `Removed "${fragrance.name}" from your collection`;
-
     } else if (action === 'rate' || action === 'update') {
       // Update existing collection item with rating/notes
       const { data, error } = await supabase
@@ -182,7 +185,10 @@ export async function updateUserCollection(
         .single();
 
       if (error) {
-        console.error(`Error ${action === 'rate' ? 'rating' : 'updating'} collection item:`, error);
+        console.error(
+          `Error ${action === 'rate' ? 'rating' : 'updating'} collection item:`,
+          error
+        );
         return {
           success: false,
           error: `Failed to ${action === 'rate' ? 'rate' : 'update'} collection item`,
@@ -191,9 +197,10 @@ export async function updateUserCollection(
 
       result = data;
       in_collection = true;
-      message = action === 'rate' 
-        ? `Updated rating for "${fragrance.name}"`
-        : `Updated "${fragrance.name}" in your collection`;
+      message =
+        action === 'rate'
+          ? `Updated rating for "${fragrance.name}"`
+          : `Updated "${fragrance.name}" in your collection`;
     }
 
     // Revalidate paths that display collection data
@@ -233,7 +240,7 @@ export async function toggleCollection(
   try {
     // Debug: Log the incoming params
     console.log('toggleCollection called with params:', params);
-    
+
     // Validate input using Zod schema
     const validation = validateCollectionAction(params);
     if (!validation.success) {
@@ -269,7 +276,7 @@ export async function toggleCollection(
     const { data: fragrance, error: fragranceError } = await supabase
       .from('fragrances')
       .select('id, name')
-      .or(`id.eq.${fragrance_id},slug.eq.${fragrance_id}`)
+      .or(`id.eq.${inputFragranceId},slug.eq.${inputFragranceId}`)
       .single();
 
     if (fragranceError || !fragrance) {
