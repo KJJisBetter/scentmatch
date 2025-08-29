@@ -8,16 +8,7 @@
 export { searchService, FuseSearchService } from './search-service';
 
 // Configuration and types
-export type {
-  FragranceSearchItem,
-  SearchableFragrance,
-  fuseConfig,
-  exactMatchConfig,
-  discoveryConfig,
-  suggestionConfig,
-  transformFragranceForSearch,
-  performanceConfig,
-} from './fuse-config';
+export type { FragranceSearchItem, SearchableFragrance } from './fuse-config';
 
 export type {
   FragranceBase,

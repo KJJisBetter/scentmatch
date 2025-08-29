@@ -17,8 +17,8 @@ interface SearchResultsStreamingProps {
   className?: string;
 }
 
-// Async component for progressive search results
-async function SearchResultsData({
+// Search results component - optimized for performance
+function SearchResultsData({
   fragrances,
   query,
   onAddToCollection,
@@ -29,9 +29,6 @@ async function SearchResultsData({
   onAddToCollection: (fragranceId: string) => void;
   onAddToWishlist: (fragranceId: string) => void;
 }) {
-  // Simulate progressive loading with small delay
-  await new Promise(resolve => setTimeout(resolve, 50));
-
   return (
     <SearchResults
       fragrances={fragrances}
