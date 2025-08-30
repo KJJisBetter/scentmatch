@@ -371,3 +371,73 @@ async function ensureUserProfile(userId: string, email: string | undefined) {
     throw error; // Re-throw so signup function sees the real error
   }
 }
+
+export async function resendConfirmationEmail(email: string) {
+  try {
+    // Rate limiting for resend requests
+    const rateLimitResult = await checkServerActionRateLimit(
+      'auth-resend',
+      2,
+      300
+    ); // 2 requests per 5 minutes
+    if (!rateLimitResult.success) {
+      return {
+        error:
+          'Too many resend requests. Please wait a few minutes before trying again.',
+      };
+    }
+
+    // Input validation
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      return {
+        error: emailResult.error.issues[0]?.message || 'Invalid email format',
+      };
+    }
+
+    const baseUrl = await getBaseUrl();
+    const supabase = await createServerSupabase();
+
+    // Resend confirmation email
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: emailResult.data,
+      options: {
+        emailRedirectTo: `${baseUrl}/auth/confirm?next=/dashboard`,
+      },
+    });
+
+    if (error) {
+      console.error('Resend confirmation error:', error);
+
+      // Provide helpful error messages based on error type
+      if (error.message.includes('already confirmed')) {
+        return {
+          success: true,
+          message: 'Your email is already confirmed! You can sign in now.',
+          alreadyConfirmed: true,
+        };
+      }
+
+      if (error.message.includes('not found')) {
+        return {
+          error:
+            'No account found with this email address. Please sign up first.',
+        };
+      }
+
+      return {
+        error: 'Unable to resend confirmation email. Please try again later.',
+      };
+    }
+
+    return {
+      success: true,
+      message:
+        'Confirmation email sent! Please check your inbox and spam folder.',
+    };
+  } catch (error) {
+    console.error('Unexpected resend error:', error);
+    return { error: 'An unexpected error occurred. Please try again.' };
+  }
+}

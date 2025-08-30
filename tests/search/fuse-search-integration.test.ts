@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { searchService, FuseSearchService } from '@/lib/search/search-service';
-import type { SearchOptions, SearchResult } from '@/lib/search/search-types';
+import type { SearchOptions, SearchResult } from '@/lib/search/search-service';
 
 describe('Fuse.js Search Integration', () => {
   let testSearchService: FuseSearchService;

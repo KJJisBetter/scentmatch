@@ -144,19 +144,31 @@ export async function convertToAccount(
     // Generate enhanced recommendations for new account
     let enhancedRecommendations = [];
     try {
-      const { data: personalizedRecs } = await (supabase as any).rpc(
-        'get_personalized_recommendations',
-        {
-          target_user_id: user.id,
-          max_results: 15,
-          include_owned: false,
-        }
-      );
+      // Use existing quiz recommendations instead of non-existent RPC function
+      const { data: existingCollections } = await (supabase as any)
+        .from('user_collections')
+        .select(
+          `
+          fragrance_id,
+          fragrances!inner(
+            id,
+            name,
+            brand_id,
+            sample_available,
+            sample_price_usd,
+            fragrance_brands!inner(name)
+          )
+        `
+        )
+        .eq('user_id', user.id)
+        .eq('collection_type', 'saved')
+        .limit(15);
 
-      enhancedRecommendations = personalizedRecs || [];
+      enhancedRecommendations = existingCollections || [];
     } catch (recError) {
       console.error('Enhanced recommendations failed:', recError);
-      // Fallback to basic recommendations
+      // Fallback to empty recommendations
+      enhancedRecommendations = [];
     }
 
     // Revalidate paths that will show the new user data

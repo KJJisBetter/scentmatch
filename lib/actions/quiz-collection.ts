@@ -37,13 +37,13 @@ export interface QuizToCollectionAnalytics {
 
 /**
  * Server Action: Save Quiz Recommendations as Collection - Task 1.2
- * 
+ *
  * Specialized Server Action for converting quiz results directly into user collections.
  * Handles both authenticated and guest users with proper quiz session attribution.
- * 
+ *
  * Features:
  * - Quiz session attribution for analytics
- * - Support for both auth and guest users  
+ * - Support for both auth and guest users
  * - Bulk collection creation from recommendations
  * - Analytics event tracking
  * - Proper validation and error handling
@@ -52,7 +52,11 @@ export async function saveQuizRecommendations(
   data: CollectionSaveData
 ): Promise<CollectionSaveResult> {
   try {
-    const { quiz_session_token, fragrance_ids, collection_name = "My Quiz Matches" } = data;
+    const {
+      quiz_session_token,
+      fragrance_ids,
+      collection_name = 'My Quiz Matches',
+    } = data;
 
     // Validate inputs
     if (!quiz_session_token) {
@@ -98,7 +102,9 @@ export async function saveQuizRecommendations(
     // Validate that fragrances exist and get their details
     const { data: fragrances, error: fragranceError } = await supabase
       .from('fragrances')
-      .select('id, name, brand_id, sample_price_usd, fragrance_brands!inner(name)')
+      .select(
+        'id, name, brand_id, sample_price_usd, fragrance_brands!inner(name)'
+      )
       .in('id', fragrance_ids);
 
     if (fragranceError) {
@@ -142,12 +148,12 @@ export async function saveQuizRecommendations(
           collection_items: fragrances.map(f => ({
             id: `existing-${f.id}`,
             fragrance_id: f.id,
-            fragrance_name: `${f.name} by ${f.fragrance_brands.name}`
+            fragrance_name: `${f.name} by ${Array.isArray(f.fragrance_brands) ? f.fragrance_brands[0]?.name : f.fragrance_brands?.name}`,
           })),
           collection_size: fragrances.length,
           quiz_session_token,
-          analytics_tracked: false
-        }
+          analytics_tracked: false,
+        },
       };
     }
 
@@ -165,8 +171,7 @@ export async function saveQuizRecommendations(
     // Insert collection items in batch
     const { data: insertedItems, error: insertError } = await supabase
       .from('user_collections')
-      .insert(collectionItems)
-      .select(`
+      .insert(collectionItems).select(`
         id,
         fragrance_id,
         fragrances!inner(
@@ -207,7 +212,7 @@ export async function saveQuizRecommendations(
     const responseItems = (insertedItems || []).map(item => ({
       id: item.id,
       fragrance_id: item.fragrance_id,
-      fragrance_name: `${item.fragrances.name} by ${item.fragrances.fragrance_brands.name}`
+      fragrance_name: `${item.fragrances.name} by ${Array.isArray(item.fragrances.fragrance_brands) ? item.fragrances.fragrance_brands[0]?.name : item.fragrances.fragrance_brands?.name}`,
     }));
 
     // Revalidate relevant paths
@@ -227,7 +232,6 @@ export async function saveQuizRecommendations(
         analytics_tracked: analyticsTracked,
       },
     };
-
   } catch (error) {
     console.error('Quiz collection save error:', error);
     unstable_rethrow(error);
@@ -241,7 +245,7 @@ export async function saveQuizRecommendations(
 
 /**
  * Analytics Tracking for Quiz-to-Collection Conversions
- * 
+ *
  * Tracks successful conversions from quiz completion to collection building
  * for business intelligence and conversion optimization.
  */
@@ -279,7 +283,6 @@ async function trackQuizToCollectionConversion(
     } catch (analyticsError) {
       console.warn('Analytics table not available yet:', analyticsError);
     }
-
   } catch (error) {
     console.warn('Failed to track quiz-to-collection conversion:', error);
     // Don't throw - analytics should never break the main flow
@@ -288,7 +291,7 @@ async function trackQuizToCollectionConversion(
 
 /**
  * Server Action: Get Quiz Session Collection Status
- * 
+ *
  * Check if recommendations from a quiz session have already been saved
  * to avoid duplicate saves and provide better UX.
  */
@@ -345,7 +348,6 @@ export async function getQuizSessionCollectionStatus(
       has_saved_collection: (count || 0) > 0,
       saved_count: count || 0,
     };
-
   } catch (error) {
     console.error('Quiz session collection status error:', error);
     unstable_rethrow(error);
@@ -361,7 +363,7 @@ export async function getQuizSessionCollectionStatus(
 
 /**
  * Server Action: Enhanced Collection Toggle with Quiz Attribution
- * 
+ *
  * Extends the basic collection toggle to support quiz session attribution
  * for better analytics and user journey tracking.
  */
@@ -459,7 +461,6 @@ export async function toggleCollectionWithQuizAttribution(
 
       in_collection = true;
       message = `Added "${fragrance.name}" to your collection`;
-
     } else if (action === 'remove') {
       // Remove from collection
       const { error } = await supabase
@@ -492,7 +493,6 @@ export async function toggleCollectionWithQuizAttribution(
       in_collection,
       message,
     };
-
   } catch (error) {
     console.error('Enhanced collection toggle error:', error);
     unstable_rethrow(error);

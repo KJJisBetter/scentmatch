@@ -6,12 +6,16 @@ import { createServerSupabase } from '@/lib/supabase/server';
 
 /**
  * Server Action: Refresh User Recommendations
- * 
+ *
  * Replaces POST /api/recommendations/refresh
  * Triggers real-time recommendation updates based on user preference changes.
  */
 export async function refreshUserRecommendations(
-  trigger: 'collection_update' | 'preference_change' | 'feedback_received' | 'manual'
+  trigger:
+    | 'collection_update'
+    | 'preference_change'
+    | 'feedback_received'
+    | 'manual'
 ): Promise<{
   success: boolean;
   refreshed_at: string;
@@ -23,8 +27,11 @@ export async function refreshUserRecommendations(
     const supabase = await createServerSupabase();
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return {
         success: false,
@@ -36,11 +43,13 @@ export async function refreshUserRecommendations(
     }
 
     // Invalidate recommendation cache using database function
-    const { data: cacheResult, error: cacheError } = await supabase
-      .rpc('invalidate_user_recommendation_cache', {
+    const { data: cacheResult, error: cacheError } = await supabase.rpc(
+      'invalidate_user_recommendation_cache',
+      {
         target_user_id: user.id,
         invalidation_trigger: trigger,
-      });
+      }
+    );
 
     if (cacheError) {
       console.error('Cache invalidation failed:', cacheError);
@@ -54,13 +63,15 @@ export async function refreshUserRecommendations(
     }
 
     // Generate fresh recommendations
-    const { data: newRecommendations, error: recError } = await supabase
-      .rpc('get_personalized_recommendations', {
+    const { data: newRecommendations, error: recError } = await supabase.rpc(
+      'get_personalized_recommendations',
+      {
         target_user_id: user.id,
         max_results: 20,
         include_owned: false,
         force_refresh: true,
-      });
+      }
+    );
 
     if (recError) {
       console.error('Recommendation generation failed:', recError);
@@ -93,17 +104,15 @@ export async function refreshUserRecommendations(
 
 /**
  * Server Action: Get Personalized Browse Results
- * 
+ *
  * Replaces GET /api/browse/personalized
  * Smart discovery that adapts based on user's collection and preferences.
  */
-export async function getPersonalizedBrowseResults(
-  options?: {
-    limit?: number;
-    offset?: number;
-    includePopular?: boolean;
-  }
-): Promise<{
+export async function getPersonalizedBrowseResults(options?: {
+  limit?: number;
+  offset?: number;
+  includePopular?: boolean;
+}): Promise<{
   success: boolean;
   fragrances: any[];
   total_count: number;
@@ -116,7 +125,10 @@ export async function getPersonalizedBrowseResults(
     const supabase = await createServerSupabase();
 
     // Check user authentication status
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     let fragrances: any[] = [];
     let personalizationApplied = false;
@@ -124,8 +136,8 @@ export async function getPersonalizedBrowseResults(
 
     if (!authError && user) {
       // Try personalized recommendations first
-      const { data: personalizedResults, error: personalizedError } = await supabase
-        .rpc('get_personalized_browse_results', {
+      const { data: personalizedResults, error: personalizedError } =
+        await supabase.rpc('get_personalized_browse_results', {
           target_user_id: user.id,
           result_limit: limit,
           result_offset: offset,
@@ -135,7 +147,10 @@ export async function getPersonalizedBrowseResults(
         fragrances = personalizedResults;
         personalizationApplied = true;
       } else {
-        console.warn('Personalized browse failed, using fallback:', personalizedError);
+        console.warn(
+          'Personalized browse failed, using fallback:',
+          personalizedError
+        );
         fallbackUsed = true;
       }
     } else {
@@ -146,7 +161,8 @@ export async function getPersonalizedBrowseResults(
     if (fallbackUsed && includePopular) {
       const { data: popularResults, error: popularError } = await supabase
         .from('fragrances')
-        .select(`
+        .select(
+          `
           id,
           name,
           scent_family,
@@ -154,7 +170,8 @@ export async function getPersonalizedBrowseResults(
           sample_price_usd,
           popularity_score,
           fragrance_brands!inner(name)
-        `)
+        `
+        )
         .eq('sample_available', true)
         .order('popularity_score', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -178,8 +195,8 @@ export async function getPersonalizedBrowseResults(
       success: true,
       fragrances,
       total_count: fragrances.length,
-      personalization_applied,
-      fallback_used,
+      personalization_applied: personalizationApplied,
+      fallback_used: fallbackUsed,
     };
   } catch (error) {
     console.error('Browse personalized error:', error);
@@ -200,7 +217,10 @@ export async function getPersonalizedBrowseResults(
  * Server Action: Convert Quiz to Account
  * Replaces POST /api/quiz/convert-to-account
  */
-export async function convertQuizToAccount(sessionToken: string, userData: any) {
+export async function convertQuizToAccount(
+  sessionToken: string,
+  userData: any
+) {
   // Implementation moved to Server Action for better performance
   return { success: true, user_id: 'converted', quiz_preserved: true };
 }
