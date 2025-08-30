@@ -1,3 +1,0 @@
-# Spec Summary (Lite)
-
-Implement foundational user authentication system and core fragrance database for ScentMatch AI-powered fragrance recommendation platform. Users can create accounts, manage profiles, search a 500+ fragrance database, and build personal collections with ratings and notes. This foundation enables secure user management and prepares the system for AI-powered personalized recommendations in Phase 1 MVP.

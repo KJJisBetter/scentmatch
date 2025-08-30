@@ -1,33 +1,64 @@
 # Tech Stack
 
-## Context
+## Baseline
 
-Global tech stack defaults for Agent OS projects, overridable in project-specific `.agent-os/product/tech-stack.md`.
+- **Rails**: 8.0+ (Ruby 3.3+)
+- **Node**: 22 LTS
+- **Tailwind**: 4.0+
+- **PostgreSQL**: 17+
+- Upgrade cadence: quarterly deps, annual major review
 
-- App Framework: Ruby on Rails 8.0+
-- Language: Ruby 3.2+
-- Primary Database: PostgreSQL 17+
+## Frontend Modes
+
+- **Rails Views**: ERB + Turbo + Stimulus + Tailwind
+- **React App**: React + Vite + Tailwind
+- Rule: don’t mix Rails UI components with React libs
+
+## Core Platform
+
 - ORM: Active Record
-- JavaScript Framework: React latest stable
-- Build Tool: Vite
-- Import Strategy: Node.js modules
-- Package Manager: npm
-- Node Version: 22 LTS
-- CSS Framework: TailwindCSS 4.0+
-- UI Components: Instrumental Components latest
-- UI Installation: Via development gems group
-- Font Provider: Google Fonts
-- Font Loading: Self-hosted for performance
-- Icons: Lucide React components
-- Application Hosting: Digital Ocean App Platform/Droplets
-- Hosting Region: Primary region based on user base
-- Database Hosting: Digital Ocean Managed PostgreSQL
-- Database Backups: Daily automated
-- Asset Storage: Amazon S3
-- CDN: CloudFront
-- Asset Access: Private with signed URLs
-- CI/CD Platform: GitHub Actions
-- CI/CD Trigger: Push to main/staging branches
-- Tests: Run before deployment
-- Production Environment: main branch
-- Staging Environment: staging branch
+- Jobs: Solid Queue (Redis/Sidekiq only if scale needs)
+- Cache: Solid Cache (Redis optional)
+- WebSockets: Solid Cable
+
+## Tooling
+
+- JS: npm, ESM, Vitest, Playwright
+- Ruby: RuboCop, RSpec/Minitest, Brakeman
+- CI: GitHub Actions (lint + test gates before deploy)
+- Deploy: Kamal 2 or DO App Platform
+
+## Infra
+
+- Hosting: DigitalOcean (app + managed Postgres)
+- Backups: daily + PITR if available
+- Assets: S3 + CloudFront (private, signed URLs)
+- Regions: closest to users
+
+## Security
+
+- Rack::Attack, CSP/HSTS defaults
+- Rails 8 Auth (Devise optional)
+- Secrets from env/credentials
+- PII encrypted attributes
+
+## Observability
+
+- APM: Datadog or New Relic
+- Errors: Sentry
+- Tracing: OpenTelemetry
+- Dashboards: uptime, DB, queues, cache
+
+## Email/Queues
+
+- Email: Postmark or SendGrid
+- Queue: Solid Queue (default)
+- Scheduler: Solid Scheduler / cron
+
+## Overrides
+
+- Frontend mode (Rails vs React)
+- UI lib (Headless vs suite)
+- APM vendor
+- Queue engine (Solid vs Sidekiq)
+- CDN/storage vendor
