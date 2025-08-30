@@ -1,35 +1,21 @@
 # HTML Style Guide
 
-## Structure Rules
-- Use 2 spaces for indentation
-- Place nested elements on new lines with proper indentation
-- Content between tags should be on its own line when multi-line
+## Structure
 
-## Attribute Formatting
-- Place each HTML attribute on its own line
-- Align attributes vertically
-- Keep the closing `>` on the same line as the last attribute
+- Indent with 2 spaces.
+- Nest elements on new lines.
+- Multi-line content → put content on its own line.
 
-## Example HTML Structure
+## Attributes
 
-```html
-<div class="container">
-  <header class="flex flex-col space-y-2
-                 md:flex-row md:space-y-0 md:space-x-4">
-    <h1 class="text-primary dark:text-primary-300">
-      Page Title
-    </h1>
-    <nav class="flex flex-col space-y-2
-                md:flex-row md:space-y-0 md:space-x-4">
-      <a href="/"
-         class="btn-ghost">
-        Home
-      </a>
-      <a href="/about"
-         class="btn-ghost">
-        About
-      </a>
-    </nav>
-  </header>
-</div>
-```
+- Each attribute on its own line for long tags.
+- Align vertically; closing `>` on same line as last attribute.
+- Use double quotes for values.
+- Boolean attributes without value (`disabled`, `checked`).
+
+## Rules
+
+- Always start with `<!DOCTYPE html>`.
+- Use semantic tags (`<header>`, `<main>`, `<section>`, `<footer>`).
+- Void elements (`<img>`, `<br>`, `<input>`) never have closing tags.
+- Use lowercase for all tags/attributes.

@@ -1,43 +1,40 @@
 # ScentMatch Standards
 
-@AGENTS.md
 @rules.md
 
-You're a senior full-stack engineer. Build a fragrance discovery platform that's fast, beautiful, and works flawlessly.
+You are a senior full-stack engineer. Build a fast, beautiful, reliable fragrance discovery app.
 
 ## Philosophy
-Keep it simple. Use proven patterns. Test everything users touch. Ship quality code fast.
+
+- Keep it simple
+- Prefer proven patterns
+- Test everything users touch
+- Ship small, high-quality increments
 
 ## Tech Stack
-- Next.js 15+ Server Actions for collections/wishlist/feedback
-- API routes for search/AI only  
+
+- Next.js 15+: Server Actions (collections, wishlist, feedback)
+- API routes only for search + AI
 - shadcn/ui components (never custom)
 - @supabase/ssr everywhere
-- React Hook Form + Zod validation
+- React Hook Form + Zod
 - UnifiedRecommendationEngine for AI
 
-## Rules
-- Files under 200 lines
-- Browser test all UI changes (@qa-specialist)
-- Use proven libraries over custom code
-- Work on max 2 features at once
-- Feature branches only, never push to main
+## Current Code Map
 
-## Agent Delegation
-- **Database**: @database-operations-expert (Supabase)
-- **Testing**: @qa-specialist (Playwright browser automation)
-- **Components**: @react-component-expert (shadcn/ui + testing)
-- **Deployment**: @devops-engineer (Vercel + GitHub CLI)
-- **Research**: @market-researcher (Exa/Firecrawl data)
+- Collections: `lib/actions/collections.ts`
+- Search: Fuse.js + Command component
+- AI: `lib/ai-sdk/unified-recommendation-engine.ts`
+- Supabase: `lib/supabase/server.ts`
 
-## Current Working Code
-- Collections: lib/actions/collections.ts (Server Actions)
-- Search: Fuse.js + Command component  
-- AI: lib/ai-sdk/unified-recommendation-engine.ts
-- Database: lib/supabase/server.ts (@supabase/ssr)
+## Task Flow
+
+1. **Research** (unless 100% certain) → note source + version/date
+2. **Plan** small diff (≤200 lines per file); confirm A vs B if unsure
+3. **Implement** using stack rules (no custom components/utilities)
+4. **Verify**: `pnpm typecheck && pnpm lint && pnpm test:e2e`
+5. **PR Notes**: brief “why”, list research sources (name + version/date), and attach Playwright summary
 
 ## When Uncertain
-Stop. Ask: "Should I [A] or [B]?"
 
-## Recently Learned
-(Update after each session)
+Ask: “Should I [A] or [B]?”

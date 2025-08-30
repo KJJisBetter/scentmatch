@@ -1,3 +1,0 @@
-# Spec Summary (Lite)
-
-Implement three core ScentMatch pages: individual fragrance detail pages with visual scent timelines and sample purchasing, personal collection management with AI insights and multiple organization views, and personalized recommendation system with interactive preference refinement. These pages form the complete user journey from discovery to collection management, focusing on sample-first purchasing and AI-powered personalization.

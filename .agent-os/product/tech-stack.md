@@ -1,80 +1,145 @@
 # Technical Stack
 
-## Frontend Framework
+> Last Updated: 2025-08-30
+> Version: 1.0.0
 
-- **App Framework:** Next.js 15+ (App Router)
-- **Language:** TypeScript 5.0+
-- **React Version:** React 19 (latest stable)
-- **Build Tool:** Next.js built-in (Turbopack)
-- **Package Manager:** npm
-- **Node Version:** 22 LTS
+## Application Framework
 
-## Styling & UI
+- **Framework:** Next.js 15 with App Router
+- **Version:** 15.x (latest stable)
+- **Runtime:** React 19 with Server Components
+- **Language:** TypeScript 5+ with strict configuration
+- **Build System:** Turbopack for development, webpack for production
 
-- **CSS Framework:** TailwindCSS 4.0+
-- **UI Component Library:** Shadcn/ui (latest)
-- **Icons:** Lucide React components
-- **Font Provider:** Google Fonts
-- **Font Loading:** Self-hosted via next/font for performance
+## Database
 
-## Database & Backend
+- **Primary Database:** Supabase PostgreSQL
+- **Authentication:** @supabase/ssr with Row Level Security (RLS)
+- **Real-time:** Supabase Realtime subscriptions
+- **Migrations:** Supabase CLI with version control
+- **Connection Pattern:** @supabase/ssr throughout (server/client separation)
 
-- **Primary Database:** Supabase (PostgreSQL 17+ with pgvector)
-- **Vector Database:** Supabase Vector (built-in pgvector extension)
-- **ORM/Database Toolkit:** Supabase JavaScript Client + TypeScript types
-- **API Strategy:** Next.js API Routes + Server Actions + Supabase Edge Functions
-- **Authentication:** Supabase Auth (built-in with social providers)
-- **File Storage:** Supabase Storage (for fragrance images/assets)
+## JavaScript
 
-## AI & Recommendations (Research-Backed)
+- **Framework:** React 19 with Server Components
+- **State Management:** React hooks + Server Actions for data mutations
+- **Forms:** React Hook Form + Zod validation
+- **Data Fetching:** Server Components + Server Actions (no API routes for CRUD)
+- **Type Safety:** TypeScript with Zod schema validation
 
-- **AI Platform:** OpenAI GPT-4 API (for recommendations and analysis)
-- **Embedding Model:** Voyage AI voyage-3.5 (best performance for retrieval)
-- **Embedding Fallback:** OpenAI text-embedding-3-large (if Voyage unavailable)
-- **Vector Similarity:** Supabase pgvector with automatic embedding pipeline
-- **AI SDK:** Vercel AI SDK + Supabase Edge Functions
+## CSS Framework
+
+- **Framework:** Tailwind CSS 3.x
+- **Component Library:** shadcn/ui (Radix UI primitives)
+- **Design System:** Custom design tokens via Tailwind config
+- **Responsive:** Mobile-first approach with Tailwind breakpoints
+- **Icons:** Lucide React icon library
+
+## AI & Search
+
+- **AI Provider:** OpenAI GPT-3.5-turbo (upgrading to GPT-5)
+- **AI SDK:** Vercel AI SDK for streaming responses
+- **AI Architecture:** UnifiedRecommendationEngine with personality analysis
+- **Search Engine:** Fuse.js for fuzzy search with shadcn Command component
+- **Vector Search:** Planned Supabase pgvector integration
+
+## Data Architecture
+
+- **API Pattern:** Server Actions for collections/wishlist/feedback
+- **Search API:** API routes for search/AI processing only
+- **Data Flow:** Server Components → Server Actions → Supabase
+- **Caching:** Next.js built-in caching + Supabase query caching
+- **Real-time:** Supabase subscriptions for live updates
+
+## Testing & Quality
+
+- **Unit Testing:** Vitest with React Testing Library
+- **Browser Testing:** Playwright for end-to-end automation
+- **Accessibility:** Playwright accessibility testing + axe-core
+- **Type Checking:** TypeScript strict mode with eslint-plugin-typescript
+- **Linting:** ESLint + Prettier with custom rules
+- **Performance:** Vercel Analytics + Web Vitals monitoring
 
 ## Deployment & Infrastructure
 
-- **Application Hosting:** Vercel (optimal for Next.js)
-- **Database Hosting:** Supabase (managed PostgreSQL with real-time)
-- **CDN:** Vercel Edge Network (built-in)
-- **Analytics:** Vercel Analytics + Vercel Speed Insights
-- **Monitoring:** Sentry for error tracking + Supabase logs
+- **Hosting:** Vercel with optimized Next.js deployment
+- **Database:** Supabase managed PostgreSQL
+- **CDN:** Vercel Edge Network for global performance
+- **Analytics:** Vercel Analytics + Speed Insights
+- **Monitoring:** Built-in error tracking and performance metrics
+- **CI/CD:** GitHub Actions with Vercel integration
 
-## Development & Quality
-
-- **Testing Framework:** Vitest + React Testing Library
-- **E2E Testing:** Playwright
-- **Code Quality:** ESLint + Prettier + TypeScript strict mode
-- **Git Hooks:** Husky + lint-staged
-- **CI/CD:** Vercel automatic deployments
-- **Environment Management:** Vercel environments (production/preview)
-
-## Performance & SEO
-
-- **Image Optimization:** Next.js Image component
-- **Caching Strategy:** Next.js built-in caching + Redis for sessions
-- **SEO:** Next.js Metadata API
-- **Performance Monitoring:** Vercel Speed Insights + Core Web Vitals
-
-## Third-Party Services
-
-- **Embedding API:** Voyage AI API (primary) + OpenAI API (fallback)
-- **Affiliate Management:** Impact Radius or Commission Junction
-- **Video Integration:** YouTube Data API v3
-- **Social Media APIs:** TikTok API, Facebook Graph API
-- **Email Service:** Resend (better Next.js integration)
-- **Payment Processing:** Stripe (for premium features)
-
-## AI Architecture Rationale
-
-- **Supabase Choice:** Unified platform eliminates separate vector database costs, provides real-time updates, ACID transactions for fragrance data consistency
-- **Voyage AI Choice:** Latest 2024-2025 technology optimized for retrieval tasks, outperforms OpenAI in similarity search benchmarks, 50% cost savings
-- **Automatic Embeddings:** Supabase triggers + Edge Functions auto-generate embeddings when fragrance data changes, ensuring recommendations stay current
-
-## Code Repository
+## Development Tools
 
 - **Version Control:** Git with GitHub
-- **Repository Structure:** Monorepo with Next.js app
-- **Branch Strategy:** main (production), develop (staging), feature branches
+- **Package Manager:** npm with package-lock.json
+- **Development Server:** Next.js dev server with hot reload
+- **Environment:** Node.js 18+ with environment variable management
+- **IDE Integration:** VSCode with TypeScript and Tailwind extensions
+
+## Security & Performance
+
+- **Authentication:** Supabase Auth with RLS policies
+- **Authorization:** Row Level Security at database level
+- **HTTPS:** Enforced SSL/TLS via Vercel
+- **Performance:** Image optimization, code splitting, lazy loading
+- **SEO:** Next.js metadata API with dynamic meta generation
+- **Accessibility:** WCAG 2.1 AA compliance testing
+
+## Build & Development Commands
+
+```bash
+# Development
+npm run dev              # Start development server
+npm run type-check       # TypeScript validation
+npm run lint            # ESLint + Prettier
+npm run test            # Vitest unit tests
+
+# Production
+npm run build           # Production build
+npm run start           # Start production server
+npm run preview         # Preview production build
+```
+
+## Architecture Principles
+
+- **Server-First:** Leverage Server Components and Server Actions
+- **Type Safety:** End-to-end TypeScript with Zod validation
+- **Performance:** Mobile-first responsive design with optimization
+- **Accessibility:** WCAG compliance with automated testing
+- **Maintainability:** Files under 200 lines, proven patterns only
+- **Testing:** Browser testing required for all UI changes
+
+## Current Implementation Status
+
+**✅ Completed Infrastructure:**
+
+- Next.js 15 with App Router and TypeScript
+- Supabase integration with @supabase/ssr pattern
+- shadcn/ui component system with Tailwind CSS
+- Server Actions for data mutations
+- Playwright + Vitest testing setup
+- Vercel deployment with analytics
+
+**✅ Core Systems:**
+
+- UnifiedRecommendationEngine for AI recommendations
+- Interactive quiz system with state management
+- Collection management with Server Actions
+- Advanced search with Fuse.js integration
+- User authentication and database schema
+- Performance monitoring and SEO optimization
+
+**🔄 In Progress:**
+
+- Enhanced search patterns and filtering
+- Collection organization improvements
+- AI recommendation refinements
+- Mobile UX optimizations
+
+**📋 Planned Upgrades:**
+
+- GPT-5 integration for advanced AI features
+- Supabase pgvector for semantic search
+- Affiliate partnership integrations
+- Subscription tier implementation

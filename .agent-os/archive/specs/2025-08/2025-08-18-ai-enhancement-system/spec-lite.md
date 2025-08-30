@@ -1,3 +1,0 @@
-# Spec Summary (Lite)
-
-Transform ScentMatch into a fully AI-powered fragrance discovery platform with vendor-agnostic architecture supporting automated embedding generation, intelligent natural language search, and real-time personalization. Implement multi-provider AI system using Voyage AI for embeddings and hybrid recommendation engine that learns from user behavior while regenerating all database embeddings post-cleanup.

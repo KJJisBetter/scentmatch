@@ -54,7 +54,6 @@ interface CollectionItem {
   rating?: number;
   notes?: string;
   purchase_date?: string;
-  purchase_date?: string;
   purchase_price?: number;
   added_at: string;
   fragrances: Fragrance;
@@ -237,10 +236,11 @@ export function CollectionDataTable({
       },
     },
     {
-      accessorKey: 'rating',
-      header: 'Rating',
+      accessorKey: 'usage_frequency',
+      header: 'Usage Frequency',
       cell: ({ row }) => {
-        const rating = row.getValue('rating') as number;
+        // TODO: Add usage_frequency field to CollectionItem interface when implementing usage tracking
+        const frequency = row.getValue('usage_frequency') as string | undefined;
         const displayMap = {
           daily: 'Daily',
           weekly: 'Weekly',
@@ -251,7 +251,7 @@ export function CollectionDataTable({
           <div className='flex items-center space-x-1'>
             <Clock className='h-3 w-3 text-muted-foreground' />
             <span className='text-sm'>
-              {frequency
+              {frequency && frequency in displayMap
                 ? displayMap[frequency as keyof typeof displayMap]
                 : 'Not set'}
             </span>
