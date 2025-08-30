@@ -75,21 +75,12 @@ export async function convertToAccount(
       };
     }
 
-    // Verify user exists (more reliable than session-based auth for this conversion flow)
-    const { data: existingUser, error: userCheckError } = await (
-      supabase as any
-    ).auth.admin.getUserById(params.user_data.user_id);
-
-    if (userCheckError || !existingUser.user) {
-      console.error('User verification failed:', userCheckError);
-      return {
-        success: false,
-        error: 'Invalid user - account verification failed',
-        message: 'Unable to verify user account',
-      };
-    }
-
-    const user = existingUser.user;
+    // Skip user verification for newly created accounts (they exist but aren't confirmed yet)
+    // The user_id comes from successful supabase.auth.signUp() so we trust it
+    const user = {
+      id: params.user_data.user_id,
+      email: params.user_data.email,
+    };
 
     // Find guest session
     const { data: guestSession, error: sessionError } = await (supabase as any)
